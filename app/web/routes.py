@@ -6,14 +6,24 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request, Response, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from sqlalchemy.orm import Session
 
+from app.auth.session import current_user, guest_session_id
 from app.core.config import Settings, get_settings
-from app.db.session import database_is_ready
+from app.db.session import database_is_ready, get_session
 from app.investigation.claim import InvalidClaimError, validate_claim
 from app.investigation.pipeline import InvestigationPipelineError
 from app.investigation.repository import InvestigationNotFoundError
 from app.web.csrf import csrf_token, require_csrf
-from app.web.i18n import CONFIDENCE_COPY, STATUS_COPY, VERDICT_COPY, copy_for
+from app.web.i18n import (
+    CONFIDENCE_COPY,
+    STATUS_COPY,
+    VERDICT_COPY,
+    account_copy_for,
+    copy_for,
+    language_from_request,
+    language_switch_url,
+)
 from app.web.service import InvestigationWebService
 
 router = APIRouter()
@@ -27,13 +37,6 @@ def get_investigation_service(request: Request) -> InvestigationWebService:
     return cast(InvestigationWebService, request.app.state.investigation_service)
 
 
-def language_from_request(request: Request) -> str:
-    requested = request.query_params.get("lang")
-    if requested in {"en", "hu"}:
-        return requested
-    return "hu" if request.headers.get("accept-language", "").lower().startswith("hu") else "en"
-
-
 def render(
     request: Request,
     template: str,
@@ -44,6 +47,15 @@ def render(
     base_context: dict[str, object] = {
         "app_name": request.app.state.settings.app_name,
         "app_version": request.app.state.settings.app_version,
+    }
+    base_context["current_user"] = request.session.get("user_id")
+    context_language = context.get("language")
+    base_context["a"] = account_copy_for(
+        context_language if isinstance(context_language, str) else "en"
+    )
+    base_context["language_urls"] = {
+        "en": language_switch_url(request, "en"),
+        "hu": language_switch_url(request, "hu"),
     }
     base_context.update(context)
     return cast(
@@ -76,12 +88,19 @@ async def submit_claim(
     claim: Annotated[str, Form()],
     csrf: Annotated[str, Form()],
     service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
+    session: Annotated[Session, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> Response:
     require_csrf(request, csrf)
     language = language_from_request(request)
     try:
         validate_claim(claim)
-        investigation_id, _ = await service.interpret(claim)
+        user = current_user(request, session, settings)
+        investigation_id, _ = await service.interpret(
+            claim,
+            user_id=user.id if user else None,
+            session_id=None if user else guest_session_id(request),
+        )
     except InvalidClaimError as exc:
         return render(
             request,

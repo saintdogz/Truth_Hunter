@@ -23,8 +23,19 @@ class InvestigationRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def create(self, original_claim: str) -> Investigation:
-        investigation = Investigation(original_claim=original_claim, status="CREATED")
+    def create(
+        self,
+        original_claim: str,
+        *,
+        user_id: UUID | None = None,
+        session_id: str | None = None,
+    ) -> Investigation:
+        investigation = Investigation(
+            original_claim=original_claim,
+            status="CREATED",
+            user_id=user_id,
+            session_id=session_id if user_id is None else None,
+        )
         self._session.add(investigation)
         self._session.commit()
         self._session.refresh(investigation)

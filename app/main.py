@@ -12,18 +12,28 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from app.auth.email import create_account_email_sender
+from app.auth.rate_limit import AuthRateLimiter
+from app.auth.routes import router as auth_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
+from app.web.i18n import account_copy_for, language_from_request, language_switch_url
 from app.web.routes import router
 from app.web.service import InvestigationWebService
 
 APP_DIR = Path(__file__).resolve().parent
 
 
+def validate_runtime_adapters(settings: Settings) -> None:
+    if settings.app_env == "production" and settings.email_delivery_mode == "development":
+        raise ValueError("Production email delivery must be configured before deployment")
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Create an independently testable Truth Hunter application."""
 
     resolved_settings = settings or get_settings()
+    validate_runtime_adapters(resolved_settings)
     configure_logging(resolved_settings.app_log_level)
     app = FastAPI(
         title=resolved_settings.app_name,
@@ -34,6 +44,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = resolved_settings
     app.state.templates = Jinja2Templates(directory=APP_DIR / "templates")
     app.state.investigation_service = InvestigationWebService(resolved_settings)
+    app.state.account_email_sender = create_account_email_sender(resolved_settings)
+    app.state.auth_rate_limiter = AuthRateLimiter(
+        limit=resolved_settings.auth_attempt_limit,
+        window_seconds=resolved_settings.auth_attempt_window_seconds,
+    )
 
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=resolved_settings.trusted_hosts)
     app.add_middleware(
@@ -62,7 +77,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 app.state.templates.TemplateResponse(
                     request=request,
                     name="errors/404.html",
-                    context={"app_name": resolved_settings.app_name},
+                    context={
+                        "app_name": resolved_settings.app_name,
+                        "app_version": resolved_settings.app_version,
+                        "language": language_from_request(request),
+                        "a": account_copy_for(language_from_request(request)),
+                        "current_user": request.session.get("user_id"),
+                        "language_urls": {
+                            "en": language_switch_url(request, "en"),
+                            "hu": language_switch_url(request, "hu"),
+                        },
+                    },
                     status_code=404,
                 ),
             )
@@ -74,6 +99,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return JSONResponse({"detail": "Invalid request"}, status_code=422)
 
     app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
+    app.include_router(auth_router)
     app.include_router(router)
     return app
 

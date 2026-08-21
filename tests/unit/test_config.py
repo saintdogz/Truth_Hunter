@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.core.config import Settings
+from app.main import validate_runtime_adapters
 
 
 def test_trusted_hosts_are_parsed() -> None:
@@ -28,6 +29,17 @@ def test_production_accepts_replaced_secret() -> None:
     assert settings.app_env == "production"
 
 
+def test_production_rejects_development_email_adapter() -> None:
+    settings = Settings(
+        app_env="production",
+        app_secret="a-unique-production-value",
+        email_delivery_mode="development",
+    )
+
+    with pytest.raises(ValueError, match="Production email"):
+        validate_runtime_adapters(settings)
+
+
 def test_phase_two_resource_limits_are_validated() -> None:
     with pytest.raises(ValidationError):
         Settings(app_env="test", source_useful_limit=16)
@@ -40,6 +52,12 @@ def test_production_rejects_placeholder_ai_key() -> None:
             app_secret="a-unique-production-value",
             ai_api_key="development-only-change-me",
         )
+
+
+def test_empty_optional_ai_key_is_unset() -> None:
+    settings = Settings(app_env="test", ai_api_key="")
+
+    assert settings.ai_api_key is None
 
 
 def test_deepseek_provider_is_accepted() -> None:

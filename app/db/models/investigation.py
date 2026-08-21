@@ -17,6 +17,10 @@ class Investigation(Base):
     __tablename__ = "investigations"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    session_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     original_claim: Mapped[str] = mapped_column(Text)
     interpreted_claim: Mapped[str | None] = mapped_column(Text, nullable=True)
     language: Mapped[str | None] = mapped_column(String(8), nullable=True)
@@ -49,6 +53,7 @@ class Investigation(Base):
     evidence: Mapped[list["EvidenceRecord"]] = relationship(
         back_populates="investigation", cascade="all, delete-orphan"
     )
+    user: Mapped["User | None"] = relationship(back_populates="investigations")
 
 
 class Source(Base):
@@ -97,3 +102,6 @@ class EvidenceRecord(Base):
 
     investigation: Mapped[Investigation] = relationship(back_populates="evidence")
     source: Mapped[Source] = relationship(back_populates="evidence")
+
+
+from app.db.models.user import User  # noqa: E402

@@ -1,6 +1,6 @@
 # Truth Hunter
 
-Truth Hunter is a self-hosted evidence-investigation web application. This repository currently implements **Phases 1 through 3** of `TRUTH_HUNTER_SPEC.md`: the deployable foundation, provider-neutral investigation engine, and public investigation experience.
+Truth Hunter is a self-hosted evidence-investigation web application. This repository currently implements **Phases 1 through 3** and the self-hosted account foundation from Phase 4 of `TRUTH_HUNTER_SPEC.md`.
 
 Version: **0.1.0**
 
@@ -27,8 +27,11 @@ Implemented:
 - Background investigation execution with a polling progress experience
 - Bilingual assessment pages with evidence balance, confidence, strongest arguments, conflict disclosure, methodology, and run metadata
 - Server-side withholding of detailed evidence excerpts and source URLs until Phase 5 entitlements exist
+- Email/password accounts with Argon2id hashing, signed verification and reset links, secure signed sessions, CSRF protection, and authentication attempt throttling
+- Investigation history, guest-investigation claiming, logout, and account/data deletion
+- Replaceable account-email boundary with development-only in-memory delivery and a Resend transactional adapter
 
-Authentication, payments, credits, analytics, sharing, detailed source access, and other later-phase features are not implemented.
+Google OAuth still requires provider credentials. Resend production delivery requires a verified sender domain, `EMAIL_DELIVERY_MODE=resend`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and a public `PUBLIC_BASE_URL`. Payments, credits, analytics, sharing, detailed source access, and other later-phase features are not implemented.
 
 ## Requirements
 
@@ -104,7 +107,7 @@ docker compose exec truthhunter alembic downgrade -1
 docker compose exec truthhunter alembic revision --autogenerate -m "describe change"
 ```
 
-Every schema change must be represented by an Alembic migration. Phase 1 creates the baseline, Phase 2 adds the `investigations`, `sources`, and `evidence` snapshot tables, and Phase 3 records one-time claim correction state.
+Every schema change must be represented by an Alembic migration. Phase 1 creates the baseline, Phase 2 adds investigation snapshots, Phase 3 records confirmation state, and the Phase 4 foundation adds users and investigation ownership.
 
 ## Health endpoints
 
