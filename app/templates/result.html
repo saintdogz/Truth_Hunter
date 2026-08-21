@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ t.result_title }} — Truth Hunter{% endblock %}
+{% block content %}
+  <article class="result-page">
+    <header class="result-header"><div class="signal-line"><span></span>{{ t.result_title }}</div><dl class="claim-comparison compact"><div><dt>{{ t.original }}</dt><dd>{{ investigation.original_claim }}</dd></div><div><dt>{{ t.interpreted }}</dt><dd>{{ investigation.interpreted_claim }}</dd></div></dl></header>
+    <section class="assessment-grid"><div class="verdict-card verdict-{{ investigation.verdict|lower }}"><span>{{ t.assessment }}</span><strong>{{ verdict_label }}</strong></div><div class="confidence-card"><span>{{ t.confidence }}</span><strong>{{ confidence_label }}</strong></div></section>
+    <section class="balance-card"><div class="section-heading"><h2>{{ t.balance }}</h2><span>≠ {{ t.not_probability }}</span></div>
+      {% if investigation.supporting_score is not none %}<div class="balance-labels"><strong>{{ investigation.supporting_score|round(1) }}% PRO</strong><strong>{{ investigation.contradicting_score|round(1) }}% CONTRA</strong></div><div class="balance-bar" role="img" aria-label="{{ investigation.supporting_score }} percent supporting, {{ investigation.contradicting_score }} percent contradicting"><span class="support" style="width: {{ investigation.supporting_score }}%"></span><span class="contradict"></span></div>{% else %}<p class="muted">{{ t.insufficient_balance }}</p>{% endif %}
+      <p class="result-summary">{{ investigation.summary }}</p></section>
+    {% if investigation.conflict_detected %}<aside class="conflict-warning"><strong>⚠ {{ t.conflict }}</strong><p>{{ investigation.conflict_summary }}</p></aside>{% endif %}
+    <section class="argument-grid"><div class="argument-card pro"><h2>{{ t.pro }}</h2>{% if investigation.pro_arguments %}<ol>{% for item in investigation.pro_arguments[:3] %}<li>{{ item }}</li>{% endfor %}</ol>{% else %}<p class="muted">—</p>{% endif %}</div><div class="argument-card contra"><h2>{{ t.contra }}</h2>{% if investigation.contra_arguments %}<ol>{% for item in investigation.contra_arguments[:3] %}<li>{{ item }}</li>{% endfor %}</ol>{% else %}<p class="muted">—</p>{% endif %}</div></section>
+    <details class="methodology"><summary>{{ t.methodology }}</summary><p>{{ t.method_text }}</p></details>
+    <section class="metadata-card"><h2>{{ t.metadata }}</h2><dl><div><dt>{{ t.timestamp }}</dt><dd>{{ investigation.completed_at }}</dd></div><div><dt>{{ t.ai_model }}</dt><dd>{{ investigation.ai_model }}</dd></div><div><dt>{{ t.search }}</dt><dd>{{ investigation.search_provider }} · EN + HU</dd></div><div><dt>{{ t.sources_analyzed }}</dt><dd>{{ investigation.source_count }}</dd></div><div><dt>{{ t.method }}</dt><dd>{{ investigation.scoring_version }} · {{ investigation.prompt_version }}</dd></div></dl></section>
+    <section class="locked-card"><div aria-hidden="true">⌁</div><h2>{{ t.sources }}</h2><p>{{ t.locked }}</p></section><a class="button secondary" href="/?lang={{ language }}">← {{ t.new }}</a>
+  </article>
+{% endblock %}

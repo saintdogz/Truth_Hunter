@@ -1,6 +1,6 @@
 # Truth Hunter
 
-Truth Hunter is a self-hosted evidence-investigation web application. This repository currently implements **Phases 1 and 2** of `TRUTH_HUNTER_SPEC.md`: the deployable foundation and provider-neutral investigation engine.
+Truth Hunter is a self-hosted evidence-investigation web application. This repository currently implements **Phases 1 through 3** of `TRUTH_HUNTER_SPEC.md`: the deployable foundation, provider-neutral investigation engine, and public investigation experience.
 
 Version: **0.1.0**
 
@@ -9,7 +9,7 @@ Version: **0.1.0**
 Implemented:
 
 - FastAPI application factory and server-rendered Jinja2 foundation
-- Branded placeholder homepage with no claim form or investigation behavior
+- Branded bilingual claim-submission homepage
 - PostgreSQL connectivity through SQLAlchemy 2
 - Alembic migration baseline
 - Independent liveness and database-aware readiness endpoints
@@ -22,8 +22,13 @@ Implemented:
 - Deterministic evidence weighting, sufficiency, confidence, conflict, and verdict rules
 - Historical investigation, source, and evidence persistence
 - A mocked end-to-end investigation pipeline integration test
+- Session-bound CSRF protection for public forms
+- Claim interpretation, confirmation, and one-time correction flow
+- Background investigation execution with a polling progress experience
+- Bilingual assessment pages with evidence balance, confidence, strongest arguments, conflict disclosure, methodology, and run metadata
+- Server-side withholding of detailed evidence excerpts and source URLs until Phase 5 entitlements exist
 
-The Phase 2 engine is intentionally not exposed through the placeholder homepage. Claim confirmation, progress, and result pages belong to Phase 3. Authentication, payments, credits, analytics, sharing, and other later-phase features are not implemented.
+Authentication, payments, credits, analytics, sharing, detailed source access, and other later-phase features are not implemented.
 
 ## Requirements
 
@@ -45,7 +50,7 @@ Start-Process http://localhost
 
 Replace all `change-me` development values before any production deployment. The application container applies Alembic migrations before starting. PostgreSQL and SearXNG are internal-only; Caddy is the public entry point.
 
-Real investigations require a valid `AI_API_KEY`. The application can start and serve the placeholder and health routes without one; provider creation fails closed if an investigation is requested without a key.
+Real investigations require a valid `AI_API_KEY`. The application can start and serve the homepage and health routes without one; provider creation fails closed if an investigation is requested without a key.
 
 Inspect logs and shut down without deleting data:
 
@@ -99,7 +104,7 @@ docker compose exec truthhunter alembic downgrade -1
 docker compose exec truthhunter alembic revision --autogenerate -m "describe change"
 ```
 
-Every schema change must be represented by an Alembic migration. Phase 1 creates the baseline; Phase 2 adds the `investigations`, `sources`, and `evidence` snapshot tables.
+Every schema change must be represented by an Alembic migration. Phase 1 creates the baseline, Phase 2 adds the `investigations`, `sources`, and `evidence` snapshot tables, and Phase 3 records one-time claim correction state.
 
 ## Health endpoints
 
@@ -115,6 +120,6 @@ Every schema change must be represented by an Alembic migration. Phase 1 creates
 - PostgreSQL and SearXNG have no published host ports.
 - Debug documentation endpoints are disabled when `APP_ENV=production`.
 - Fetching blocks non-public address ranges and internal hostnames, revalidates redirects, bounds time/size/redirects, checks content types, and ignores environment proxies. Further production SSRF hardening remains in Phase 8.
-- Backup/encryption, CSRF, rate limiting, authentication security, and provider-specific production hardening remain in their specification phases.
+- Backup/encryption, rate limiting, authentication security, and provider-specific production hardening remain in their specification phases.
 
 The product specification remains authoritative: [`TRUTH_HUNTER_SPEC.md`](TRUTH_HUNTER_SPEC.md).

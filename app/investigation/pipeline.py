@@ -89,13 +89,15 @@ class InvestigationPipeline:
         return investigation.id, interpretation
 
     async def investigate_confirmed(
-        self, investigation_id: UUID, confirmed_claim: str
+        self, investigation_id: UUID, confirmed_claim: str, *, corrected: bool = False
     ) -> AssessmentDraft:
         validate_claim(confirmed_claim)
         investigation = self._repository.get(investigation_id)
         language = investigation.language or detect_language(confirmed_claim)
         claim_type_value = investigation.claim_type or "factual"
-        self._repository.save_confirmed_claim(investigation_id, confirmed_claim)
+        self._repository.save_confirmed_claim(
+            investigation_id, confirmed_claim, corrected=corrected
+        )
 
         try:
             self._repository.set_status(investigation_id, "SEARCHING")
@@ -148,3 +150,11 @@ class InvestigationPipeline:
         except Exception as exc:
             self._repository.set_status(investigation_id, "FAILED")
             raise InvestigationPipelineError("Investigation failed") from exc
+
+    async def aclose(self) -> None:
+        """Close provider-owned network clients when the pipeline scope ends."""
+
+        for component in (self._search, self._fetcher):
+            close = getattr(component, "close", None)
+            if close is not None:
+                await close()

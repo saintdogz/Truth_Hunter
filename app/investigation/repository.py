@@ -66,9 +66,14 @@ class InvestigationRepository:
         self._session.refresh(source)
         return source
 
-    def save_confirmed_claim(self, investigation_id: UUID, confirmed_claim: str) -> None:
+    def save_confirmed_claim(
+        self, investigation_id: UUID, confirmed_claim: str, *, corrected: bool = False
+    ) -> None:
         investigation = self.get(investigation_id)
+        if corrected and investigation.correction_used:
+            raise ValueError("The single claim correction has already been used")
         investigation.interpreted_claim = confirmed_claim
+        investigation.correction_used = investigation.correction_used or corrected
         self._session.commit()
 
     def add_evidence(
