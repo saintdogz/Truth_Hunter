@@ -154,7 +154,7 @@ class InvestigationPipeline:
     async def aclose(self) -> None:
         """Close provider-owned network clients when the pipeline scope ends."""
 
-        for component in (self._search, self._fetcher):
+        for component in (self._ai, self._search, self._fetcher):
             close = getattr(component, "close", None)
             if close is not None:
                 await close()

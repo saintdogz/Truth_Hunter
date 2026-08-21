@@ -34,6 +34,9 @@ class OpenAIProvider:
         self.model_name = model
         self._client = client or AsyncOpenAI(api_key=api_key, max_retries=2, timeout=60)
 
+    async def close(self) -> None:
+        await self._client.close()
+
     async def _parse(
         self, instructions: str, data: dict[str, object], schema: type[StructuredOutput]
     ) -> StructuredOutput:

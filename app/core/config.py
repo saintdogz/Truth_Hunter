@@ -30,9 +30,12 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://truthhunter:development-only-change-me@localhost:5432/truthhunter"
     )
-    ai_provider: Literal["openai", "deepseek"] = "openai"
+    ai_provider: Literal["openai", "deepseek", "groq"] = "openai"
     ai_api_key: SecretStr | None = None
     ai_model: str = "gpt-5-mini"
+    ai_fallback_provider: Literal["openai", "deepseek", "groq"] | None = None
+    ai_fallback_api_key: SecretStr | None = None
+    ai_fallback_model: str | None = None
     searxng_url: AnyHttpUrl = AnyHttpUrl("http://searxng:8080")
     search_result_limit: int = Field(default=20, ge=1, le=50)
     source_useful_limit: int = Field(default=15, ge=1, le=15)
@@ -55,6 +58,16 @@ class Settings(BaseSettings):
             raise ValueError("DATABASE_URL must use PostgreSQL with Psycopg")
         return value
 
+    @field_validator(
+        "ai_fallback_provider",
+        "ai_fallback_api_key",
+        "ai_fallback_model",
+        mode="before",
+    )
+    @classmethod
+    def empty_fallback_values_are_unset(cls, value: object) -> object:
+        return None if value == "" else value
+
     @model_validator(mode="after")
     def reject_production_placeholders(self) -> "Settings":
         if self.app_env == "production" and "change-me" in self.app_secret.get_secret_value():
@@ -65,6 +78,23 @@ class Settings(BaseSettings):
             and "change-me" in self.ai_api_key.get_secret_value()
         ):
             raise ValueError("AI_API_KEY must be replaced in production")
+        fallback_values = (
+            self.ai_fallback_provider,
+            self.ai_fallback_api_key,
+            self.ai_fallback_model,
+        )
+        if any(value is not None for value in fallback_values) and not all(
+            value is not None for value in fallback_values
+        ):
+            raise ValueError("All AI_FALLBACK settings must be provided together")
+        if self.ai_fallback_provider == self.ai_provider:
+            raise ValueError("AI_FALLBACK_PROVIDER must differ from AI_PROVIDER")
+        if (
+            self.app_env == "production"
+            and self.ai_fallback_api_key is not None
+            and "change-me" in self.ai_fallback_api_key.get_secret_value()
+        ):
+            raise ValueError("AI_FALLBACK_API_KEY must be replaced in production")
         return self
 
     @property

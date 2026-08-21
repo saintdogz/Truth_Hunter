@@ -1,8 +1,8 @@
-"""Official DeepSeek adapter using validated JSON chat completions."""
+"""Groq adapter using strict structured chat completions."""
 
 import json
 from json import JSONDecodeError
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from openai import AsyncOpenAI, OpenAIError
 from pydantic import BaseModel, ValidationError
@@ -26,8 +26,22 @@ from app.investigation.prompts import (
 StructuredOutput = TypeVar("StructuredOutput", bound=BaseModel)
 
 
-class DeepSeekProvider:
-    """DeepSeek implementation kept behind the application provider protocol."""
+def _require_all_properties(value: Any) -> Any:
+    """Adapt Pydantic schemas to Groq strict-mode's all-fields-required rule."""
+
+    if isinstance(value, dict):
+        result = {key: _require_all_properties(item) for key, item in value.items()}
+        properties = result.get("properties")
+        if isinstance(properties, dict):
+            result["required"] = list(properties)
+        return result
+    if isinstance(value, list):
+        return [_require_all_properties(item) for item in value]
+    return value
+
+
+class GroqProvider:
+    """Groq implementation kept behind the application provider protocol."""
 
     def __init__(
         self,
@@ -37,13 +51,13 @@ class DeepSeekProvider:
         validation_attempts: int = 3,
     ) -> None:
         if not api_key:
-            raise ValueError("A DeepSeek API key is required")
+            raise ValueError("A Groq API key is required")
         if validation_attempts < 1 or validation_attempts > 3:
-            raise ValueError("DeepSeek validation attempts must be between 1 and 3")
+            raise ValueError("Groq validation attempts must be between 1 and 3")
         self.model_name = model
         self._client = client or AsyncOpenAI(
             api_key=api_key,
-            base_url="https://api.deepseek.com",
+            base_url="https://api.groq.com/openai/v1",
             max_retries=0,
             timeout=60,
         )
@@ -55,12 +69,8 @@ class DeepSeekProvider:
     async def _parse(
         self, instructions: str, data: dict[str, object], schema: type[StructuredOutput]
     ) -> StructuredOutput:
-        schema_json = json.dumps(schema.model_json_schema(), ensure_ascii=False)
+        strict_schema = _require_all_properties(schema.model_json_schema())
         input_json = json.dumps(data, ensure_ascii=False)
-        system_message = (
-            f"{instructions}\nReturn one JSON object matching this JSON Schema exactly: "
-            f"{schema_json}"
-        )
         last_error: Exception | None = None
 
         for _ in range(self._validation_attempts):
@@ -68,13 +78,19 @@ class DeepSeekProvider:
                 response = await self._client.chat.completions.create(
                     model=self.model_name,
                     messages=[
-                        {"role": "system", "content": system_message},
+                        {"role": "system", "content": instructions},
                         {"role": "user", "content": input_json},
                     ],
-                    response_format={"type": "json_object"},
+                    response_format={
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": schema.__name__,
+                            "strict": True,
+                            "schema": strict_schema,
+                        },
+                    },
                     temperature=0,
                     max_tokens=2_500,
-                    extra_body={"thinking": {"type": "disabled"}},
                 )
                 content = response.choices[0].message.content
                 if not content:
@@ -86,7 +102,7 @@ class DeepSeekProvider:
                 last_error = exc
 
         raise AIProviderError(
-            "The DeepSeek provider returned no valid structured output"
+            "The Groq provider returned no valid structured output"
         ) from last_error
 
     async def interpret_claim(self, claim: str, detected_language: str) -> ClaimInterpretation:
