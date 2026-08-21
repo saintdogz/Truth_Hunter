@@ -80,6 +80,7 @@ class Settings(BaseSettings):
         return value
 
     @field_validator(
+        "ai_api_key",
         "ai_fallback_provider",
         "ai_fallback_api_key",
         "ai_fallback_model",

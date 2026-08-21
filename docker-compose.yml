@@ -15,7 +15,7 @@ services:
       APP_TRUSTED_HOSTS: ${APP_TRUSTED_HOSTS:-localhost,127.0.0.1,truthhunter}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-truthhunter}:${POSTGRES_PASSWORD:-development-only-change-me}@postgres:5432/${POSTGRES_DB:-truthhunter}
       AI_PROVIDER: ${AI_PROVIDER:-openai}
-      AI_API_KEY: ${AI_API_KEY:-development-only-change-me}
+      AI_API_KEY: ${AI_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-gpt-5-mini}
       AI_FALLBACK_PROVIDER: ${AI_FALLBACK_PROVIDER:-}
       AI_FALLBACK_API_KEY: ${AI_FALLBACK_API_KEY:-}

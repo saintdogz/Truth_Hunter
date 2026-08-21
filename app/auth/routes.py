@@ -77,6 +77,12 @@ def _account_url(settings: Settings, path: str, token: str, language: str) -> st
     return f"{str(settings.public_base_url).rstrip('/')}{path}?token={token}&lang={language}"
 
 
+def _development_email_url(settings: Settings, url: str | None) -> str | None:
+    if settings.app_env == "production" or settings.email_delivery_mode != "development":
+        return None
+    return url
+
+
 @router.get("/register", response_class=HTMLResponse, include_in_schema=False)
 def register_page(request: Request) -> Response:
     return _render(request, "register.html", {"error": None, "email": ""})
@@ -130,7 +136,7 @@ def register(
         {
             "title": copy["check_email"],
             "message": copy["verify_message"],
-            "development_url": url if settings.app_env != "production" else None,
+            "development_url": _development_email_url(settings, url),
         },
         status_code=201,
     )
@@ -258,7 +264,7 @@ def forgot_password(
         {
             "title": copy["request_received"],
             "message": copy["reset_message"],
-            "development_url": development_url if settings.app_env != "production" else None,
+            "development_url": _development_email_url(settings, development_url),
         },
     )
 
@@ -345,4 +351,4 @@ def delete_account(
         )
     AccountService(session, settings).delete_account(user)
     sign_out(request)
-    return RedirectResponse("/?account_deleted=1", status_code=303)
+    return RedirectResponse("/login?deleted=1", status_code=303)

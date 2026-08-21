@@ -70,6 +70,27 @@ def test_password_reset_is_single_use_and_revokes_sessions() -> None:
             raise AssertionError("Password reset token was reusable")
 
 
+def test_login_failure_does_not_reveal_whether_account_exists() -> None:
+    with account_session() as session:
+        service = AccountService(session, account_settings())
+        user = service.register("person@example.com", "correct horse battery staple")
+        service.verify_email(service.verification_token(user))
+
+        messages = []
+        for email, password in (
+            ("missing@example.com", "correct horse battery staple"),
+            ("person@example.com", "incorrect but sufficiently long password"),
+        ):
+            try:
+                service.authenticate(email, password)
+            except AuthenticationError as exc:
+                messages.append(str(exc))
+
+        assert len(messages) == 2
+        assert messages[0] == messages[1]
+        assert "deleted" in messages[0]
+
+
 def test_guest_investigation_claim_and_account_deletion() -> None:
     with account_session() as session:
         service = AccountService(session, account_settings())

@@ -30,6 +30,12 @@ class AuthenticationError(AccountError):
     pass
 
 
+LOGIN_FAILURE_MESSAGE = (
+    "We couldn't sign you in. Check your email and password. "
+    "If the account was deleted, register again."
+)
+
+
 class AccountService:
     def __init__(self, session: Session, settings: Settings) -> None:
         self._session = session
@@ -73,16 +79,16 @@ class AccountService:
         try:
             normalized = self.normalize_email(email)
         except AccountError as exc:
-            raise AuthenticationError("Invalid email or password.") from exc
+            raise AuthenticationError(LOGIN_FAILURE_MESSAGE) from exc
         user = self._session.scalar(select(User).where(User.email == normalized))
         if user is None or user.deleted_at is not None or user.password_hash is None:
-            raise AuthenticationError("Invalid email or password.")
+            raise AuthenticationError(LOGIN_FAILURE_MESSAGE)
         try:
             valid = self._hasher.verify(user.password_hash, password)
         except (VerifyMismatchError, InvalidHashError) as exc:
-            raise AuthenticationError("Invalid email or password.") from exc
+            raise AuthenticationError(LOGIN_FAILURE_MESSAGE) from exc
         if not valid:
-            raise AuthenticationError("Invalid email or password.")
+            raise AuthenticationError(LOGIN_FAILURE_MESSAGE)
         if not user.email_verified:
             raise AuthenticationError("Verify your email before signing in.")
         if self._hasher.check_needs_rehash(user.password_hash):

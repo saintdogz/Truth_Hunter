@@ -30,7 +30,11 @@ def test_production_accepts_replaced_secret() -> None:
 
 
 def test_production_rejects_development_email_adapter() -> None:
-    settings = Settings(app_env="production", app_secret="a-unique-production-value")
+    settings = Settings(
+        app_env="production",
+        app_secret="a-unique-production-value",
+        email_delivery_mode="development",
+    )
 
     with pytest.raises(ValueError, match="Production email"):
         validate_runtime_adapters(settings)
@@ -48,6 +52,12 @@ def test_production_rejects_placeholder_ai_key() -> None:
             app_secret="a-unique-production-value",
             ai_api_key="development-only-change-me",
         )
+
+
+def test_empty_optional_ai_key_is_unset() -> None:
+    settings = Settings(app_env="test", ai_api_key="")
+
+    assert settings.ai_api_key is None
 
 
 def test_deepseek_provider_is_accepted() -> None:

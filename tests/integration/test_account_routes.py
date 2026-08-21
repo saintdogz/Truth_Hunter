@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
+from app.auth.routes import _development_email_url
 from app.core.config import Settings, get_settings
 from app.db.base import Base
 from app.db.session import get_session
@@ -21,6 +22,19 @@ def csrf_from(text: str) -> str:
     return match.group(1)
 
 
+def test_real_email_delivery_never_exposes_account_token() -> None:
+    settings = Settings(
+        app_env="development",
+        app_secret="account-route-test-secret",
+        database_url="postgresql+psycopg://test:test@localhost/test",
+        email_delivery_mode="resend",
+        resend_api_key="resend-test-key",
+        resend_from_email="Truth Hunter <accounts@example.com>",
+    )
+
+    assert _development_email_url(settings, "https://example.com/verify?token=secret") is None
+
+
 @pytest.fixture
 def account_client() -> Iterator[TestClient]:
     settings = Settings(
@@ -28,6 +42,7 @@ def account_client() -> Iterator[TestClient]:
         app_secret="account-route-test-secret",
         app_trusted_hosts="testserver",
         database_url="postgresql+psycopg://test:test@localhost/test",
+        email_delivery_mode="development",
         public_base_url="http://testserver",
     )
     engine = create_engine(
