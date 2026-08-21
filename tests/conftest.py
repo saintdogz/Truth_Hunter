@@ -1,0 +1,30 @@
+"""Shared Phase 1 test fixtures."""
+
+from collections.abc import Iterator
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.core.config import Settings
+from app.main import create_app
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"
+
+
+@pytest.fixture
+def settings() -> Settings:
+    return Settings(
+        app_env="test",
+        app_secret="test-only-secret",
+        app_trusted_hosts="testserver,localhost",
+        database_url=("postgresql+psycopg://truthhunter:test-only@localhost:5432/truthhunter_test"),
+    )
+
+
+@pytest.fixture
+def client(settings: Settings) -> Iterator[TestClient]:
+    with TestClient(create_app(settings)) as test_client:
+        yield test_client

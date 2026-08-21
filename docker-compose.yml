@@ -1,0 +1,107 @@
+name: truth-hunter
+
+services:
+  truthhunter:
+    build:
+      context: .
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_NAME: ${APP_NAME:-Truth Hunter}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
+      APP_SECRET: ${APP_SECRET:-development-only-change-me}
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
+      APP_TRUSTED_HOSTS: ${APP_TRUSTED_HOSTS:-localhost,127.0.0.1,truthhunter}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-truthhunter}:${POSTGRES_PASSWORD:-development-only-change-me}@postgres:5432/${POSTGRES_DB:-truthhunter}
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
+      AI_API_KEY: ${AI_API_KEY:-development-only-change-me}
+      AI_MODEL: ${AI_MODEL:-gpt-5-mini}
+      SEARXNG_URL: http://searxng:8080
+      SEARCH_RESULT_LIMIT: ${SEARCH_RESULT_LIMIT:-20}
+      SOURCE_USEFUL_LIMIT: ${SOURCE_USEFUL_LIMIT:-15}
+      FETCH_TIMEOUT_SECONDS: ${FETCH_TIMEOUT_SECONDS:-15}
+      FETCH_MAX_BYTES: ${FETCH_MAX_BYTES:-2000000}
+      FETCH_REDIRECT_LIMIT: ${FETCH_REDIRECT_LIMIT:-4}
+    command:
+      - sh
+      - -c
+      - alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=*
+    depends_on:
+      postgres:
+        condition: service_healthy
+      searxng:
+        condition: service_started
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=3)
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - truthhunter_internal
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-truthhunter}
+      POSTGRES_USER: ${POSTGRES_USER:-truthhunter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-development-only-change-me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - truthhunter_internal
+
+  searxng:
+    image: searxng/searxng@sha256:374c5da46d26960bf1132834d05bc2ef2ae57232f7a490e4eac8c8b640fa783d
+    environment:
+      SEARXNG_BASE_URL: http://searxng:8080/
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-development-only-change-me}
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+      - searxng_data:/var/cache/searxng
+    restart: unless-stopped
+    networks:
+      - truthhunter_internal
+
+  caddy:
+    image: caddy:2.10-alpine
+    environment:
+      CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      truthhunter:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - truthhunter_internal
+
+networks:
+  truthhunter_internal:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  searxng_data:
+  caddy_data:
+  caddy_config:
