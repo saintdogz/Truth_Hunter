@@ -17,11 +17,19 @@ class InvestigationWebService:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
-    async def interpret(self, original_claim: str) -> tuple[UUID, ClaimInterpretation]:
+    async def interpret(
+        self,
+        original_claim: str,
+        *,
+        user_id: UUID | None = None,
+        session_id: str | None = None,
+    ) -> tuple[UUID, ClaimInterpretation]:
         with Session(get_engine()) as session:
             pipeline = create_pipeline(self._settings, session)
             try:
-                return await pipeline.create_and_interpret(original_claim)
+                return await pipeline.create_and_interpret(
+                    original_claim, user_id=user_id, session_id=session_id
+                )
             finally:
                 await pipeline.aclose()
 

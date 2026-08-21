@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.core.config import Settings
+from app.main import validate_runtime_adapters
 
 
 def test_trusted_hosts_are_parsed() -> None:
@@ -26,6 +27,13 @@ def test_production_accepts_replaced_secret() -> None:
     settings = Settings(app_env="production", app_secret="a-unique-production-value")
 
     assert settings.app_env == "production"
+
+
+def test_production_rejects_development_email_adapter() -> None:
+    settings = Settings(app_env="production", app_secret="a-unique-production-value")
+
+    with pytest.raises(ValueError, match="Production email"):
+        validate_runtime_adapters(settings)
 
 
 def test_phase_two_resource_limits_are_validated() -> None:

@@ -6,12 +6,16 @@
     <meta name="color-scheme" content="dark">
     <title>{% block title %}{{ app_name }}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/app.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/accounts.css') }}">
     {% block head %}{% endblock %}
   </head>
   <body>
     <header class="site-header">
       <a class="wordmark" href="/">TRUTH <span>HUNTER</span></a>
-      <nav class="language-nav" aria-label="Language"><a href="/?lang=en" lang="en">EN</a><span>/</span><a href="/?lang=hu" lang="hu">HU</a></nav>
+      <nav class="language-nav" aria-label="Account and language">
+        {% if current_user %}<a href="/history">History</a><a href="/account">Account</a>{% else %}<a href="/login">Sign in</a><a href="/register">Register</a>{% endif %}
+        <span>·</span><a href="/?lang=en" lang="en">EN</a><span>/</span><a href="/?lang=hu" lang="hu">HU</a>
+      </nav>
     </header>
     <main class="shell">{% block content %}{% endblock %}</main>
     <footer class="site-footer"><span>Truth Hunter v{{ app_version }}</span><span>Discord: saintdogz</span></footer>

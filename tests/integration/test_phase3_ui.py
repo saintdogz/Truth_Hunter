@@ -15,7 +15,14 @@ class FakeWebService:
         self.items: dict[UUID, Investigation] = {}
         self.investigate_calls: list[tuple[UUID, str, bool]] = []
 
-    async def interpret(self, original_claim: str) -> tuple[UUID, ClaimInterpretation]:
+    async def interpret(
+        self,
+        original_claim: str,
+        *,
+        user_id: UUID | None = None,
+        session_id: str | None = None,
+    ) -> tuple[UUID, ClaimInterpretation]:
+        del user_id, session_id
         investigation_id = uuid4()
         investigation = Investigation(
             id=investigation_id,

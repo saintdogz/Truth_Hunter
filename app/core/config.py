@@ -53,6 +53,14 @@ class Settings(BaseSettings):
     fetch_timeout_seconds: float = Field(default=15.0, ge=1, le=60)
     fetch_max_bytes: int = Field(default=2_000_000, ge=10_000, le=5_000_000)
     fetch_redirect_limit: int = Field(default=4, ge=0, le=10)
+    public_base_url: AnyHttpUrl = AnyHttpUrl("http://localhost")
+    email_delivery_mode: Literal["development"] = "development"
+    email_token_max_age_seconds: int = Field(default=86_400, ge=300, le=604_800)
+    reset_token_max_age_seconds: int = Field(default=3_600, ge=300, le=86_400)
+    auth_attempt_limit: int = Field(default=8, ge=3, le=50)
+    auth_attempt_window_seconds: int = Field(default=900, ge=60, le=86_400)
+    google_client_id: str | None = None
+    google_client_secret: SecretStr | None = None
 
     @field_validator("app_log_level")
     @classmethod
@@ -77,6 +85,8 @@ class Settings(BaseSettings):
         "gemini_api_key",
         "openrouter_api_key",
         "deepseek_api_key",
+        "google_client_id",
+        "google_client_secret",
         mode="before",
     )
     @classmethod
@@ -124,6 +134,10 @@ class Settings(BaseSettings):
         if self.allow_paid_ai_fallback and self.ai_max_paid_fallback_calls == 0:
             raise ValueError(
                 "AI_MAX_PAID_FALLBACK_CALLS must be positive when paid fallback is enabled"
+            )
+        if (self.google_client_id is None) != (self.google_client_secret is None):
+            raise ValueError(
+                "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be configured together"
             )
         return self
 

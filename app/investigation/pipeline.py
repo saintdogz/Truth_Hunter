@@ -74,9 +74,17 @@ class InvestigationPipeline:
         self._search_result_limit = search_result_limit
         self._useful_source_limit = useful_source_limit
 
-    async def create_and_interpret(self, original_claim: str) -> tuple[UUID, ClaimInterpretation]:
+    async def create_and_interpret(
+        self,
+        original_claim: str,
+        *,
+        user_id: UUID | None = None,
+        session_id: str | None = None,
+    ) -> tuple[UUID, ClaimInterpretation]:
         validate_claim(original_claim)
-        investigation = self._repository.create(original_claim)
+        investigation = self._repository.create(
+            original_claim, user_id=user_id, session_id=session_id
+        )
         self._repository.set_status(investigation.id, "INTERPRETING")
         try:
             language = detect_language(original_claim)
