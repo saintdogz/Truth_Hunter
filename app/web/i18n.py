@@ -2,7 +2,10 @@
 
 # ruff: noqa: E501 - translation strings are intentionally kept as whole sentences.
 
-from typing import Literal
+from typing import Literal, cast
+from urllib.parse import urlencode
+
+from fastapi import Request
 
 Language = Literal["en", "hu"]
 
@@ -150,6 +153,128 @@ CONFIDENCE_COPY = {
     "hu": {"LOW": "Alacsony", "MEDIUM": "Közepes", "HIGH": "Magas"},
 }
 
+ACCOUNT_COPY: dict[str, dict[str, str]] = {
+    "en": {
+        "account": "Account",
+        "history_nav": "History",
+        "sign_in": "Sign in",
+        "register": "Register",
+        "create_account": "Create account",
+        "email": "Email",
+        "password": "Password",
+        "password_hint": "Use at least 12 characters.",
+        "already_registered": "Already registered?",
+        "no_account": "No account?",
+        "password_updated": "Password updated. Sign in again.",
+        "forgot_password": "Forgot password?",
+        "reset_password": "Reset password",
+        "request_reset": "Request reset link",
+        "new_password": "New password",
+        "choose_password": "Choose a new password",
+        "update_password": "Update password",
+        "check_email": "Check your email",
+        "verify_message": "Use the verification link to activate your account.",
+        "verification_failed": "Verification failed",
+        "request_received": "Request received",
+        "reset_message": "If the account exists, a reset link will be sent.",
+        "development_link": "Development email link",
+        "continue_securely": "Continue securely",
+        "development_note": "This link appears only in development mode.",
+        "history_title": "Investigation history",
+        "no_investigations": "No investigations yet.",
+        "investigate_claim": "Investigate a claim",
+        "your_account": "Your account",
+        "sign_out": "Sign out",
+        "delete_title": "Delete account and data",
+        "delete_note": "This permanently deletes your investigations and anonymizes the account record.",
+        "delete_confirm": "Type DELETE to confirm",
+        "delete_button": "Delete account",
+        "too_many": "Too many attempts. Try again later.",
+        "delete_error": "Type DELETE to confirm.",
+    },
+    "hu": {
+        "account": "Fiók",
+        "history_nav": "Előzmények",
+        "sign_in": "Bejelentkezés",
+        "register": "Regisztráció",
+        "create_account": "Fiók létrehozása",
+        "email": "E-mail-cím",
+        "password": "Jelszó",
+        "password_hint": "Használj legalább 12 karaktert.",
+        "already_registered": "Már regisztráltál?",
+        "no_account": "Még nincs fiókod?",
+        "password_updated": "A jelszó frissült. Jelentkezz be újra.",
+        "forgot_password": "Elfelejtetted a jelszavad?",
+        "reset_password": "Jelszó visszaállítása",
+        "request_reset": "Visszaállító link kérése",
+        "new_password": "Új jelszó",
+        "choose_password": "Válassz új jelszót",
+        "update_password": "Jelszó frissítése",
+        "check_email": "Ellenőrizd az e-mailjeidet",
+        "verify_message": "A fiók aktiválásához nyisd meg a megerősítő linket.",
+        "verification_failed": "A megerősítés sikertelen",
+        "request_received": "A kérést fogadtuk",
+        "reset_message": "Ha a fiók létezik, elküldjük a visszaállító linket.",
+        "development_link": "Fejlesztői e-mail-link",
+        "continue_securely": "Biztonságos folytatás",
+        "development_note": "Ez a link csak fejlesztői módban jelenik meg.",
+        "history_title": "Vizsgálati előzmények",
+        "no_investigations": "Még nincs vizsgálatod.",
+        "investigate_claim": "Állítás vizsgálata",
+        "your_account": "Saját fiók",
+        "sign_out": "Kijelentkezés",
+        "delete_title": "Fiók és adatok törlése",
+        "delete_note": "Ez véglegesen törli a vizsgálataidat, és anonimizálja a fiók rekordját.",
+        "delete_confirm": "A megerősítéshez írd be: DELETE",
+        "delete_button": "Fiók törlése",
+        "too_many": "Túl sok próbálkozás. Próbáld újra később.",
+        "delete_error": "A megerősítéshez írd be: DELETE.",
+    },
+}
+
+ACCOUNT_ERROR_COPY: dict[str, dict[str, str]] = {
+    "hu": {
+        "Enter a valid email address.": "Adj meg egy érvényes e-mail-címet.",
+        "Password must contain between 12 and 256 characters.": "A jelszónak 12–256 karakterből kell állnia.",
+        "An account with this email already exists.": "Ezzel az e-mail-címmel már létezik fiók.",
+        "This email cannot currently be registered.": "Ez az e-mail-cím jelenleg nem regisztrálható.",
+        "Invalid email or password.": "Hibás e-mail-cím vagy jelszó.",
+        "Verify your email before signing in.": "Bejelentkezés előtt erősítsd meg az e-mail-címedet.",
+        "This password-reset link is no longer valid.": "Ez a jelszó-visszaállító link már nem érvényes.",
+        "This account link is invalid.": "Ez a fióklink érvénytelen.",
+        "This account link is invalid or expired.": "Ez a fióklink érvénytelen vagy lejárt.",
+    }
+}
+
 
 def copy_for(language: str | None) -> dict[str, str]:
     return COPY["hu" if language == "hu" else "en"]
+
+
+def account_copy_for(language: str | None) -> dict[str, str]:
+    return ACCOUNT_COPY["hu" if language == "hu" else "en"]
+
+
+def account_error_for(language: str | None, message: str) -> str:
+    if language == "hu":
+        return ACCOUNT_ERROR_COPY["hu"].get(message, message)
+    return message
+
+
+def language_from_request(request: Request) -> Language:
+    requested = request.query_params.get("lang")
+    if requested in {"en", "hu"}:
+        request.session["language"] = requested
+        return cast(Language, requested)
+    selected = request.session.get("language")
+    if selected in {"en", "hu"}:
+        return cast(Language, selected)
+    return "hu" if request.headers.get("accept-language", "").lower().startswith("hu") else "en"
+
+
+def language_switch_url(request: Request, language: Language) -> str:
+    parameters = [
+        (key, value) for key, value in request.query_params.multi_items() if key != "lang"
+    ]
+    parameters.append(("lang", language))
+    return f"{request.url.path}?{urlencode(parameters)}"

@@ -1,3 +1,3 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} · {{ app_name }}{% endblock %}
-{% block content %}<section class="page-card auth-card"><h1 class="page-title">{{ title }}</h1><p class="lead">{{ message }}</p>{% if development_url %}<div class="development-link"><strong>Development email link</strong><p><a href="{{ development_url }}">Continue securely</a></p><small>This link appears only in development mode.</small></div>{% endif %}</section>{% endblock %}
+{% block content %}<section class="page-card auth-card"><h1 class="page-title">{{ title }}</h1><p class="lead">{{ message }}</p>{% if development_url %}<div class="development-link"><strong>{{ a.development_link }}</strong><p><a href="{{ development_url }}">{{ a.continue_securely }}</a></p><small>{{ a.development_note }}</small></div>{% endif %}</section>{% endblock %}

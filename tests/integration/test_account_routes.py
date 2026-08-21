@@ -120,3 +120,45 @@ def test_forgot_password_does_not_enumerate_accounts(account_client: TestClient)
     )
     assert response.status_code == 200
     assert "If the account exists" in response.text
+
+
+def test_hungarian_account_copy_and_language_persist(account_client: TestClient) -> None:
+    register_page = account_client.get("/register?lang=hu")
+
+    assert register_page.status_code == 200
+    assert 'lang="hu"' in register_page.text
+    assert "Fiók létrehozása" in register_page.text
+    assert "Bejelentkezés" in register_page.text
+
+    weak = account_client.post(
+        "/register",
+        data={
+            "email": "person@example.com",
+            "password": "short",
+            "csrf": csrf_from(register_page.text),
+        },
+    )
+
+    assert weak.status_code == 400
+    assert "A jelszónak 12–256 karakterből kell állnia." in weak.text
+    assert "Fiók létrehozása" in weak.text
+
+
+def test_hungarian_reset_request_is_non_enumerating(account_client: TestClient) -> None:
+    page = account_client.get("/forgot-password?lang=hu")
+    response = account_client.post(
+        "/forgot-password",
+        data={"email": "missing@example.com", "csrf": csrf_from(page.text)},
+    )
+
+    assert response.status_code == 200
+    assert "Ha a fiók létezik" in response.text
+    assert "A kérést fogadtuk" in response.text
+
+
+def test_language_switch_preserves_account_token(account_client: TestClient) -> None:
+    response = account_client.get("/reset-password?token=signed-token&lang=hu")
+
+    assert response.status_code == 200
+    assert "/reset-password?token=signed-token&amp;lang=en" in response.text
+    assert "/reset-password?token=signed-token&amp;lang=hu" in response.text

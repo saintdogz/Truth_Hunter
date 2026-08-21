@@ -17,6 +17,7 @@ from app.auth.rate_limit import AuthRateLimiter
 from app.auth.routes import router as auth_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
+from app.web.i18n import account_copy_for, language_from_request, language_switch_url
 from app.web.routes import router
 from app.web.service import InvestigationWebService
 
@@ -76,7 +77,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 app.state.templates.TemplateResponse(
                     request=request,
                     name="errors/404.html",
-                    context={"app_name": resolved_settings.app_name},
+                    context={
+                        "app_name": resolved_settings.app_name,
+                        "app_version": resolved_settings.app_version,
+                        "language": language_from_request(request),
+                        "a": account_copy_for(language_from_request(request)),
+                        "current_user": request.session.get("user_id"),
+                        "language_urls": {
+                            "en": language_switch_url(request, "en"),
+                            "hu": language_switch_url(request, "hu"),
+                        },
+                    },
                     status_code=404,
                 ),
             )

@@ -19,6 +19,13 @@ from app.core.config import Settings, get_settings
 from app.db.models import User
 from app.db.session import get_session
 from app.web.csrf import csrf_token, require_csrf
+from app.web.i18n import (
+    STATUS_COPY,
+    account_copy_for,
+    account_error_for,
+    language_from_request,
+    language_switch_url,
+)
 
 router = APIRouter()
 
@@ -30,10 +37,17 @@ def _render(
     *,
     status_code: int = 200,
 ) -> Response:
+    language = language_from_request(request)
     base: dict[str, object] = {
         "app_name": request.app.state.settings.app_name,
         "app_version": request.app.state.settings.app_version,
-        "language": "en",
+        "language": language,
+        "a": account_copy_for(language),
+        "status_copy": STATUS_COPY[language],
+        "language_urls": {
+            "en": language_switch_url(request, "en"),
+            "hu": language_switch_url(request, "hu"),
+        },
         "csrf_token": csrf_token(request),
     }
     base.update(context)
@@ -59,8 +73,8 @@ def _rate_key(request: Request, email: str, action: str) -> str:
     return f"{action}:{host}:{digest_email}"
 
 
-def _account_url(settings: Settings, path: str, token: str) -> str:
-    return f"{str(settings.public_base_url).rstrip('/')}{path}?token={token}"
+def _account_url(settings: Settings, path: str, token: str, language: str) -> str:
+    return f"{str(settings.public_base_url).rstrip('/')}{path}?token={token}&lang={language}"
 
 
 @router.get("/register", response_class=HTMLResponse, include_in_schema=False)
@@ -78,12 +92,14 @@ def register(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> Response:
     require_csrf(request, csrf)
+    language = language_from_request(request)
+    copy = account_copy_for(language)
     key = _rate_key(request, email, "register")
     if not _limiter(request).allow(key):
         return _render(
             request,
             "register.html",
-            {"error": "Too many attempts. Try again later.", "email": email},
+            {"error": copy["too_many"], "email": email},
             status_code=429,
         )
     service = AccountService(session, settings)
@@ -91,17 +107,20 @@ def register(
         user = service.register(email, password)
     except AccountError as exc:
         return _render(
-            request, "register.html", {"error": str(exc), "email": email}, status_code=400
+            request,
+            "register.html",
+            {"error": account_error_for(language, str(exc)), "email": email},
+            status_code=400,
         )
     token = service.verification_token(user)
-    url = _account_url(settings, "/verify-email", token)
+    url = _account_url(settings, "/verify-email", token, language)
     _email_sender(request).send_verification(user.email, url)
     return _render(
         request,
         "account_message.html",
         {
-            "title": "Check your email",
-            "message": "Use the verification link to activate your account.",
+            "title": copy["check_email"],
+            "message": copy["verify_message"],
             "development_url": url if settings.app_env != "production" else None,
         },
         status_code=201,
@@ -115,13 +134,19 @@ def verify_email(
     session: Annotated[Session, Depends(get_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> Response:
+    language = language_from_request(request)
+    copy = account_copy_for(language)
     try:
         user = AccountService(session, settings).verify_email(token)
     except InvalidTokenError as exc:
         return _render(
             request,
             "account_message.html",
-            {"title": "Verification failed", "message": str(exc), "development_url": None},
+            {
+                "title": copy["verification_failed"],
+                "message": account_error_for(language, str(exc)),
+                "development_url": None,
+            },
             status_code=400,
         )
     sign_in(request, user)
@@ -146,20 +171,27 @@ def login(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> Response:
     require_csrf(request, csrf)
+    language = language_from_request(request)
+    copy = account_copy_for(language)
     key = _rate_key(request, email, "login")
     limiter = _limiter(request)
     if not limiter.allow(key):
         return _render(
             request,
             "login.html",
-            {"error": "Too many attempts. Try again later.", "email": email},
+            {"error": copy["too_many"], "email": email},
             status_code=429,
         )
     service = AccountService(session, settings)
     try:
         user = service.authenticate(email, password)
     except AuthenticationError as exc:
-        return _render(request, "login.html", {"error": str(exc), "email": email}, status_code=400)
+        return _render(
+            request,
+            "login.html",
+            {"error": account_error_for(language, str(exc)), "email": email},
+            status_code=400,
+        )
     limiter.clear(key)
     guest_id = request.session.get("guest_session_id")
     sign_in(request, user)
@@ -188,14 +220,16 @@ def forgot_password(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> Response:
     require_csrf(request, csrf)
+    language = language_from_request(request)
+    copy = account_copy_for(language)
     key = _rate_key(request, email, "reset")
     if not _limiter(request).allow(key):
         return _render(
             request,
             "account_message.html",
             {
-                "title": "Request received",
-                "message": "If the account exists, a reset link will be sent.",
+                "title": copy["request_received"],
+                "message": copy["reset_message"],
                 "development_url": None,
             },
         )
@@ -204,14 +238,14 @@ def forgot_password(
     development_url = None
     if user is not None and user.password_hash is not None:
         token = service.password_reset_token(user)
-        development_url = _account_url(settings, "/reset-password", token)
+        development_url = _account_url(settings, "/reset-password", token, language)
         _email_sender(request).send_password_reset(user.email, development_url)
     return _render(
         request,
         "account_message.html",
         {
-            "title": "Request received",
-            "message": "If the account exists, a reset link will be sent.",
+            "title": copy["request_received"],
+            "message": copy["reset_message"],
             "development_url": development_url if settings.app_env != "production" else None,
         },
     )
@@ -232,13 +266,14 @@ def reset_password(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> Response:
     require_csrf(request, csrf)
+    language = language_from_request(request)
     try:
         AccountService(session, settings).reset_password(token, password)
     except AccountError as exc:
         return _render(
             request,
             "reset_password.html",
-            {"error": str(exc), "token": token},
+            {"error": account_error_for(language, str(exc)), "token": token},
             status_code=400,
         )
     sign_out(request)
@@ -289,10 +324,11 @@ def delete_account(
     if user is None:
         return RedirectResponse("/login", status_code=303)
     if confirmation != "DELETE":
+        copy = account_copy_for(language_from_request(request))
         return _render(
             request,
             "account.html",
-            {"current_user": user, "error": "Type DELETE to confirm."},
+            {"current_user": user, "error": copy["delete_error"]},
             status_code=400,
         )
     AccountService(session, settings).delete_account(user)

@@ -15,7 +15,15 @@ from app.investigation.claim import InvalidClaimError, validate_claim
 from app.investigation.pipeline import InvestigationPipelineError
 from app.investigation.repository import InvestigationNotFoundError
 from app.web.csrf import csrf_token, require_csrf
-from app.web.i18n import CONFIDENCE_COPY, STATUS_COPY, VERDICT_COPY, copy_for
+from app.web.i18n import (
+    CONFIDENCE_COPY,
+    STATUS_COPY,
+    VERDICT_COPY,
+    account_copy_for,
+    copy_for,
+    language_from_request,
+    language_switch_url,
+)
 from app.web.service import InvestigationWebService
 
 router = APIRouter()
@@ -27,13 +35,6 @@ def get_readiness_checker() -> Callable[[], bool]:
 
 def get_investigation_service(request: Request) -> InvestigationWebService:
     return cast(InvestigationWebService, request.app.state.investigation_service)
-
-
-def language_from_request(request: Request) -> str:
-    requested = request.query_params.get("lang")
-    if requested in {"en", "hu"}:
-        return requested
-    return "hu" if request.headers.get("accept-language", "").lower().startswith("hu") else "en"
 
 
 def render(
@@ -48,6 +49,14 @@ def render(
         "app_version": request.app.state.settings.app_version,
     }
     base_context["current_user"] = request.session.get("user_id")
+    context_language = context.get("language")
+    base_context["a"] = account_copy_for(
+        context_language if isinstance(context_language, str) else "en"
+    )
+    base_context["language_urls"] = {
+        "en": language_switch_url(request, "en"),
+        "hu": language_switch_url(request, "hu"),
+    }
     base_context.update(context)
     return cast(
         Response,

@@ -33,14 +33,20 @@ def current_user(request: Request, session: Session, settings: Settings) -> User
 def sign_in(request: Request, user: User) -> None:
     csrf = request.session.get("csrf_token")
     guest_id = request.session.get("guest_session_id")
+    language = request.session.get("language")
     request.session.clear()
     if isinstance(csrf, str):
         request.session["csrf_token"] = csrf
     if isinstance(guest_id, str):
         request.session["guest_session_id"] = guest_id
+    if language in {"en", "hu"}:
+        request.session["language"] = language
     request.session["user_id"] = str(user.id)
     request.session["session_version"] = user.session_version
 
 
 def sign_out(request: Request) -> None:
+    language = request.session.get("language")
     request.session.clear()
+    if language in {"en", "hu"}:
+        request.session["language"] = language
