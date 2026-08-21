@@ -9,11 +9,13 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.web.routes import router
+from app.web.service import InvestigationWebService
 
 APP_DIR = Path(__file__).resolve().parent
 
@@ -31,8 +33,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = resolved_settings
     app.state.templates = Jinja2Templates(directory=APP_DIR / "templates")
+    app.state.investigation_service = InvestigationWebService(resolved_settings)
 
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=resolved_settings.trusted_hosts)
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=resolved_settings.app_secret.get_secret_value(),
+        session_cookie="truthhunter_session",
+        same_site="lax",
+        https_only=resolved_settings.app_env == "production",
+        max_age=60 * 60 * 4,
+    )
 
     @app.middleware("http")
     async def add_security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]

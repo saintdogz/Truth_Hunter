@@ -3,15 +3,23 @@
 from fastapi.testclient import TestClient
 
 
-def test_home_is_branded_placeholder(client: TestClient) -> None:
+def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     response = client.get("/")
 
     assert response.status_code == 200
     assert "TRUTH" in response.text
     assert "HUNTER" in response.text
-    assert "Don't believe it. Investigate it." in response.text
+    assert "Don&#39;t believe it. Investigate it." in response.text
     assert "v0.1.0" in response.text
-    assert "<form" not in response.text
+    assert '<form method="post" action="/investigations"' in response.text
+    assert 'maxlength="500"' in response.text
+
+
+def test_home_supports_hungarian_interface(client: TestClient) -> None:
+    response = client.get("/?lang=hu")
+
+    assert response.status_code == 200
+    assert "Ne hidd el. Vizsgáld meg." in response.text
 
 
 def test_static_stylesheet_is_served(client: TestClient) -> None:

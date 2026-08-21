@@ -115,18 +115,25 @@ async def test_pipeline_persists_historical_snapshot() -> None:
         assert isinstance(investigation_id, UUID)
         assert interpretation.interpreted_claim == original
 
-        assessment = await pipeline.investigate_confirmed(investigation_id, confirmed)
+        assessment = await pipeline.investigate_confirmed(
+            investigation_id, confirmed, corrected=True
+        )
         stored = session.scalar(select(Investigation).where(Investigation.id == investigation_id))
 
         assert assessment.verdict == Verdict.TRUE
         assert stored is not None
         assert stored.original_claim == original
         assert stored.interpreted_claim == confirmed
+        assert stored.correction_used is True
         assert stored.status == "COMPLETED"
         assert stored.source_count == 5
         assert stored.scoring_version == "evidence-v1"
         assert stored.prompt_version == "phase2-prompts-v1"
         assert len(stored.sources) == 5
         assert len(stored.evidence) == 5
+        with pytest.raises(ValueError, match="single claim correction"):
+            InvestigationRepository(session).save_confirmed_claim(
+                investigation_id, "A second correction", corrected=True
+            )
 
     engine.dispose()

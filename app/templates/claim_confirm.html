@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ t.confirm_title }} — Truth Hunter{% endblock %}
+{% block content %}
+  <section class="page-card confirmation">
+    <div class="signal-line"><span></span>01 / INTERPRETATION</div><h1 class="page-title">{{ t.confirm_title }}</h1>
+    {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+    <dl class="claim-comparison"><div><dt>{{ t.original }}</dt><dd>{{ investigation.original_claim }}</dd></div><div class="interpreted"><dt>{{ t.interpreted }}</dt><dd>{{ investigation.interpreted_claim }}</dd></div></dl>
+    <form method="post" action="/investigations/{{ investigation.id }}/confirm"><input type="hidden" name="csrf" value="{{ csrf_token }}"><input type="hidden" name="action" value="confirm"><button class="button primary wide" type="submit">{{ t.yes }} <span>→</span></button></form>
+    <details class="correction-box"><summary>{{ t.no }}</summary><form method="post" action="/investigations/{{ investigation.id }}/confirm">
+      <input type="hidden" name="csrf" value="{{ csrf_token }}"><input type="hidden" name="action" value="correct"><label for="corrected_claim">{{ t.correct_label }}</label><textarea id="corrected_claim" name="corrected_claim" maxlength="500" required>{{ investigation.original_claim }}</textarea><small>{{ t.one_correction }}</small><button class="button secondary" type="submit">{{ t.correct_submit }}</button>
+    </form></details>
+  </section>
+{% endblock %}

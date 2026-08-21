@@ -21,6 +21,7 @@ class Investigation(Base):
     interpreted_claim: Mapped[str | None] = mapped_column(Text, nullable=True)
     language: Mapped[str | None] = mapped_column(String(8), nullable=True)
     claim_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    correction_used: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[str] = mapped_column(String(40), default="CREATED", index=True)
     verdict: Mapped[str | None] = mapped_column(String(32), nullable=True)
     supporting_score: Mapped[float | None] = mapped_column(Float, nullable=True)

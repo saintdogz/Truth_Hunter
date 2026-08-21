@@ -1,16 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ language|default('en') }}">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
     <title>{% block title %}{{ app_name }}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/app.css') }}">
+    {% block head %}{% endblock %}
   </head>
   <body>
-    <main class="shell">
-      {% block content %}{% endblock %}
-    </main>
+    <header class="site-header">
+      <a class="wordmark" href="/">TRUTH <span>HUNTER</span></a>
+      <nav class="language-nav" aria-label="Language"><a href="/?lang=en" lang="en">EN</a><span>/</span><a href="/?lang=hu" lang="hu">HU</a></nav>
+    </header>
+    <main class="shell">{% block content %}{% endblock %}</main>
+    <footer class="site-footer"><span>Truth Hunter v{{ app_version }}</span><span>Discord: saintdogz</span></footer>
+    {% block scripts %}{% endblock %}
   </body>
 </html>
-

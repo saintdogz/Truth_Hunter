@@ -1,10 +1,28 @@
 {% extends "base.html" %}
+{% block title %}Truth Hunter — {{ t.tagline }}{% endblock %}
 {% block content %}
-  <section class="placeholder" aria-labelledby="brand-title">
-    <p class="eyebrow">Evidence investigation</p>
+  <section class="hero" aria-labelledby="brand-title">
+    <div class="signal-line"><span></span>{{ t.eyebrow }}</div>
     <h1 id="brand-title">TRUTH <span>HUNTER</span></h1>
-    <p class="tagline">Don't believe it. Investigate it.</p>
-    <p class="status">Foundation build <code>v{{ app_version }}</code></p>
+    <p class="tagline">{{ t.tagline }}</p><p class="lead">{{ t.lead }}</p>
+    <div class="claim-panel">
+      <div class="free-badge"><span aria-hidden="true">●</span> {{ t.free }}</div>
+      {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+      <form method="post" action="/investigations" class="claim-form">
+        <input type="hidden" name="csrf" value="{{ csrf_token }}">
+        <label for="claim">{{ t.claim_label }}</label>
+        <textarea id="claim" name="claim" maxlength="500" required placeholder="{{ t.claim_placeholder }}">{{ claim }}</textarea>
+        <div class="form-foot"><small>{{ t.limit }}</small><button type="submit" class="button primary">{{ t.submit }} <span aria-hidden="true">→</span></button></div>
+      </form>
+    </div>
   </section>
+  <section class="steps" aria-label="Process">
+    <article><span>01</span><strong>{{ t.step1 }}</strong></article><article><span>02</span><strong>{{ t.step2 }}</strong></article><article><span>03</span><strong>{{ t.step3 }}</strong></article>
+  </section>
+  <section class="examples"><p class="section-label">{{ t.examples }}</p><div class="example-grid">
+    <button type="button" data-example="The European Union is planning to prohibit cash payments.">EU &amp; cash</button>
+    <button type="button" data-example="Renewable energy is now cheaper than fossil fuels in most markets.">Energy costs</button>
+    <button type="button" data-example="A Holdra szállás felvételeit egy stúdióban készítették.">Holdra szállás</button>
+  </div></section>
 {% endblock %}
-
+{% block scripts %}<script>document.querySelectorAll('[data-example]').forEach((button)=>{button.addEventListener('click',()=>{const input=document.querySelector('#claim');input.value=button.dataset.example;input.focus();});});</script>{% endblock %}
