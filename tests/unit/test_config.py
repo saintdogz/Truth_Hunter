@@ -40,3 +40,46 @@ def test_production_rejects_placeholder_ai_key() -> None:
             app_secret="a-unique-production-value",
             ai_api_key="development-only-change-me",
         )
+
+
+def test_deepseek_provider_is_accepted() -> None:
+    settings = Settings(
+        app_env="test",
+        ai_provider="deepseek",
+        ai_api_key="test-key",
+        ai_model="deepseek-v4-flash",
+    )
+
+    assert settings.ai_provider == "deepseek"
+    assert settings.ai_model == "deepseek-v4-flash"
+
+
+def test_groq_with_deepseek_fallback_is_accepted() -> None:
+    settings = Settings(
+        app_env="test",
+        ai_provider="groq",
+        ai_api_key="groq-test-key",
+        ai_model="openai/gpt-oss-120b",
+        ai_fallback_provider="deepseek",
+        ai_fallback_api_key="deepseek-test-key",
+        ai_fallback_model="deepseek-v4-flash",
+    )
+
+    assert settings.ai_provider == "groq"
+    assert settings.ai_fallback_provider == "deepseek"
+
+
+def test_partial_fallback_configuration_is_rejected() -> None:
+    with pytest.raises(ValidationError, match="provided together"):
+        Settings(app_env="test", ai_fallback_provider="deepseek")
+
+
+def test_empty_compose_fallback_values_are_unset() -> None:
+    settings = Settings(
+        app_env="test",
+        ai_fallback_provider="",
+        ai_fallback_api_key="",
+        ai_fallback_model="",
+    )
+
+    assert settings.ai_fallback_provider is None

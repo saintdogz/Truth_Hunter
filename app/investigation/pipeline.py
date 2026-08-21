@@ -142,6 +142,7 @@ class InvestigationPipeline:
                 assessment,
                 summary,
                 ai_model=self._ai.model_name,
+                ai_provider_attempts=getattr(self._ai, "attempts", []),
                 prompt_version=PROMPT_VERSION,
                 search_provider=self._search.provider_name,
                 source_count=evaluated_count,
@@ -154,7 +155,7 @@ class InvestigationPipeline:
     async def aclose(self) -> None:
         """Close provider-owned network clients when the pipeline scope ends."""
 
-        for component in (self._search, self._fetcher):
+        for component in (self._ai, self._search, self._fetcher):
             close = getattr(component, "close", None)
             if close is not None:
                 await close()

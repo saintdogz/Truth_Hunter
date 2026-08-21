@@ -1,10 +1,11 @@
-"""Single MVP online AI adapter using structured Responses API outputs."""
+"""Official DeepSeek adapter using validated JSON chat completions."""
 
 import json
+from json import JSONDecodeError
 from typing import TypeVar
 
 from openai import AsyncOpenAI, OpenAIError
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from app.ai.base import AIProviderError
 from app.investigation.models import (
@@ -25,14 +26,28 @@ from app.investigation.prompts import (
 StructuredOutput = TypeVar("StructuredOutput", bound=BaseModel)
 
 
-class OpenAIProvider:
-    """OpenAI implementation kept behind the AIProvider protocol."""
+class DeepSeekProvider:
+    """DeepSeek implementation kept behind the application provider protocol."""
 
-    def __init__(self, api_key: str, model: str, client: AsyncOpenAI | None = None) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        client: AsyncOpenAI | None = None,
+        validation_attempts: int = 3,
+    ) -> None:
         if not api_key:
-            raise ValueError("An OpenAI API key is required")
+            raise ValueError("A DeepSeek API key is required")
+        if validation_attempts < 1 or validation_attempts > 3:
+            raise ValueError("DeepSeek validation attempts must be between 1 and 3")
         self.model_name = model
-        self._client = client or AsyncOpenAI(api_key=api_key, max_retries=2, timeout=60)
+        self._client = client or AsyncOpenAI(
+            api_key=api_key,
+            base_url="https://api.deepseek.com",
+            max_retries=0,
+            timeout=60,
+        )
+        self._validation_attempts = validation_attempts
 
     async def close(self) -> None:
         await self._client.close()
@@ -40,21 +55,39 @@ class OpenAIProvider:
     async def _parse(
         self, instructions: str, data: dict[str, object], schema: type[StructuredOutput]
     ) -> StructuredOutput:
-        try:
-            response = await self._client.responses.parse(
-                model=self.model_name,
-                instructions=instructions,
-                input=json.dumps(data, ensure_ascii=False),
-                text_format=schema,
-                store=False,
-                max_output_tokens=2_500,
-            )
-        except OpenAIError as exc:
-            raise AIProviderError("The AI provider request failed") from exc
-        parsed = response.output_parsed
-        if parsed is None:
-            raise AIProviderError("The AI provider returned no valid structured output")
-        return parsed
+        schema_json = json.dumps(schema.model_json_schema(), ensure_ascii=False)
+        input_json = json.dumps(data, ensure_ascii=False)
+        system_message = (
+            f"{instructions}\nReturn one JSON object matching this JSON Schema exactly: "
+            f"{schema_json}"
+        )
+        last_error: Exception | None = None
+
+        for _ in range(self._validation_attempts):
+            try:
+                response = await self._client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": system_message},
+                        {"role": "user", "content": input_json},
+                    ],
+                    response_format={"type": "json_object"},
+                    temperature=0,
+                    max_tokens=2_500,
+                    extra_body={"thinking": {"type": "disabled"}},
+                )
+                content = response.choices[0].message.content
+                if not content:
+                    raise ValueError("empty response")
+                return schema.model_validate_json(content)
+            except (JSONDecodeError, ValidationError, ValueError, IndexError) as exc:
+                last_error = exc
+            except OpenAIError as exc:
+                last_error = exc
+
+        raise AIProviderError(
+            "The DeepSeek provider returned no valid structured output"
+        ) from last_error
 
     async def interpret_claim(self, claim: str, detected_language: str) -> ClaimInterpretation:
         return await self._parse(

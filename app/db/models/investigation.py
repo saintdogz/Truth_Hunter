@@ -34,6 +34,7 @@ class Investigation(Base):
     conflict_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     conflicting_source_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     ai_model: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    ai_provider_attempts: Mapped[list[dict[str, object]]] = mapped_column(JSON, default=list)
     prompt_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
     search_provider: Mapped[str | None] = mapped_column(String(100), nullable=True)
     search_languages: Mapped[list[str]] = mapped_column(JSON, default=list)
