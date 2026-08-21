@@ -36,6 +36,17 @@ class Settings(BaseSettings):
     ai_fallback_provider: Literal["openai", "deepseek", "groq"] | None = None
     ai_fallback_api_key: SecretStr | None = None
     ai_fallback_model: str | None = None
+    ai_provider_order: str = "groq,gemini,openrouter,deepseek"
+    allow_paid_ai_fallback: bool = False
+    ai_max_paid_fallback_calls: int = Field(default=0, ge=0, le=50)
+    groq_api_key: SecretStr | None = None
+    groq_model: str = "openai/gpt-oss-120b"
+    gemini_api_key: SecretStr | None = None
+    gemini_model: str = "gemini-2.5-flash-lite"
+    openrouter_api_key: SecretStr | None = None
+    openrouter_model: str = "openrouter/free"
+    deepseek_api_key: SecretStr | None = None
+    deepseek_model: str = "deepseek-v4-flash"
     searxng_url: AnyHttpUrl = AnyHttpUrl("http://searxng:8080")
     search_result_limit: int = Field(default=20, ge=1, le=50)
     source_useful_limit: int = Field(default=15, ge=1, le=15)
@@ -62,11 +73,26 @@ class Settings(BaseSettings):
         "ai_fallback_provider",
         "ai_fallback_api_key",
         "ai_fallback_model",
+        "groq_api_key",
+        "gemini_api_key",
+        "openrouter_api_key",
+        "deepseek_api_key",
         mode="before",
     )
     @classmethod
     def empty_fallback_values_are_unset(cls, value: object) -> object:
         return None if value == "" else value
+
+    @field_validator("ai_provider_order")
+    @classmethod
+    def validate_provider_order(cls, value: str) -> str:
+        providers = [item.strip() for item in value.split(",") if item.strip()]
+        supported = {"groq", "gemini", "openrouter", "deepseek", "openai"}
+        if not providers or len(providers) != len(set(providers)):
+            raise ValueError("AI_PROVIDER_ORDER must contain unique provider names")
+        if unknown := set(providers) - supported:
+            raise ValueError(f"Unsupported providers in AI_PROVIDER_ORDER: {sorted(unknown)}")
+        return ",".join(providers)
 
     @model_validator(mode="after")
     def reject_production_placeholders(self) -> "Settings":
@@ -95,7 +121,15 @@ class Settings(BaseSettings):
             and "change-me" in self.ai_fallback_api_key.get_secret_value()
         ):
             raise ValueError("AI_FALLBACK_API_KEY must be replaced in production")
+        if self.allow_paid_ai_fallback and self.ai_max_paid_fallback_calls == 0:
+            raise ValueError(
+                "AI_MAX_PAID_FALLBACK_CALLS must be positive when paid fallback is enabled"
+            )
         return self
+
+    @property
+    def provider_order(self) -> list[str]:
+        return self.ai_provider_order.split(",")
 
     @property
     def trusted_hosts(self) -> list[str]:

@@ -16,7 +16,7 @@ Implemented:
 - Docker Compose services for the application, PostgreSQL, minimally configured SearXNG, and Caddy
 - Basic security headers, trusted-host validation, safe configuration, tests, linting, formatting, and type checking
 - English/Hungarian claim detection and strict claim/AI output schemas
-- Replaceable AI and search protocols, with Groq, OpenAI, and official DeepSeek adapters, automatic operation-level fallback, and SearXNG integration
+- Registry-based AI provider chain with Groq, Gemini, OpenRouter, OpenAI, and official DeepSeek adapters, free-first routing, explicit bounded paid fallback, and SearXNG integration
 - Versioned prompts separating trusted instructions from hostile claim/source data
 - SSRF-aware URL validation, redirect checks, timeouts, content limits, and bounded extraction
 - Deterministic evidence weighting, sufficiency, confidence, conflict, and verdict rules
@@ -50,7 +50,7 @@ Start-Process http://localhost
 
 Replace all `change-me` development values before any production deployment. The application container applies Alembic migrations before starting. PostgreSQL and SearXNG are internal-only; Caddy is the public entry point.
 
-Real investigations require a valid `AI_API_KEY` for the selected `AI_PROVIDER`. Supported values are `openai`, `deepseek`, and `groq`. The recommended free-tier primary is Groq with `AI_MODEL=openai/gpt-oss-120b`. Optional `AI_FALLBACK_PROVIDER`, `AI_FALLBACK_API_KEY`, and `AI_FALLBACK_MODEL` values enable an automatic fallback after a sanitized primary-provider failure; all three must be configured together. The application can start and serve the homepage and health routes without a key; provider creation fails closed if an investigation is requested without one.
+Providers are attempted in `AI_PROVIDER_ORDER`; entries without keys are skipped. Groq, Gemini, and the `openrouter/free` router are treated as free. DeepSeek and OpenAI are paid and are never called unless `ALLOW_PAID_AI_FALLBACK=true`, `AI_MAX_PAID_FALLBACK_CALLS` is positive, and every attempted free provider failed with an eligible quota, rate-limit, timeout, or availability error. Configuration and model-output failures never authorize paid usage. Legacy `AI_PROVIDER`/`AI_API_KEY` settings remain supported. Provider attempts are recorded with each completed investigation, without secrets.
 
 Inspect logs and shut down without deleting data:
 

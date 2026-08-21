@@ -6,7 +6,8 @@ from typing import Any
 
 import pytest
 
-from app.ai.groq_provider import GroqProvider, _require_all_properties
+from app.ai.groq_provider import GroqProvider
+from app.ai.structured_chat_provider import require_all_properties
 
 
 class FakeCompletions:
@@ -37,7 +38,7 @@ def test_strict_schema_requires_nested_properties() -> None:
         },
     }
 
-    strict = _require_all_properties(schema)
+    strict = require_all_properties(schema)
 
     assert strict["required"] == ["outer"]
     assert strict["properties"]["outer"]["required"] == ["inner"]

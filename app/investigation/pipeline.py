@@ -142,6 +142,7 @@ class InvestigationPipeline:
                 assessment,
                 summary,
                 ai_model=self._ai.model_name,
+                ai_provider_attempts=getattr(self._ai, "attempts", []),
                 prompt_version=PROMPT_VERSION,
                 search_provider=self._search.provider_name,
                 source_count=evaluated_count,

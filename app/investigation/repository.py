@@ -104,6 +104,7 @@ class InvestigationRepository:
         summary: InvestigationSummary,
         *,
         ai_model: str,
+        ai_provider_attempts: list[dict[str, object]],
         prompt_version: str,
         search_provider: str,
         source_count: int,
@@ -123,6 +124,7 @@ class InvestigationRepository:
             str(source_id) for source_id in assessment.conflict.conflicting_source_ids
         ]
         investigation.ai_model = ai_model
+        investigation.ai_provider_attempts = ai_provider_attempts
         investigation.prompt_version = prompt_version
         investigation.search_provider = search_provider
         investigation.search_languages = ["en", "hu"]

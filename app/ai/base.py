@@ -15,6 +15,19 @@ from app.investigation.models import (
 class AIProviderError(RuntimeError):
     """Sanitized provider failure exposed to pipeline orchestration."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        category: str = "provider_error",
+        retryable: bool = False,
+        permits_paid_fallback: bool = False,
+    ) -> None:
+        super().__init__(message)
+        self.category = category
+        self.retryable = retryable
+        self.permits_paid_fallback = permits_paid_fallback
+
 
 class AIProvider(Protocol):
     model_name: str
