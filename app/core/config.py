@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://truthhunter:development-only-change-me@localhost:5432/truthhunter"
     )
-    ai_provider: Literal["openai", "deepseek", "groq"] = "openai"
+    ai_provider: Literal["openai", "deepseek", "groq", "gemini", "openrouter"] = "openai"
     ai_api_key: SecretStr | None = None
     ai_model: str = "gpt-5-mini"
     ai_fallback_provider: Literal["openai", "deepseek", "groq"] | None = None
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     groq_api_key: SecretStr | None = None
     groq_model: str = "openai/gpt-oss-120b"
     gemini_api_key: SecretStr | None = None
-    gemini_model: str = "gemini-2.5-flash-lite"
+    gemini_model: str = "gemini-3.5-flash-lite"
     openrouter_api_key: SecretStr | None = None
     openrouter_model: str = "openrouter/free"
     deepseek_api_key: SecretStr | None = None
