@@ -191,6 +191,7 @@ ACCOUNT_COPY: dict[str, dict[str, str]] = {
         "delete_button": "Delete account",
         "too_many": "Too many attempts. Try again later.",
         "delete_error": "Type DELETE to confirm.",
+        "email_unavailable": "Email delivery is temporarily unavailable. Please try again.",
     },
     "hu": {
         "account": "Fiók",
@@ -229,6 +230,7 @@ ACCOUNT_COPY: dict[str, dict[str, str]] = {
         "delete_button": "Fiók törlése",
         "too_many": "Túl sok próbálkozás. Próbáld újra később.",
         "delete_error": "A megerősítéshez írd be: DELETE.",
+        "email_unavailable": "Az e-mail-küldés átmenetileg nem érhető el. Próbáld újra.",
     },
 }
 

@@ -118,6 +118,12 @@ class AccountService:
             select(User).where(User.email == normalized, User.deleted_at.is_(None))
         )
 
+    def discard_unverified_registration(self, user: User) -> None:
+        if user.email_verified:
+            return
+        self._session.delete(user)
+        self._session.commit()
+
     def reset_password(self, token: str, password: str) -> User:
         self.validate_password(password)
         payload = self._load_token(token, "reset", self._settings.reset_token_max_age_seconds)

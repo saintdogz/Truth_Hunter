@@ -12,7 +12,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.auth.email import DevelopmentEmailSender
+from app.auth.email import create_account_email_sender
 from app.auth.rate_limit import AuthRateLimiter
 from app.auth.routes import router as auth_router
 from app.core.config import Settings, get_settings
@@ -44,7 +44,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = resolved_settings
     app.state.templates = Jinja2Templates(directory=APP_DIR / "templates")
     app.state.investigation_service = InvestigationWebService(resolved_settings)
-    app.state.account_email_sender = DevelopmentEmailSender()
+    app.state.account_email_sender = create_account_email_sender(resolved_settings)
     app.state.auth_rate_limiter = AuthRateLimiter(
         limit=resolved_settings.auth_attempt_limit,
         window_seconds=resolved_settings.auth_attempt_window_seconds,

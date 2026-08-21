@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.auth.email import AccountEmailSender
+from app.auth.email import AccountEmailSender, EmailDeliveryError
 from app.auth.rate_limit import AuthRateLimiter
 from app.auth.service import (
     AccountError,
@@ -114,7 +114,16 @@ def register(
         )
     token = service.verification_token(user)
     url = _account_url(settings, "/verify-email", token, language)
-    _email_sender(request).send_verification(user.email, url)
+    try:
+        _email_sender(request).send_verification(user.email, url, language)
+    except EmailDeliveryError:
+        service.discard_unverified_registration(user)
+        return _render(
+            request,
+            "register.html",
+            {"error": copy["email_unavailable"], "email": email},
+            status_code=503,
+        )
     return _render(
         request,
         "account_message.html",
@@ -239,7 +248,10 @@ def forgot_password(
     if user is not None and user.password_hash is not None:
         token = service.password_reset_token(user)
         development_url = _account_url(settings, "/reset-password", token, language)
-        _email_sender(request).send_password_reset(user.email, development_url)
+        try:
+            _email_sender(request).send_password_reset(user.email, development_url, language)
+        except EmailDeliveryError:
+            development_url = None
     return _render(
         request,
         "account_message.html",
