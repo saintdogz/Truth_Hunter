@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://truthhunter:development-only-change-me@localhost:5432/truthhunter"
     )
-    ai_provider: Literal["openai"] = "openai"
+    ai_provider: Literal["openai", "deepseek"] = "openai"
     ai_api_key: SecretStr | None = None
     ai_model: str = "gpt-5-mini"
     searxng_url: AnyHttpUrl = AnyHttpUrl("http://searxng:8080")

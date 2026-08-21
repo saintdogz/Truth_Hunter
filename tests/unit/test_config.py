@@ -40,3 +40,15 @@ def test_production_rejects_placeholder_ai_key() -> None:
             app_secret="a-unique-production-value",
             ai_api_key="development-only-change-me",
         )
+
+
+def test_deepseek_provider_is_accepted() -> None:
+    settings = Settings(
+        app_env="test",
+        ai_provider="deepseek",
+        ai_api_key="test-key",
+        ai_model="deepseek-v4-flash",
+    )
+
+    assert settings.ai_provider == "deepseek"
+    assert settings.ai_model == "deepseek-v4-flash"
