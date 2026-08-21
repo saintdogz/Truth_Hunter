@@ -787,12 +787,12 @@ Support:
 -   Password reset
 -   Secure session management
 
-### Google login
+### Google login (deferred)
 
-Use standard OAuth/OpenID Connect libraries.
-
-Google-authenticated accounts do not require separate email
-verification.
+Google authentication is not required for the MVP and is deferred to an
+optional post-MVP enhancement. If implemented later, use standard
+OAuth/OpenID Connect libraries. Google-authenticated accounts would not
+require separate email verification.
 
 ### Normal users
 
@@ -1775,7 +1775,7 @@ investigation engine yet.
 ### Phase 4 --- Accounts
 
 -   Email/password
--   Google authentication
+-   Google authentication deferred until after MVP
 -   Email verification
 -   Password reset
 -   History
