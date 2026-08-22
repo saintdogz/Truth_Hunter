@@ -44,6 +44,8 @@ class Investigation(Base):
     search_languages: Mapped[list[str]] = mapped_column(JSON, default=list)
     scoring_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
     source_count: Mapped[int] = mapped_column(Integer, default=0)
+    is_unlocked: Mapped[bool] = mapped_column(Boolean, default=False)
+    entitlement_kind: Mapped[str | None] = mapped_column(String(24), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -54,6 +56,9 @@ class Investigation(Base):
         back_populates="investigation", cascade="all, delete-orphan"
     )
     user: Mapped["User | None"] = relationship(back_populates="investigations")
+    credit_reservation: Mapped["CreditReservation | None"] = relationship(
+        back_populates="investigation", uselist=False
+    )
 
 
 class Source(Base):
@@ -104,4 +109,5 @@ class EvidenceRecord(Base):
     source: Mapped[Source] = relationship(back_populates="evidence")
 
 
+from app.db.models.monetization import CreditReservation  # noqa: E402
 from app.db.models.user import User  # noqa: E402

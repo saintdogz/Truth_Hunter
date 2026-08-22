@@ -1,5 +1,7 @@
 """FastAPI application factory and ASGI entry point."""
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import cast
 
@@ -17,6 +19,9 @@ from app.auth.rate_limit import AuthRateLimiter
 from app.auth.routes import router as auth_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
+from app.payments.provider import create_payment_provider
+from app.payments.routes import router as payment_router
+from app.payments.turnstile import CloudflareTurnstileVerifier
 from app.web.i18n import account_copy_for, language_from_request, language_switch_url
 from app.web.routes import router
 from app.web.service import InvestigationWebService
@@ -35,11 +40,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     resolved_settings = settings or get_settings()
     validate_runtime_adapters(resolved_settings)
     configure_logging(resolved_settings.app_log_level)
+
+    @asynccontextmanager
+    async def lifespan(active_app: FastAPI) -> AsyncIterator[None]:
+        yield
+        payment_provider = active_app.state.payment_provider
+        if payment_provider is not None:
+            await payment_provider.aclose()
+        turnstile_verifier = active_app.state.turnstile_verifier
+        if turnstile_verifier is not None:
+            await turnstile_verifier.aclose()
+
     app = FastAPI(
         title=resolved_settings.app_name,
         version=resolved_settings.app_version,
         docs_url="/docs" if resolved_settings.app_env != "production" else None,
         redoc_url=None,
+        lifespan=lifespan,
     )
     app.state.settings = resolved_settings
     app.state.templates = Jinja2Templates(directory=APP_DIR / "templates")
@@ -48,6 +65,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.auth_rate_limiter = AuthRateLimiter(
         limit=resolved_settings.auth_attempt_limit,
         window_seconds=resolved_settings.auth_attempt_window_seconds,
+    )
+    app.state.anonymous_rate_limiter = AuthRateLimiter(
+        limit=resolved_settings.anonymous_attempt_limit,
+        window_seconds=resolved_settings.anonymous_attempt_window_seconds,
+    )
+    app.state.payment_provider = create_payment_provider(resolved_settings)
+    app.state.turnstile_verifier = (
+        CloudflareTurnstileVerifier(resolved_settings.turnstile_secret_key.get_secret_value())
+        if resolved_settings.turnstile_secret_key is not None
+        else None
     )
 
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=resolved_settings.trusted_hosts)
@@ -100,6 +127,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
     app.include_router(auth_router)
+    app.include_router(payment_router)
     app.include_router(router)
     return app
 

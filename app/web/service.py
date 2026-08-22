@@ -11,6 +11,7 @@ from app.db.session import get_engine
 from app.investigation.factory import create_pipeline
 from app.investigation.models import ClaimInterpretation
 from app.investigation.repository import InvestigationNotFoundError
+from app.payments.service import MonetizationService
 
 
 class InvestigationWebService:
@@ -42,6 +43,14 @@ class InvestigationWebService:
                 await pipeline.investigate_confirmed(
                     investigation_id, confirmed_claim, corrected=corrected
                 )
+                MonetizationService(session, self._settings).finalize_entitlement(
+                    investigation_id, success=True
+                )
+            except Exception:
+                MonetizationService(session, self._settings).finalize_entitlement(
+                    investigation_id, success=False
+                )
+                raise
             finally:
                 await pipeline.aclose()
 

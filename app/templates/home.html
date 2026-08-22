@@ -12,6 +12,7 @@
         <input type="hidden" name="csrf" value="{{ csrf_token }}">
         <label for="claim">{{ t.claim_label }}</label>
         <textarea id="claim" name="claim" maxlength="500" required placeholder="{{ t.claim_placeholder }}">{{ claim }}</textarea>
+        {% if turnstile_site_key %}<div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>{% endif %}
         <div class="form-foot"><small>{{ t.limit }}</small><button type="submit" class="button primary">{{ t.submit }} <span aria-hidden="true">→</span></button></div>
       </form>
     </div>
@@ -25,4 +26,4 @@
     <button type="button" data-example="A Holdra szállás felvételeit egy stúdióban készítették.">Holdra szállás</button>
   </div></section>
 {% endblock %}
-{% block scripts %}<script>document.querySelectorAll('[data-example]').forEach((button)=>{button.addEventListener('click',()=>{const input=document.querySelector('#claim');input.value=button.dataset.example;input.focus();});});</script>{% endblock %}
+{% block scripts %}{% if turnstile_site_key %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endif %}<script>document.querySelectorAll('[data-example]').forEach((button)=>{button.addEventListener('click',()=>{const input=document.querySelector('#claim');input.value=button.dataset.example;input.focus();});});</script>{% endblock %}

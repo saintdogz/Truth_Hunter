@@ -63,6 +63,22 @@ class Settings(BaseSettings):
     google_client_secret: SecretStr | None = None
     resend_api_key: SecretStr | None = None
     resend_from_email: str | None = None
+    monetization_enabled: bool = False
+    owner_payment_testing_enabled: bool = False
+    payment_owner_emails: str = ""
+    credit_pack_price_minor: int = Field(default=300, ge=1, le=1_000_000)
+    credit_pack_currency: str = "EUR"
+    credit_pack_size: int = Field(default=5, ge=1, le=10_000)
+    paypal_environment: Literal["sandbox", "live"] = "sandbox"
+    paypal_client_id: str | None = None
+    paypal_client_secret: SecretStr | None = None
+    paypal_webhook_id: str | None = None
+    turnstile_site_key: str | None = None
+    turnstile_secret_key: SecretStr | None = None
+    anonymous_attempt_limit: int = Field(default=5, ge=1, le=100)
+    anonymous_attempt_window_seconds: int = Field(default=86_400, ge=60, le=604_800)
+    legal_review_approved: bool = False
+    payment_record_retention_days: int = Field(default=3650, ge=1, le=7300)
 
     @field_validator("app_log_level")
     @classmethod
@@ -92,6 +108,11 @@ class Settings(BaseSettings):
         "google_client_secret",
         "resend_api_key",
         "resend_from_email",
+        "paypal_client_id",
+        "paypal_client_secret",
+        "paypal_webhook_id",
+        "turnstile_site_key",
+        "turnstile_secret_key",
         mode="before",
     )
     @classmethod
@@ -108,6 +129,14 @@ class Settings(BaseSettings):
         if unknown := set(providers) - supported:
             raise ValueError(f"Unsupported providers in AI_PROVIDER_ORDER: {sorted(unknown)}")
         return ",".join(providers)
+
+    @field_validator("credit_pack_currency")
+    @classmethod
+    def validate_credit_pack_currency(cls, value: str) -> str:
+        normalized = value.strip().upper()
+        if len(normalized) != 3 or not normalized.isalpha():
+            raise ValueError("CREDIT_PACK_CURRENCY must be a three-letter currency code")
+        return normalized
 
     @model_validator(mode="after")
     def reject_production_placeholders(self) -> "Settings":
@@ -150,6 +179,33 @@ class Settings(BaseSettings):
             raise ValueError(
                 "RESEND_API_KEY and RESEND_FROM_EMAIL are required for Resend delivery"
             )
+        paypal_values = (
+            self.paypal_client_id,
+            self.paypal_client_secret,
+            self.paypal_webhook_id,
+        )
+        if any(value is not None for value in paypal_values) and not all(
+            value is not None for value in paypal_values
+        ):
+            raise ValueError("All PayPal credentials and PAYPAL_WEBHOOK_ID must be provided")
+        if self.monetization_enabled and (
+            not all(value is not None for value in paypal_values)
+            or self.paypal_environment != "live"
+            or self.turnstile_site_key is None
+            or self.turnstile_secret_key is None
+            or not self.legal_review_approved
+        ):
+            raise ValueError(
+                "Public monetization requires live PayPal, Turnstile, and legal approval"
+            )
+        if self.owner_payment_testing_enabled and (
+            not all(value is not None for value in paypal_values)
+            or self.paypal_environment != "live"
+            or not self.payment_owner_email_set
+        ):
+            raise ValueError(
+                "Owner payment testing requires live PayPal credentials and an owner allowlist"
+            )
         return self
 
     @property
@@ -159,6 +215,12 @@ class Settings(BaseSettings):
     @property
     def trusted_hosts(self) -> list[str]:
         return [host.strip() for host in self.app_trusted_hosts.split(",") if host.strip()]
+
+    @property
+    def payment_owner_email_set(self) -> set[str]:
+        return {
+            email.strip().lower() for email in self.payment_owner_emails.split(",") if email.strip()
+        }
 
 
 @lru_cache

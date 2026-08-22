@@ -8,12 +8,17 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.auth.rate_limit import AuthRateLimiter
 from app.auth.session import current_user, guest_session_id
 from app.core.config import Settings, get_settings
 from app.db.session import database_is_ready, get_session
 from app.investigation.claim import InvalidClaimError, validate_claim
 from app.investigation.pipeline import InvestigationPipelineError
 from app.investigation.repository import InvestigationNotFoundError
+from app.payments.access import monetization_allowed
+from app.payments.service import EntitlementError, InsufficientCreditsError, MonetizationService
+from app.payments.turnstile import TurnstileVerifier
+from app.payments.view import payment_context
 from app.web.csrf import csrf_token, require_csrf
 from app.web.i18n import (
     CONFIDENCE_COPY,
@@ -23,6 +28,7 @@ from app.web.i18n import (
     copy_for,
     language_from_request,
     language_switch_url,
+    payment_copy_for,
 )
 from app.web.service import InvestigationWebService
 
@@ -35,6 +41,14 @@ def get_readiness_checker() -> Callable[[], bool]:
 
 def get_investigation_service(request: Request) -> InvestigationWebService:
     return cast(InvestigationWebService, request.app.state.investigation_service)
+
+
+def get_turnstile_verifier(request: Request) -> TurnstileVerifier | None:
+    return cast(TurnstileVerifier | None, request.app.state.turnstile_verifier)
+
+
+def get_anonymous_limiter(request: Request) -> AuthRateLimiter:
+    return cast(AuthRateLimiter, request.app.state.anonymous_rate_limiter)
 
 
 def render(
@@ -53,10 +67,14 @@ def render(
     base_context["a"] = account_copy_for(
         context_language if isinstance(context_language, str) else "en"
     )
+    base_context["p"] = payment_copy_for(
+        context_language if isinstance(context_language, str) else "en"
+    )
     base_context["language_urls"] = {
         "en": language_switch_url(request, "en"),
         "hu": language_switch_url(request, "hu"),
     }
+    base_context.update(payment_context(request))
     base_context.update(context)
     return cast(
         Response,
@@ -78,6 +96,10 @@ def home(request: Request) -> Response:
             "csrf_token": csrf_token(request),
             "claim": "",
             "error": None,
+            "turnstile_site_key": request.app.state.settings.turnstile_site_key
+            if request.app.state.settings.monetization_enabled
+            and not request.session.get("user_id")
+            else None,
         },
     )
 
@@ -90,16 +112,67 @@ async def submit_claim(
     service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
     session: Annotated[Session, Depends(get_session)],
     settings: Annotated[Settings, Depends(get_settings)],
+    verifier: Annotated[TurnstileVerifier | None, Depends(get_turnstile_verifier)],
+    anonymous_limiter: Annotated[AuthRateLimiter, Depends(get_anonymous_limiter)],
+    turnstile_token: Annotated[str | None, Form(alias="cf-turnstile-response")] = None,
 ) -> Response:
     require_csrf(request, csrf)
     language = language_from_request(request)
     try:
         validate_claim(claim)
         user = current_user(request, session, settings)
+        session_id = guest_session_id(request)
+        if monetization_allowed(user, settings):
+            option = MonetizationService(session, settings).entitlement_option(user, session_id)
+            if option == "BLOCKED":
+                return render(
+                    request,
+                    "home.html",
+                    {
+                        "language": language,
+                        "t": copy_for(language),
+                        "csrf_token": csrf_token(request),
+                        "claim": claim,
+                        "error": copy_for(language)["credits_required"],
+                        "turnstile_site_key": None,
+                    },
+                    status_code=402,
+                )
+            if user is None:
+                remote_ip = request.client.host if request.client else None
+                if not anonymous_limiter.allow(f"free:{remote_ip or 'unknown'}"):
+                    return render(
+                        request,
+                        "home.html",
+                        {
+                            "language": language,
+                            "t": copy_for(language),
+                            "csrf_token": csrf_token(request),
+                            "claim": claim,
+                            "error": copy_for(language)["too_many_investigations"],
+                            "turnstile_site_key": settings.turnstile_site_key,
+                        },
+                        status_code=429,
+                    )
+                if verifier is None or not await verifier.verify(turnstile_token or "", remote_ip):
+                    return render(
+                        request,
+                        "home.html",
+                        {
+                            "language": language,
+                            "t": copy_for(language),
+                            "csrf_token": csrf_token(request),
+                            "claim": claim,
+                            "error": copy_for(language)["turnstile_failed"],
+                            "turnstile_site_key": settings.turnstile_site_key,
+                        },
+                        status_code=400,
+                    )
+                request.session["turnstile_verified"] = True
         investigation_id, _ = await service.interpret(
             claim,
             user_id=user.id if user else None,
-            session_id=None if user else guest_session_id(request),
+            session_id=None if user else session_id,
         )
     except InvalidClaimError as exc:
         return render(
@@ -139,6 +212,8 @@ def confirm_claim(
     request: Request,
     investigation_id: UUID,
     service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
+    session: Annotated[Session, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> Response:
     try:
         investigation = service.get(investigation_id)
@@ -149,6 +224,15 @@ def confirm_claim(
     if investigation.status not in {"AWAITING_CONFIRMATION", "INTERPRETING"}:
         return RedirectResponse(f"/investigations/{investigation_id}/progress", status_code=303)
     language = investigation.language or "en"
+    entitlement_option = "LEGACY"
+    user = current_user(request, session, settings)
+    if monetization_allowed(user, settings):
+        session_id = guest_session_id(request)
+        if not _owns_investigation(investigation, user, session_id):
+            return HTMLResponse("Not found", status_code=404)
+        entitlement_option = MonetizationService(session, settings).entitlement_option(
+            user, session_id
+        )
     return render(
         request,
         "claim_confirm.html",
@@ -158,6 +242,7 @@ def confirm_claim(
             "investigation": investigation,
             "csrf_token": csrf_token(request),
             "error": None,
+            "entitlement_option": entitlement_option,
         },
     )
 
@@ -168,6 +253,8 @@ async def start_investigation(
     investigation_id: UUID,
     background_tasks: BackgroundTasks,
     service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
+    session: Annotated[Session, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
     action: Annotated[str, Form()],
     csrf: Annotated[str, Form()],
     corrected_claim: Annotated[str | None, Form()] = None,
@@ -197,6 +284,37 @@ async def start_investigation(
             },
             status_code=400,
         )
+    user = current_user(request, session, settings)
+    if monetization_allowed(user, settings):
+        session_id = guest_session_id(request)
+        if not _owns_investigation(investigation, user, session_id):
+            return HTMLResponse("Not found", status_code=404)
+        money = MonetizationService(session, settings)
+        try:
+            option = money.entitlement_option(user, session_id)
+            if option == "FREE":
+                if user is None and request.session.pop("turnstile_verified", False) is not True:
+                    raise EntitlementError("Human verification is required")
+                money.use_free_attempt(investigation, session_id, user)
+            elif option == "CREDIT" and user is not None:
+                money.reserve_credit(user, investigation)
+            else:
+                raise InsufficientCreditsError("No free investigation or credits remain")
+        except (EntitlementError, InsufficientCreditsError) as exc:
+            language = investigation.language or "en"
+            return render(
+                request,
+                "claim_confirm.html",
+                {
+                    "language": language,
+                    "t": copy_for(language),
+                    "investigation": investigation,
+                    "csrf_token": csrf_token(request),
+                    "error": str(exc),
+                    "entitlement_option": "BLOCKED",
+                },
+                status_code=402,
+            )
     background_tasks.add_task(
         service.investigate, investigation_id, confirmed_claim, corrected=corrected
     )
@@ -264,6 +382,8 @@ def investigation_result(
     request: Request,
     investigation_id: UUID,
     service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
+    session: Annotated[Session, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> Response:
     try:
         investigation = service.get(investigation_id)
@@ -274,6 +394,19 @@ def investigation_result(
     language = investigation.language or "en"
     verdict = investigation.verdict or "INCONCLUSIVE"
     confidence = investigation.confidence or "LOW"
+    show_sources = False
+    show_unlock = False
+    user = current_user(request, session, settings)
+    if monetization_allowed(user, settings) and investigation.is_unlocked:
+        show_sources = _owns_investigation(
+            investigation, user, cast(str | None, request.session.get("guest_session_id"))
+        )
+    elif monetization_allowed(user, settings):
+        show_unlock = bool(
+            user
+            and _owns_investigation(investigation, user, None)
+            and MonetizationService(session, settings).balance(user) > 0
+        )
     return render(
         request,
         "result.html",
@@ -283,7 +416,50 @@ def investigation_result(
             "investigation": investigation,
             "verdict_label": VERDICT_COPY[language].get(verdict, verdict),
             "confidence_label": CONFIDENCE_COPY[language].get(confidence, confidence),
+            "show_sources": show_sources,
+            "show_unlock": show_unlock,
+            "csrf_token": csrf_token(request),
         },
+    )
+
+
+@router.post("/investigations/{investigation_id}/unlock", include_in_schema=False)
+def unlock_investigation(
+    request: Request,
+    investigation_id: UUID,
+    csrf: Annotated[str, Form()],
+    service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
+    session: Annotated[Session, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> Response:
+    require_csrf(request, csrf)
+    user = current_user(request, session, settings)
+    if not monetization_allowed(user, settings):
+        return HTMLResponse("Not found", status_code=404)
+    if user is None:
+        return RedirectResponse("/login", status_code=303)
+    try:
+        investigation = service.get(investigation_id)
+        MonetizationService(session, settings).unlock_previous_result(user, investigation)
+    except (InvestigationNotFoundError, EntitlementError, InsufficientCreditsError):
+        return HTMLResponse("Unable to unlock this result", status_code=400)
+    return RedirectResponse(f"/investigations/{investigation_id}/result", status_code=303)
+
+
+def _owns_investigation(investigation: object, user: object | None, session_id: str | None) -> bool:
+    investigation_user_id = getattr(investigation, "user_id", None)
+    user_id = getattr(user, "id", None)
+    if investigation_user_id is not None:
+        return (
+            isinstance(user_id, UUID)
+            and isinstance(investigation_user_id, UUID)
+            and user_id == investigation_user_id
+        )
+    investigation_session_id = getattr(investigation, "session_id", None)
+    return (
+        isinstance(session_id, str)
+        and isinstance(investigation_session_id, str)
+        and session_id == investigation_session_id
     )
 
 

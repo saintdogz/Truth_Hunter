@@ -774,6 +774,67 @@ Never trust browser-side payment-success claims.
 
 Design so Stripe or another provider can be added later.
 
+### Phase 5 Product Decisions
+
+The following decisions are authoritative for the Phase 5 MVP:
+
+-   The launch product is one configurable **€3 EUR** pack containing
+    **five non-expiring investigation credits**.
+-   Registered, verified users may purchase unlimited packs. Balances
+    accumulate and credits are not transferable.
+-   PayPal Smart Checkout is the initial checkout experience. Order
+    creation, capture verification, and webhook reconciliation must happen
+    server-side and be idempotent.
+-   A credit is reserved when a paid investigation starts, consumed only
+    after successful completion, and released on failure.
+-   Every paid investigation and prior-result unlock requires explicit
+    confirmation that one credit will be used.
+-   A previous free investigation may be unlocked later for one credit.
+-   When no free attempt or credit remains, block processing before it
+    starts and present the pack offer.
+-   A person receives one anonymous free investigation in total. Creating
+    an account does not grant another free attempt; the guest entitlement
+    and investigation should follow the account where practical.
+-   Anonymous free use requires Cloudflare Turnstile plus session, rate-limit,
+    and reasonable abuse signals. Do not challenge paid registered users
+    during normal use.
+-   Successful purchases show the updated balance and send a branded Truth
+    Hunter confirmation email in addition to any PayPal receipt.
+-   Signed-in users see their balance in the header. The account page shows
+    credit and purchase history.
+-   Account deletion forfeits unused credits after a clear warning. Retain
+    only the minimum payment/accounting fields required by law, anonymized
+    from the deleted profile where practical, for a configurable retention
+    period established through professional advice.
+-   PayPal refunds, reversals, and chargebacks revoke only unused credits
+    originating from the affected purchase. Already consumed credits do not
+    create a negative balance or automatically restrict the account.
+-   There is no voluntary refund program. Process only refunds required by
+    law and PayPal disputes, subject to professionally reviewed legal terms.
+-   Record first-party offer views, checkout starts, completed payments,
+    repeat purchases, and revenue without raw claim text or advertising
+    trackers.
+-   Launch with the single €3 price. Keep price and pack size configurable
+    and defer A/B price testing.
+
+### Phase 5 Activation Gate
+
+Phase 5 must be protected by one public monetization feature flag. While the
+flag is disabled, preserve the current public investigation behavior. A
+separate owner allowlist may exercise real checkout privately.
+
+Do not enable public monetization until all of the following are complete:
+
+-   A PayPal Business account and live REST credentials are configured.
+-   A Cloudflare account and Turnstile widget for the production domain are
+    configured.
+-   Terms, privacy, refund, digital-service, tax, and payment disclosures have
+    received appropriate professional review for Hungary/EU operation.
+-   At least one owner-allowlisted live €3 end-to-end purchase has succeeded.
+
+No real credentials belong in source control. Development and automated tests
+must use placeholders, mocks, or PayPal sandbox-style fixtures.
+
 ------------------------------------------------------------------------
 
 ## 25. Authentication
@@ -1854,7 +1915,7 @@ A registered user can:
 
 15. Register via email/password.
 16. Verify email.
-17. Sign in with Google.
+17. Sign in with verified email/password. Google authentication is deferred.
 18. View history.
 19. Delete their account/data.
 20. Purchase the MVP PayPal product.
