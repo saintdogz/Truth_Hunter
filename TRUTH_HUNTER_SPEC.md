@@ -674,6 +674,35 @@ If an investigation ultimately fails:
 
 Provide a simple maintenance/error page for service outages.
 
+### Provider reliability policy
+
+Production investigations must not fail merely because one configured AI
+provider reaches a free-tier limit or returns an unusable response.
+
+-   Bound the source text sent for evidence evaluation independently from the
+    larger text retained in the evidence snapshot. The default AI evaluation
+    input cap is 12,000 characters per source.
+-   Bound total source evaluations per investigation. The default maximum is
+    15, even when fewer than 15 sources pass the relevance threshold.
+-   Treat HTTP 413 as an oversized-payload failure and reduce input size rather
+    than repeatedly sending the same request.
+-   Treat HTTP 429 and temporary availability errors as retryable. Use bounded
+    retries/cooldowns so later evidence calls do not immediately hammer a
+    provider that has already reported a limit.
+-   Empty, missing, or schema-invalid model responses must become sanitized
+    provider errors, never uncaught exceptions.
+-   Continue through configured free providers in order. When
+    `ALLOW_PAID_AI_FALLBACK=true`, all free providers have exhausted bounded
+    attempts, and the paid-call cap remains available, DeepSeek may handle
+    retryable rate-limit, availability, oversized-payload, or invalid-output
+    failures. Authentication, invalid-key, and configuration errors must never
+    trigger paid fallback.
+-   A terminal `FAILED` state must replace all "in progress" UI, stop polling,
+    stop progress animation, and display the friendly failure message.
+
+These controls are reliability safeguards, not permission for unbounded API
+spending. The per-investigation paid-call cap remains mandatory.
+
 ------------------------------------------------------------------------
 
 ## 22. Anonymous Free Use

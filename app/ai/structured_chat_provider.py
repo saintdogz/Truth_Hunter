@@ -108,7 +108,12 @@ class StructuredChatProvider:
                 last_error = exc
             except OpenAIError as exc:
                 classified = classify_provider_error(self.provider_name, exc)
-                if not classified.retryable:
+                if not classified.retryable or classified.category in {
+                    "availability",
+                    "payload_too_large",
+                    "quota",
+                    "rate_limit",
+                }:
                     raise classified from exc
                 last_error = classified
 
@@ -118,6 +123,7 @@ class StructuredChatProvider:
             f"The {self.provider_name} provider returned no valid structured output",
             category="model_output",
             retryable=True,
+            permits_paid_fallback=True,
         ) from last_error
 
     async def interpret_claim(self, claim: str, detected_language: str) -> ClaimInterpretation:

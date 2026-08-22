@@ -29,6 +29,9 @@ from app.investigation.repository import InvestigationRepository
 class FakeAI:
     model_name = "fake-structured-model"
 
+    def __init__(self) -> None:
+        self.source_text_lengths: list[int] = []
+
     async def interpret_claim(self, claim: str, detected_language: str) -> ClaimInterpretation:
         return ClaimInterpretation(
             interpreted_claim=claim,
@@ -41,6 +44,7 @@ class FakeAI:
         return SearchQueries(english=[claim], hungarian=[f"magyar {claim}"])
 
     async def evaluate_evidence(self, claim: str, source: SourceDocument) -> EvidenceAssessment:
+        self.source_text_lengths.append(len(source.text))
         return EvidenceAssessment(
             position=EvidencePosition.SUPPORTING,
             strength=0.9,
@@ -104,12 +108,15 @@ async def test_pipeline_persists_historical_snapshot() -> None:
     confirmed = "The published report contains the stated result for 2025."
 
     with Session(engine) as session:
+        ai = FakeAI()
         pipeline = InvestigationPipeline(
-            FakeAI(),
+            ai,
             FakeSearch(),
             FakeFetcher(),
             InvestigationRepository(session),
             useful_source_limit=5,
+            source_evaluation_limit=5,
+            ai_source_text_max_chars=24,
         )
         investigation_id, interpretation = await pipeline.create_and_interpret(original)
         assert isinstance(investigation_id, UUID)
@@ -131,6 +138,7 @@ async def test_pipeline_persists_historical_snapshot() -> None:
         assert stored.prompt_version == "phase2-prompts-v1"
         assert len(stored.sources) == 5
         assert len(stored.evidence) == 5
+        assert ai.source_text_lengths == [24] * 5
         with pytest.raises(ValueError, match="single claim correction"):
             InvestigationRepository(session).save_confirmed_claim(
                 investigation_id, "A second correction", corrected=True

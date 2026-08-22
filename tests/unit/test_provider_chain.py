@@ -50,6 +50,15 @@ def quota_error() -> AIProviderError:
     )
 
 
+def model_output_error() -> AIProviderError:
+    return AIProviderError(
+        "empty structured output",
+        category="model_output",
+        retryable=True,
+        permits_paid_fallback=True,
+    )
+
+
 @pytest.mark.anyio
 async def test_chain_uses_first_successful_free_provider() -> None:
     groq = FakeProvider("groq-model", error=quota_error())
@@ -132,3 +141,48 @@ async def test_all_free_quota_failures_allow_bounded_paid_fallback() -> None:
     assert deepseek.calls == 1
     assert chain.model_name == "deepseek/deepseek-model"
     assert chain.attempts[-1]["tier"] == "paid"
+
+
+@pytest.mark.anyio
+async def test_explicit_paid_fallback_handles_exhausted_free_model_output() -> None:
+    groq = FakeProvider("groq-model", error=quota_error())
+    gemini = FakeProvider("gemini-model", error=model_output_error())
+    deepseek = FakeProvider("deepseek-model")
+    chain = ProviderChain(
+        [
+            ProviderEntry("groq", groq),
+            ProviderEntry("gemini", gemini),
+            ProviderEntry("deepseek", deepseek, paid=True),
+        ],
+        allow_paid_fallback=True,
+        max_paid_calls=1,
+    )
+
+    await chain.interpret_claim("A claim", "en")
+
+    assert deepseek.calls == 1
+
+
+@pytest.mark.anyio
+async def test_rate_limited_free_providers_enter_cooldown() -> None:
+    groq = FakeProvider("groq-model", error=quota_error())
+    gemini = FakeProvider("gemini-model", error=quota_error())
+    deepseek = FakeProvider("deepseek-model")
+    chain = ProviderChain(
+        [
+            ProviderEntry("groq", groq),
+            ProviderEntry("gemini", gemini),
+            ProviderEntry("deepseek", deepseek, paid=True),
+        ],
+        allow_paid_fallback=True,
+        max_paid_calls=2,
+        clock=lambda: 0.0,
+    )
+
+    await chain.interpret_claim("First claim", "en")
+    await chain.interpret_claim("Second claim", "en")
+
+    assert groq.calls == 1
+    assert gemini.calls == 1
+    assert deepseek.calls == 2
+    assert any(attempt["status"] == "cooldown" for attempt in chain.attempts)

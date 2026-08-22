@@ -15,11 +15,19 @@ def classify_provider_error(provider: str, exc: OpenAIError) -> AIProviderError:
             retryable=True,
             permits_paid_fallback=True,
         )
+    if status == 413:
+        return AIProviderError(
+            f"The {provider} provider rejected an oversized request",
+            category="payload_too_large",
+            retryable=True,
+            permits_paid_fallback=True,
+        )
     if status == 422:
         return AIProviderError(
             f"The {provider} provider rejected a generated response",
             category="model_output",
             retryable=True,
+            permits_paid_fallback=True,
         )
     if status is not None and status >= 500:
         return AIProviderError(

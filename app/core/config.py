@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     searxng_url: AnyHttpUrl = AnyHttpUrl("http://searxng:8080")
     search_result_limit: int = Field(default=20, ge=1, le=50)
     source_useful_limit: int = Field(default=15, ge=1, le=15)
+    source_evaluation_limit: int = Field(default=15, ge=1, le=30)
+    ai_source_text_max_chars: int = Field(default=12_000, ge=1_000, le=50_000)
     fetch_timeout_seconds: float = Field(default=15.0, ge=1, le=60)
     fetch_max_bytes: int = Field(default=2_000_000, ge=10_000, le=5_000_000)
     fetch_redirect_limit: int = Field(default=4, ge=0, le=10)

@@ -66,6 +66,8 @@ class InvestigationPipeline:
         *,
         search_result_limit: int = 20,
         useful_source_limit: int = 15,
+        source_evaluation_limit: int = 15,
+        ai_source_text_max_chars: int = 12_000,
     ) -> None:
         self._ai = ai
         self._search = search
@@ -73,6 +75,8 @@ class InvestigationPipeline:
         self._repository = repository
         self._search_result_limit = search_result_limit
         self._useful_source_limit = useful_source_limit
+        self._source_evaluation_limit = source_evaluation_limit
+        self._ai_source_text_max_chars = ai_source_text_max_chars
 
     async def create_and_interpret(
         self,
@@ -122,7 +126,10 @@ class InvestigationPipeline:
             evidence: list[EvidenceAssessment] = []
             evaluated_count = 0
             for candidate in candidates:
-                if len(evidence) >= self._useful_source_limit:
+                if (
+                    len(evidence) >= self._useful_source_limit
+                    or evaluated_count >= self._source_evaluation_limit
+                ):
                     break
                 try:
                     document = await self._fetcher.fetch(candidate)
@@ -130,7 +137,10 @@ class InvestigationPipeline:
                     continue
                 source = self._repository.add_source(investigation_id, document)
                 self._repository.set_status(investigation_id, "EVALUATING_EVIDENCE")
-                item = await self._ai.evaluate_evidence(confirmed_claim, document)
+                ai_document = document.model_copy(
+                    update={"text": document.text[: self._ai_source_text_max_chars]}
+                )
+                item = await self._ai.evaluate_evidence(confirmed_claim, ai_document)
                 evaluated_count += 1
                 item = item.model_copy(update={"source_id": source.id})
                 self._repository.add_evidence(investigation_id, source, item)
