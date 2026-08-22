@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Investigation
+from app.db.models import Investigation, User
 
 TERMINAL_STATUSES = {"COMPLETED", "FAILED"}
 
@@ -31,6 +31,7 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
     investigations = list(
         session.scalars(select(Investigation).order_by(Investigation.created_at.desc())).all()
     )
+    users = list(session.scalars(select(User)).all())
     status_counts = Counter(item.status for item in investigations)
     provider_outcomes: Counter[tuple[str, str]] = Counter()
     failure_categories: Counter[str] = Counter()
@@ -63,6 +64,19 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
     completed = status_counts["COMPLETED"]
     failed = status_counts["FAILED"]
     terminal = completed + failed
+    active_users = [user for user in users if user.deleted_at is None]
+    seven_days_ago = timestamp - timedelta(days=7)
+    recent_users = [
+        user
+        for user in users
+        if user.deleted_at is None
+        and (
+            user.created_at.replace(tzinfo=timezone.utc)
+            if user.created_at.tzinfo is None
+            else user.created_at
+        )
+        >= seven_days_ago
+    ]
     provider_names = sorted({provider for provider, _ in provider_outcomes})
     provider_summary = [
         {
@@ -110,6 +124,13 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
             "average_seconds": round(sum(durations) / len(durations)) if durations else None,
             "fallback_investigations": fallback_investigations,
             "paid_calls": paid_calls,
+        },
+        "users": {
+            "registered": len(users),
+            "active": len(active_users),
+            "verified": sum(user.email_verified for user in active_users),
+            "deleted": len(users) - len(active_users),
+            "new_last_7_days": len(recent_users),
         },
         "statuses": status_counts.most_common(),
         "providers": [

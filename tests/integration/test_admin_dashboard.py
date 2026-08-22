@@ -88,6 +88,9 @@ def test_admin_requires_allowlist_and_email_step_up(admin_client: TestClient) ->
     assert dashboard.status_code == 200
     assert "Operations" in dashboard.text
     assert "Raw claims, user identities" in dashboard.text
+    assert "Registered users" in dashboard.text
+    assert "Email verified" in dashboard.text
+    assert "admin@example.com" not in dashboard.text
 
 
 def test_non_admin_receives_not_found(admin_client: TestClient) -> None:
