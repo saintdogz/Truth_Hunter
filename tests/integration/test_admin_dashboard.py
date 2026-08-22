@@ -3,8 +3,10 @@
 import re
 from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
+from typing import cast
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -100,7 +102,8 @@ def test_non_admin_receives_not_found(admin_client: TestClient) -> None:
 
 def test_dashboard_aggregates_provider_fallbacks(admin_client: TestClient) -> None:
     register_and_verify(admin_client, "admin@example.com")
-    session_dependency = admin_client.app.dependency_overrides[get_session]
+    app = cast(FastAPI, admin_client.app)
+    session_dependency = app.dependency_overrides[get_session]
     generator = session_dependency()
     session = next(generator)
     now = datetime.now(timezone.utc)
