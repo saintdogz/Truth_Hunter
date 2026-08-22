@@ -2,6 +2,7 @@
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from time import monotonic
 from typing import TypeVar
 
 from app.ai.base import AIProvider, AIProviderError
@@ -15,6 +16,14 @@ from app.investigation.models import (
 )
 
 Result = TypeVar("Result")
+
+COOLDOWN_SECONDS = {
+    "availability": 15.0,
+    "model_output": 30.0,
+    "payload_too_large": 300.0,
+    "quota": 300.0,
+    "rate_limit": 60.0,
+}
 
 
 @dataclass(frozen=True)
@@ -33,6 +42,7 @@ class ProviderChain:
         *,
         allow_paid_fallback: bool,
         max_paid_calls: int,
+        clock: Callable[[], float] = monotonic,
     ) -> None:
         if not entries:
             raise ValueError("At least one AI provider must be configured")
@@ -40,6 +50,8 @@ class ProviderChain:
         self._allow_paid_fallback = allow_paid_fallback
         self._max_paid_calls = max_paid_calls
         self._paid_calls = 0
+        self._clock = clock
+        self._cooldowns: dict[str, tuple[float, AIProviderError]] = {}
         self.attempts: list[dict[str, object]] = []
         first = entries[0]
         self.model_name = f"{first.name}/{first.provider.model_name}"
@@ -59,6 +71,22 @@ class ProviderChain:
         last_error: AIProviderError | None = None
 
         for entry in self._entries:
+            cooldown = self._cooldowns.get(entry.name)
+            if cooldown is not None and cooldown[0] > self._clock():
+                error = cooldown[1]
+                if not entry.paid:
+                    free_errors.append(error)
+                self.attempts.append(
+                    {
+                        "operation": operation,
+                        "provider": entry.name,
+                        "model": entry.provider.model_name,
+                        "tier": "paid" if entry.paid else "free",
+                        "status": "cooldown",
+                        "category": error.category,
+                    }
+                )
+                continue
             if entry.paid:
                 paid_is_safe = free_errors and all(
                     error.permits_paid_fallback for error in free_errors
@@ -74,6 +102,12 @@ class ProviderChain:
                 result = await make_call(entry.provider)
             except AIProviderError as exc:
                 last_error = exc
+                cooldown_seconds = COOLDOWN_SECONDS.get(exc.category)
+                if exc.retryable and cooldown_seconds is not None:
+                    self._cooldowns[entry.name] = (
+                        self._clock() + cooldown_seconds,
+                        exc,
+                    )
                 if not entry.paid:
                     free_errors.append(exc)
                 self.attempts.append(
@@ -88,6 +122,7 @@ class ProviderChain:
                 )
                 continue
 
+            self._cooldowns.pop(entry.name, None)
             self.model_name = f"{entry.name}/{entry.provider.model_name}"
             self.attempts.append(
                 {

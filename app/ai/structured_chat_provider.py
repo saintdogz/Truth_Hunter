@@ -98,7 +98,9 @@ class StructuredChatProvider:
                     max_tokens=2_500,
                     **kwargs,
                 )
-                content = response.choices[0].message.content
+                choice = response.choices[0]
+                message = getattr(choice, "message", None)
+                content = getattr(message, "content", None)
                 if not content:
                     raise ValueError("empty response")
                 return schema.model_validate_json(content)
@@ -106,7 +108,12 @@ class StructuredChatProvider:
                 last_error = exc
             except OpenAIError as exc:
                 classified = classify_provider_error(self.provider_name, exc)
-                if not classified.retryable:
+                if not classified.retryable or classified.category in {
+                    "availability",
+                    "payload_too_large",
+                    "quota",
+                    "rate_limit",
+                }:
                     raise classified from exc
                 last_error = classified
 
@@ -116,6 +123,7 @@ class StructuredChatProvider:
             f"The {self.provider_name} provider returned no valid structured output",
             category="model_output",
             retryable=True,
+            permits_paid_fallback=True,
         ) from last_error
 
     async def interpret_claim(self, claim: str, detected_language: str) -> ClaimInterpretation:
