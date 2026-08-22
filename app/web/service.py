@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import Settings
-from app.db.models import Investigation
+from app.db.models import Investigation, Source
 from app.db.session import get_engine
 from app.investigation.factory import create_pipeline
 from app.investigation.models import ClaimInterpretation
@@ -51,7 +51,7 @@ class InvestigationWebService:
                 select(Investigation)
                 .where(Investigation.id == investigation_id)
                 .options(
-                    selectinload(Investigation.sources),
+                    selectinload(Investigation.sources).selectinload(Source.evidence),
                     selectinload(Investigation.evidence),
                     selectinload(Investigation.feedback),
                 )
