@@ -1,7 +1,7 @@
 """Read-only aggregation of operational investigation telemetry."""
 
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -34,6 +34,7 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
     status_counts = Counter(item.status for item in investigations)
     provider_outcomes: Counter[tuple[str, str]] = Counter()
     failure_categories: Counter[str] = Counter()
+    provider_calls: Counter[str] = Counter()
     fallback_investigations = 0
     paid_calls = 0
     durations: list[int] = []
@@ -44,6 +45,8 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
             provider = str(attempt.get("provider", "unknown"))
             outcome = str(attempt.get("status", "unknown"))
             provider_outcomes[(provider, outcome)] += 1
+            if outcome != "cooldown":
+                provider_calls[provider] += 1
             if provider not in providers_seen and outcome != "cooldown":
                 providers_seen.append(provider)
             category = attempt.get("category")
@@ -60,6 +63,40 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
     completed = status_counts["COMPLETED"]
     failed = status_counts["FAILED"]
     terminal = completed + failed
+    provider_names = sorted({provider for provider, _ in provider_outcomes})
+    provider_summary = [
+        {
+            "provider": provider,
+            "succeeded": provider_outcomes[(provider, "succeeded")],
+            "failed": provider_outcomes[(provider, "failed")],
+            "cooldown": provider_outcomes[(provider, "cooldown")],
+            "calls": provider_calls[provider],
+            "success_rate": round(
+                provider_outcomes[(provider, "succeeded")] / provider_calls[provider] * 100
+            )
+            if provider_calls[provider]
+            else 0,
+        }
+        for provider in provider_names
+    ]
+    daily_rows: list[dict[str, object]] = []
+    max_daily = 1
+    for days_ago in range(6, -1, -1):
+        day = (timestamp - timedelta(days=days_ago)).date()
+        items = [item for item in investigations if item.created_at.date() == day]
+        completed_count = sum(item.status == "COMPLETED" for item in items)
+        failed_count = sum(item.status == "FAILED" for item in items)
+        max_daily = max(max_daily, len(items))
+        daily_rows.append(
+            {
+                "label": day.strftime("%a"),
+                "date": day.isoformat(),
+                "all": len(items),
+                "completed": completed_count,
+                "failed": failed_count,
+            }
+        )
+
     return {
         "generated_at": timestamp,
         "totals": {
@@ -79,6 +116,9 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
             {"provider": provider, "outcome": outcome, "count": count}
             for (provider, outcome), count in sorted(provider_outcomes.items())
         ],
+        "provider_summary": provider_summary,
+        "daily": daily_rows,
+        "max_daily": max_daily,
         "failures": failure_categories.most_common(),
         "recent": [
             {

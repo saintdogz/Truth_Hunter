@@ -86,8 +86,8 @@ def test_admin_requires_allowlist_and_email_step_up(admin_client: TestClient) ->
 
     dashboard = admin_client.get("/admin")
     assert dashboard.status_code == 200
-    assert "System dashboard" in dashboard.text
-    assert "Claims and user identities are intentionally omitted" in dashboard.text
+    assert "Operations" in dashboard.text
+    assert "Raw claims, user identities" in dashboard.text
 
 
 def test_non_admin_receives_not_found(admin_client: TestClient) -> None:
@@ -127,6 +127,6 @@ def test_dashboard_aggregates_provider_fallbacks(admin_client: TestClient) -> No
 
     unlock_admin(admin_client)
     dashboard = admin_client.get("/admin")
-    assert "rate_limit" in dashboard.text
+    assert "rate limit" in dashboard.text
     assert "gemini" in dashboard.text
     assert "sensitive claim" not in dashboard.text
