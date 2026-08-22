@@ -4,10 +4,16 @@ import re
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
+from app.core.config import Settings
+from app.db.base import Base
 from app.db.models import EvidenceRecord, Investigation, Source
 from app.investigation.models import ClaimInterpretation, ClaimType
+from app.web.service import InvestigationWebService
 
 
 class FakeWebService:
@@ -206,3 +212,47 @@ def test_result_exposes_bounded_evidence_details_during_testing(client: TestClie
     assert "Stored full source content must remain private" not in response.text
     assert "Was this investigation helpful?" in response.text
     assert f"/investigations/{investigation_id}/feedback" in response.text
+
+
+def test_result_service_eagerly_loads_nested_source_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    investigation_id = uuid4()
+    source_id = uuid4()
+    with Session(engine) as session:
+        investigation = Investigation(
+            id=investigation_id,
+            original_claim="Detached snapshot test",
+            status="COMPLETED",
+        )
+        source = Source(
+            id=source_id,
+            investigation_id=investigation_id,
+            url="https://example.test/source",
+            title="Test source",
+            domain="example.test",
+            extracted_text="Private retained text",
+        )
+        source.evidence = [
+            EvidenceRecord(
+                investigation_id=investigation_id,
+                source_id=source_id,
+                position="SUPPORTING",
+                strength=0.8,
+                relevance=0.8,
+                quality=0.8,
+                independence=0.8,
+                recency=0.8,
+                summary="Structured evidence",
+            )
+        ]
+        investigation.sources = [source]
+        session.add(investigation)
+        session.commit()
+
+    monkeypatch.setattr("app.web.service.get_engine", lambda: engine)
+    loaded = InvestigationWebService(Settings(app_env="test")).get(investigation_id)
+
+    assert loaded.sources[0].evidence[0].summary == "Structured evidence"
