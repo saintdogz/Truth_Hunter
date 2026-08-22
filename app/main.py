@@ -12,6 +12,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from app.admin.routes import router as admin_router
 from app.auth.email import create_account_email_sender
 from app.auth.rate_limit import AuthRateLimiter
 from app.auth.routes import router as auth_router
@@ -100,6 +101,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
     app.include_router(auth_router)
+    app.include_router(admin_router)
     app.include_router(router)
     return app
 

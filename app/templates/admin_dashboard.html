@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Operations — Truth Hunter{% endblock %}
+{% block head %}<meta http-equiv="refresh" content="30">{% endblock %}
+{% block content %}
+<section class="admin-page">
+  <header class="admin-heading">
+    <div><p class="signal-line"><span></span>PRIVATE OPERATIONS</p><h1 class="page-title">System dashboard</h1></div>
+    <p class="admin-refresh">Auto-refresh: 30s<br>Generated {{ dashboard.generated_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</p>
+  </header>
+
+  <div class="health-strip" aria-label="Service health">
+    {% for service, state in dashboard.health.items() %}<div><span class="health-dot"></span><strong>{{ service|upper }}</strong><small>{{ state }}</small></div>{% endfor %}
+  </div>
+
+  <section class="metric-grid" aria-label="Investigation metrics">
+    <article><span>ALL</span><strong>{{ dashboard.totals.all }}</strong><small>investigations</small></article>
+    <article><span>SUCCESS</span><strong>{{ dashboard.totals.success_rate }}%</strong><small>{{ dashboard.totals.completed }} completed</small></article>
+    <article><span>FAILED</span><strong class="metric-danger">{{ dashboard.totals.failed }}</strong><small>terminal failures</small></article>
+    <article><span>RUNNING</span><strong>{{ dashboard.totals.running }}</strong><small>active now</small></article>
+    <article><span>AVERAGE</span><strong>{% if dashboard.totals.average_seconds is not none %}{{ dashboard.totals.average_seconds }}s{% else %}—{% endif %}</strong><small>completion time</small></article>
+    <article><span>FALLBACKS</span><strong>{{ dashboard.totals.fallback_investigations }}</strong><small>multi-provider runs</small></article>
+    <article><span>PAID AI</span><strong>{{ dashboard.totals.paid_calls }}</strong><small>successful calls</small></article>
+  </section>
+
+  <div class="admin-two-column">
+    <section class="admin-panel"><h2>Provider activity</h2>
+      {% if dashboard.providers %}<table><thead><tr><th>Provider</th><th>Outcome</th><th>Calls</th></tr></thead><tbody>
+      {% for row in dashboard.providers %}<tr><td>{{ row.provider }}</td><td><span class="status-pill status-{{ row.outcome|lower }}">{{ row.outcome }}</span></td><td>{{ row.count }}</td></tr>{% endfor %}
+      </tbody></table>{% else %}<p class="muted">No provider telemetry yet.</p>{% endif %}
+    </section>
+    <section class="admin-panel"><h2>Failure categories</h2>
+      {% if dashboard.failures %}<table><thead><tr><th>Category</th><th>Events</th></tr></thead><tbody>
+      {% for category, count in dashboard.failures %}<tr><td>{{ category }}</td><td>{{ count }}</td></tr>{% endfor %}
+      </tbody></table>{% else %}<p class="muted">No provider failures recorded.</p>{% endif %}
+      <h2 class="panel-subheading">Investigation states</h2>
+      <div class="status-list">{% for state, count in dashboard.statuses %}<span>{{ state }} <strong>{{ count }}</strong></span>{% endfor %}</div>
+    </section>
+  </div>
+
+  <section class="admin-panel recent-panel"><h2>Recent investigations</h2><p class="privacy-note">Claims and user identities are intentionally omitted from operational telemetry.</p>
+    {% if dashboard.recent %}<div class="table-scroll"><table><thead><tr><th>Created</th><th>ID</th><th>Status</th><th>Verdict</th><th>Lang</th><th>Sources</th><th>Duration</th><th>Final model</th></tr></thead><tbody>
+    {% for item in dashboard.recent %}<tr><td>{{ item.created_at.strftime('%m-%d %H:%M') }}</td><td><code>{{ item.id|string|truncate(13, True, '…') }}</code></td><td><span class="status-pill status-{{ item.status|lower }}">{{ item.status }}</span></td><td>{{ item.verdict or '—' }}</td><td>{{ item.language or '—' }}</td><td>{{ item.sources }}</td><td>{% if item.duration_seconds is not none %}{{ item.duration_seconds }}s{% else %}—{% endif %}</td><td>{{ item.model or '—' }}</td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<p class="muted">No investigations yet.</p>{% endif %}
+  </section>
+</section>
+{% endblock %}

@@ -65,6 +65,9 @@ class Settings(BaseSettings):
     google_client_secret: SecretStr | None = None
     resend_api_key: SecretStr | None = None
     resend_from_email: str | None = None
+    admin_emails: str = ""
+    admin_access_max_age_seconds: int = Field(default=600, ge=300, le=3_600)
+    admin_session_max_age_seconds: int = Field(default=1_800, ge=300, le=14_400)
 
     @field_validator("app_log_level")
     @classmethod
@@ -161,6 +164,10 @@ class Settings(BaseSettings):
     @property
     def trusted_hosts(self) -> list[str]:
         return [host.strip() for host in self.app_trusted_hosts.split(",") if host.strip()]
+
+    @property
+    def admin_email_allowlist(self) -> set[str]:
+        return {email.strip().casefold() for email in self.admin_emails.split(",") if email.strip()}
 
 
 @lru_cache

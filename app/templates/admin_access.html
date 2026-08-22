@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Admin verification — Truth Hunter{% endblock %}
+{% block content %}
+<section class="page-card auth-card admin-access">
+  <p class="signal-line"><span></span>ADMIN / STEP-UP AUTHENTICATION</p>
+  <h1 class="page-title">Confirm it’s you</h1>
+  <p class="muted">A short-lived link will be sent to your verified administrator email. Your normal login and the email link are both required.</p>
+  {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+  {% if sent %}<p class="form-success">Admin access email sent. The link expires in 10 minutes.</p>{% endif %}
+  {% if development_url %}<p><a href="{{ development_url }}">Development admin link</a></p>{% endif %}
+  <form method="post" action="/admin/access">
+    <input type="hidden" name="csrf" value="{{ csrf_token }}">
+    <button class="button primary wide" type="submit">Send secure access link</button>
+  </form>
+</section>
+{% endblock %}

@@ -18,6 +18,8 @@ class AccountEmailSender(Protocol):
 
     def send_password_reset(self, email: str, url: str, language: str) -> None: ...
 
+    def send_admin_access(self, email: str, url: str, language: str) -> None: ...
+
 
 @dataclass(frozen=True)
 class DevelopmentEmail:
@@ -39,6 +41,10 @@ class DevelopmentEmailSender:
     def send_password_reset(self, email: str, url: str, language: str) -> None:
         del language
         self.outbox.append(DevelopmentEmail("password_reset", email, url))
+
+    def send_admin_access(self, email: str, url: str, language: str) -> None:
+        del language
+        self.outbox.append(DevelopmentEmail("admin_access", email, url))
 
 
 class ResendEmailSender:
@@ -84,6 +90,26 @@ class ResendEmailSender:
             )
         )
         self._send(email, *copy, url, "password_reset")
+
+    def send_admin_access(self, email: str, url: str, language: str) -> None:
+        copy = (
+            (
+                "Truth Hunter admin belépés",
+                "Admin belépés megerősítése",
+                "A privát admin irányítópult megnyitásához kattints az alábbi gombra. "
+                "A hivatkozás 10 percig használható.",
+                "Admin irányítópult megnyitása",
+            )
+            if language == "hu"
+            else (
+                "Truth Hunter admin access",
+                "Confirm admin access",
+                "Open the private admin dashboard using the button below. "
+                "This link is valid for 10 minutes.",
+                "Open admin dashboard",
+            )
+        )
+        self._send(email, *copy, url, "admin_access")
 
     def _send(
         self,
