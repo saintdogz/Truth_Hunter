@@ -17,7 +17,9 @@
     <article class="kpi-card"><div class="kpi-label"><span>Success rate</span><b>TERMINAL</b></div><div class="kpi-rate"><strong>{{ dashboard.totals.success_rate }}%</strong><div class="mini-ring" style="--rate:{{ dashboard.totals.success_rate }}"></div></div><small>{{ dashboard.totals.completed }} completed · {{ dashboard.totals.failed }} failed</small></article>
     <article class="kpi-card"><div class="kpi-label"><span>Average runtime</span><b>SPEED</b></div><strong>{% if dashboard.totals.average_seconds is not none %}{{ dashboard.totals.average_seconds }}<em>s</em>{% else %}—{% endif %}</strong><small>completed investigations</small></article>
     <article class="kpi-card"><div class="kpi-label"><span>Provider fallbacks</span><b>RESILIENCE</b></div><strong>{{ dashboard.totals.fallback_investigations }}</strong><small>{{ dashboard.totals.paid_calls }} paid safety-net calls</small></article>
+    <article class="kpi-card kpi-users"><div class="kpi-label"><span>Registered users</span><b>ACCOUNTS</b></div><strong>{{ dashboard.users.active }}</strong><small>{{ dashboard.users.new_last_7_days }} joined in the last 7 days</small></article>
   </section>
+  <section class="account-strip" aria-label="Registration metrics"><div><span>Account overview</span><strong>Privacy-safe registration totals</strong></div><dl><div><dt>All registered</dt><dd>{{ dashboard.users.registered }}</dd></div><div><dt>Active</dt><dd>{{ dashboard.users.active }}</dd></div><div><dt>Email verified</dt><dd>{{ dashboard.users.verified }}</dd></div><div><dt>Deleted</dt><dd>{{ dashboard.users.deleted }}</dd></div><div><dt>New · 7 days</dt><dd>{{ dashboard.users.new_last_7_days }}</dd></div></dl></section>
   <div class="ops-grid">
     <section class="ops-card provider-card">
       <header><div><span class="card-kicker">AI ROUTING</span><h2>Provider performance</h2></div><span class="legend"><i class="good"></i>success <i class="bad"></i>failed</span></header>

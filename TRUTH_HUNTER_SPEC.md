@@ -858,6 +858,8 @@ The private `/admin` dashboard is read-only in its first iteration. It may show:
 - recent investigation IDs, states, verdicts, languages, source counts,
   durations, and final models; and
 - non-sensitive application, database, and search configuration health.
+- aggregate registration totals including registered, active, email-verified,
+  deleted, and newly registered accounts, without exposing account identities.
 
 Do not display API keys, credentials, raw user claims, source text, email
 addresses, or user identities in operational telemetry. Log successful admin
