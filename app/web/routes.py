@@ -10,11 +10,13 @@ from sqlalchemy.orm import Session
 
 from app.auth.session import current_user, guest_session_id
 from app.core.config import Settings, get_settings
+from app.db.models import Investigation
 from app.db.session import database_is_ready, get_session
 from app.feedback.service import FeedbackError, submit_feedback
 from app.investigation.claim import InvalidClaimError, validate_claim
 from app.investigation.pipeline import InvestigationPipelineError
 from app.investigation.repository import InvestigationNotFoundError
+from app.sharing.service import SharingError, owns_investigation, set_public, submit_public_report
 from app.web.csrf import csrf_token, require_csrf
 from app.web.i18n import (
     CONFIDENCE_COPY,
@@ -272,6 +274,20 @@ def investigation_result(
         return HTMLResponse("Not found", status_code=404)
     if investigation.status != "COMPLETED":
         return RedirectResponse(f"/investigations/{investigation_id}/progress", status_code=303)
+    raw_user_id = request.session.get("user_id")
+    raw_session_id = request.session.get("guest_session_id")
+    if not owns_investigation(
+        investigation,
+        user_id=raw_user_id if isinstance(raw_user_id, str) else None,
+        session_id=raw_session_id if isinstance(raw_session_id, str) else None,
+    ):
+        return HTMLResponse("Not found", status_code=404)
+    return _render_result(request, investigation, is_public_view=False)
+
+
+def _render_result(
+    request: Request, investigation: Investigation, *, is_public_view: bool
+) -> Response:
     language = investigation.language or "en"
     verdict = investigation.verdict or "INCONCLUSIVE"
     confidence = investigation.confidence or "LOW"
@@ -297,8 +313,81 @@ def investigation_result(
             "confidence_label": CONFIDENCE_COPY[language].get(confidence, confidence),
             "csrf_token": csrf_token(request),
             "selected_feedback": selected_feedback,
+            "is_public_view": is_public_view,
+            "share_url": (
+                f"{str(request.app.state.settings.public_base_url).rstrip('/')}/investigation/"
+                f"{investigation.public_slug}"
+                if investigation.is_public and investigation.public_slug
+                else None
+            ),
         },
     )
+
+
+@router.get("/investigation/{public_slug}", response_class=HTMLResponse, include_in_schema=False)
+def public_investigation_result(
+    request: Request,
+    public_slug: str,
+    service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
+) -> Response:
+    try:
+        investigation = service.get_public(public_slug)
+    except InvestigationNotFoundError:
+        return HTMLResponse("Not found", status_code=404)
+    guest_session_id(request)
+    return _render_result(request, investigation, is_public_view=True)
+
+
+@router.post("/investigations/{investigation_id}/sharing", include_in_schema=False)
+def investigation_sharing(
+    request: Request,
+    investigation_id: UUID,
+    enabled: Annotated[str, Form()],
+    csrf: Annotated[str, Form()],
+    service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
+    session: Annotated[Session, Depends(get_session)],
+) -> Response:
+    require_csrf(request, csrf)
+    try:
+        investigation = service.get(investigation_id)
+        raw_user_id = request.session.get("user_id")
+        raw_session_id = request.session.get("guest_session_id")
+        set_public(
+            session,
+            investigation,
+            enabled=enabled == "true",
+            user_id=raw_user_id if isinstance(raw_user_id, str) else None,
+            session_id=raw_session_id if isinstance(raw_session_id, str) else None,
+        )
+    except (InvestigationNotFoundError, SharingError):
+        return HTMLResponse("Not found", status_code=404)
+    state = "published" if enabled == "true" else "private"
+    return RedirectResponse(
+        f"/investigations/{investigation_id}/result?sharing={state}", status_code=303
+    )
+
+
+@router.post("/investigation/{public_slug}/report", include_in_schema=False)
+def report_public_investigation(
+    request: Request,
+    public_slug: str,
+    reason: Annotated[str, Form()],
+    csrf: Annotated[str, Form()],
+    service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
+    session: Annotated[Session, Depends(get_session)],
+) -> Response:
+    require_csrf(request, csrf)
+    try:
+        investigation = service.get_public(public_slug)
+        submit_public_report(
+            session,
+            investigation,
+            reason=reason,
+            reporter_session_id=guest_session_id(request),
+        )
+    except (InvestigationNotFoundError, SharingError):
+        return HTMLResponse("Request failed", status_code=400)
+    return RedirectResponse(f"/investigation/{public_slug}?report=received", status_code=303)
 
 
 @router.post("/investigations/{investigation_id}/feedback", include_in_schema=False)

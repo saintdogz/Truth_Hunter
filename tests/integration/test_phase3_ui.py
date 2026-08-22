@@ -13,6 +13,7 @@ from app.core.config import Settings
 from app.db.base import Base
 from app.db.models import EvidenceRecord, Investigation, Source
 from app.investigation.models import ClaimInterpretation, ClaimType
+from app.investigation.repository import InvestigationNotFoundError
 from app.web.service import InvestigationWebService
 
 
@@ -59,6 +60,12 @@ class FakeWebService:
 
     def get(self, investigation_id: UUID) -> Investigation:
         return self.items[investigation_id]
+
+    def get_public(self, public_slug: str) -> Investigation:
+        for item in self.items.values():
+            if item.is_public and item.public_slug == public_slug:
+                return item
+        raise InvestigationNotFoundError(public_slug)
 
 
 def csrf_from(response_text: str) -> str:
@@ -168,6 +175,8 @@ def test_result_exposes_bounded_evidence_details_during_testing(client: TestClie
         search_languages=["en", "hu"],
         scoring_version="evidence-v1",
         source_count=1,
+        is_public=True,
+        public_slug="evidence-test-share",
         completed_at=datetime.now(timezone.utc),
     )
     source = Source(
@@ -199,7 +208,7 @@ def test_result_exposes_bounded_evidence_details_during_testing(client: TestClie
     investigation.evidence = [evidence]
     fake.items[investigation_id] = investigation
 
-    response = client.get(f"/investigations/{investigation_id}/result")
+    response = client.get("/investigation/evidence-test-share")
 
     assert response.status_code == 200
     assert "Mostly True" in response.text
@@ -210,8 +219,8 @@ def test_result_exposes_bounded_evidence_details_during_testing(client: TestClie
     assert "Supporting" in response.text
     assert "85%" in response.text
     assert "Stored full source content must remain private" not in response.text
-    assert "Was this investigation helpful?" in response.text
-    assert f"/investigations/{investigation_id}/feedback" in response.text
+    assert "Public investigation" in response.text
+    assert "Report this public result" in response.text
 
 
 def test_result_service_eagerly_loads_nested_source_evidence(
@@ -256,3 +265,46 @@ def test_result_service_eagerly_loads_nested_source_evidence(
     loaded = InvestigationWebService(Settings(app_env="test")).get(investigation_id)
 
     assert loaded.sources[0].evidence[0].summary == "Structured evidence"
+
+
+def test_private_result_uuid_is_not_visible_without_ownership(client: TestClient) -> None:
+    fake = install_fake(client)
+    investigation_id = uuid4()
+    fake.items[investigation_id] = Investigation(
+        id=investigation_id,
+        original_claim="Private result",
+        interpreted_claim="Private result",
+        language="en",
+        status="COMPLETED",
+        verdict="INCONCLUSIVE",
+        confidence="LOW",
+        is_public=False,
+    )
+
+    response = client.get(f"/investigations/{investigation_id}/result")
+
+    assert response.status_code == 404
+
+
+def test_public_result_hides_owner_controls_and_feedback(client: TestClient) -> None:
+    fake = install_fake(client)
+    investigation_id = uuid4()
+    fake.items[investigation_id] = Investigation(
+        id=investigation_id,
+        original_claim="Shared original claim",
+        interpreted_claim="Shared interpreted claim",
+        language="en",
+        status="COMPLETED",
+        verdict="INCONCLUSIVE",
+        confidence="LOW",
+        is_public=True,
+        public_slug="public-test-slug",
+    )
+
+    response = client.get("/investigation/public-test-slug")
+
+    assert response.status_code == 200
+    assert 'name="robots" content="noindex,nofollow"' in response.text
+    assert "Report this public result" in response.text
+    assert "Make private" not in response.text
+    assert "Was this investigation helpful?" not in response.text

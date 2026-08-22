@@ -3,7 +3,19 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    Uuid,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -44,6 +56,8 @@ class Investigation(Base):
     search_languages: Mapped[list[str]] = mapped_column(JSON, default=list)
     scoring_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
     source_count: Mapped[int] = mapped_column(Integer, default=0)
+    is_public: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    public_slug: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -54,6 +68,9 @@ class Investigation(Base):
         back_populates="investigation", cascade="all, delete-orphan"
     )
     feedback: Mapped[list["Feedback"]] = relationship(
+        back_populates="investigation", cascade="all, delete-orphan"
+    )
+    reports: Mapped[list["PublicReport"]] = relationship(
         back_populates="investigation", cascade="all, delete-orphan"
     )
     user: Mapped["User | None"] = relationship(back_populates="investigations")
@@ -105,6 +122,33 @@ class EvidenceRecord(Base):
 
     investigation: Mapped[Investigation] = relationship(back_populates="evidence")
     source: Mapped[Source] = relationship(back_populates="evidence")
+
+
+class PublicReport(Base):
+    __tablename__ = "public_reports"
+    __table_args__ = (
+        CheckConstraint(
+            "reason IN ('SPAM', 'ABUSE', 'PERSONAL_INFORMATION', 'HARMFUL', 'COPYRIGHT', 'OTHER')",
+            name="ck_public_reports_reason",
+        ),
+        CheckConstraint(
+            "status IN ('OPEN', 'REVIEWED', 'ACTIONED')", name="ck_public_reports_status"
+        ),
+        UniqueConstraint(
+            "investigation_id", "reporter_session_id", name="uq_public_report_session"
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    investigation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("investigations.id", ondelete="CASCADE"), index=True
+    )
+    reporter_session_id: Mapped[str] = mapped_column(String(128), index=True)
+    reason: Mapped[str] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(String(20), default="OPEN", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    investigation: Mapped[Investigation] = relationship(back_populates="reports")
 
 
 from app.db.models.feedback import Feedback  # noqa: E402

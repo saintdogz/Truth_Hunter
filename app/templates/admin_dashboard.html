@@ -19,6 +19,7 @@
     <article class="kpi-card"><div class="kpi-label"><span>Provider fallbacks</span><b>RESILIENCE</b></div><strong>{{ dashboard.totals.fallback_investigations }}</strong><small>{{ dashboard.totals.paid_calls }} paid safety-net calls</small></article>
     <article class="kpi-card kpi-users"><div class="kpi-label"><span>Registered users</span><b>ACCOUNTS</b></div><strong>{{ dashboard.users.active }}</strong><small>{{ dashboard.users.new_last_7_days }} joined in the last 7 days</small></article>
     <article class="kpi-card kpi-feedback"><div class="kpi-label"><span>Helpful results</span><b>QUALITY</b></div><strong>{% if dashboard.feedback.helpful_rate is not none %}{{ dashboard.feedback.helpful_rate }}<em>%</em>{% else %}—{% endif %}</strong><small>{{ dashboard.feedback.helpful }} helpful · {{ dashboard.feedback.not_helpful }} not helpful</small></article>
+    <article class="kpi-card kpi-reports"><div class="kpi-label"><span>Public reports</span><b>MODERATION</b></div><strong>{{ dashboard.reports.open }}</strong><small>{{ dashboard.reports.total }} total · {{ dashboard.reports.reviewed }} handled</small></article>
   </section>
   <section class="account-strip" aria-label="Registration metrics"><div><span>Account overview</span><strong>Privacy-safe registration totals</strong></div><dl><div><dt>All registered</dt><dd>{{ dashboard.users.registered }}</dd></div><div><dt>Active</dt><dd>{{ dashboard.users.active }}</dd></div><div><dt>Email verified</dt><dd>{{ dashboard.users.verified }}</dd></div><div><dt>Deleted</dt><dd>{{ dashboard.users.deleted }}</dd></div><div><dt>New · 7 days</dt><dd>{{ dashboard.users.new_last_7_days }}</dd></div></dl></section>
   <div class="ops-grid">
@@ -42,6 +43,11 @@
       <div class="state-chips">{% for state, count in dashboard.statuses %}<span class="state-{{ state|lower }}">{{ state|replace('_',' ') }} <b>{{ count }}</b></span>{% endfor %}</div>
     </section>
   </div>
+  <section class="ops-card moderation-card">
+    <header><div><span class="card-kicker">PUBLIC SAFETY</span><h2>Moderation queue</h2></div><span class="alert-count">{{ dashboard.reports.open }}</span></header>
+    {% if dashboard.reports.recent %}<div class="moderation-list">{% for item in dashboard.reports.recent %}<div><time>{{ item.created_at.strftime('%m-%d %H:%M') }}</time><code>{{ (item.investigation_id|string)[:8] }}</code><strong>{{ item.reason|replace('_',' ') }}</strong><span class="run-status run-{{ 'failed' if item.status == 'OPEN' else 'completed' }}"><i></i>{{ item.status }}</span></div>{% endfor %}</div>{% else %}<div class="ops-empty success-empty"><i>✓</i><strong>No public reports</strong><span>The moderation queue is clear.</span></div>{% endif %}
+    <footer>Reporter identities and submitted claim text are excluded.</footer>
+  </section>
   <section class="ops-card activity-card">
     <header><div><span class="card-kicker">AUDIT STREAM</span><h2>Recent investigations</h2></div><span class="privacy-lock">◈ PRIVACY SAFE</span></header>
     {% if dashboard.recent %}<div class="activity-table-wrap"><table class="activity-table"><thead><tr><th>Started</th><th>Run ID</th><th>State</th><th>Assessment</th><th>Input</th><th>Sources</th><th>Time</th><th>Final route</th></tr></thead><tbody>{% for item in dashboard.recent %}<tr>

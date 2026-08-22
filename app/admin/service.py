@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Feedback, Investigation, User
+from app.db.models import Feedback, Investigation, PublicReport, User
 
 TERMINAL_STATUSES = {"COMPLETED", "FAILED"}
 
@@ -33,6 +33,9 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
     )
     users = list(session.scalars(select(User)).all())
     feedback_rows = list(session.scalars(select(Feedback)).all())
+    public_reports = list(
+        session.scalars(select(PublicReport).order_by(PublicReport.created_at.desc())).all()
+    )
     status_counts = Counter(item.status for item in investigations)
     provider_outcomes: Counter[tuple[str, str]] = Counter()
     failure_categories: Counter[str] = Counter()
@@ -141,6 +144,20 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
             "helpful_rate": round(helpful_feedback / len(feedback_rows) * 100, 1)
             if feedback_rows
             else None,
+        },
+        "reports": {
+            "total": len(public_reports),
+            "open": sum(item.status == "OPEN" for item in public_reports),
+            "reviewed": sum(item.status != "OPEN" for item in public_reports),
+            "recent": [
+                {
+                    "investigation_id": item.investigation_id,
+                    "reason": item.reason,
+                    "status": item.status,
+                    "created_at": item.created_at,
+                }
+                for item in public_reports[:10]
+            ],
         },
         "statuses": status_counts.most_common(),
         "providers": [

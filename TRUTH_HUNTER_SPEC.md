@@ -962,6 +962,20 @@ it so indexing can be enabled/disabled later.
 
 Public pages should include a basic **Report** function.
 
+Implemented Phase 6 behavior:
+
+- Private investigation UUID routes are ownership-bound to the authenticated
+  account or signed guest session and return not found to other visitors.
+- Publishing is an explicit CSRF-protected owner action. A cryptographically
+  random permanent slug is created once and retained if the result is later
+  made private and republished.
+- Making a result private immediately disables its public URL without deleting
+  the investigation or changing its slug.
+- Public result pages are marked `noindex,nofollow` while indexing is deferred.
+- Public visitors cannot submit owner feedback or change sharing settings.
+- A public visitor may submit one mutable report per signed guest session;
+  repeat submissions update the reason rather than creating report spam.
+
 Suggested reasons:
 
 -   Spam
