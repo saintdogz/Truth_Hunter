@@ -12,7 +12,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.config import Settings, get_settings
 from app.db.base import Base
-from app.db.models import Investigation
+from app.db.models import Feedback, Investigation
 from app.db.session import get_session
 from app.main import create_app
 
@@ -104,25 +104,32 @@ def test_dashboard_aggregates_provider_fallbacks(admin_client: TestClient) -> No
     generator = session_dependency()
     session = next(generator)
     now = datetime.now(timezone.utc)
+    investigation = Investigation(
+        original_claim="sensitive claim intentionally absent from dashboard",
+        status="COMPLETED",
+        verdict="TRUE",
+        language="en",
+        source_count=4,
+        ai_model="gemini/test",
+        created_at=now - timedelta(seconds=45),
+        completed_at=now,
+        ai_provider_attempts=[
+            {
+                "provider": "groq",
+                "status": "failed",
+                "category": "rate_limit",
+                "tier": "free",
+            },
+            {"provider": "gemini", "status": "succeeded", "tier": "free"},
+        ],
+    )
+    session.add(investigation)
+    session.flush()
     session.add(
-        Investigation(
-            original_claim="sensitive claim intentionally absent from dashboard",
-            status="COMPLETED",
-            verdict="TRUE",
-            language="en",
-            source_count=4,
-            ai_model="gemini/test",
-            created_at=now - timedelta(seconds=45),
-            completed_at=now,
-            ai_provider_attempts=[
-                {
-                    "provider": "groq",
-                    "status": "failed",
-                    "category": "rate_limit",
-                    "tier": "free",
-                },
-                {"provider": "gemini", "status": "succeeded", "tier": "free"},
-            ],
+        Feedback(
+            investigation_id=investigation.id,
+            session_id="feedback-test-session",
+            value="HELPFUL",
         )
     )
     session.commit()
@@ -132,4 +139,6 @@ def test_dashboard_aggregates_provider_fallbacks(admin_client: TestClient) -> No
     dashboard = admin_client.get("/admin")
     assert "rate limit" in dashboard.text
     assert "gemini" in dashboard.text
+    assert "Helpful results" in dashboard.text
+    assert "1 helpful" in dashboard.text
     assert "sensitive claim" not in dashboard.text

@@ -53,6 +53,7 @@ class InvestigationWebService:
                 .options(
                     selectinload(Investigation.sources),
                     selectinload(Investigation.evidence),
+                    selectinload(Investigation.feedback),
                 )
             )
             investigation = session.scalar(statement)

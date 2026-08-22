@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.auth.session import current_user, guest_session_id
 from app.core.config import Settings, get_settings
 from app.db.session import database_is_ready, get_session
+from app.feedback.service import FeedbackError, submit_feedback
 from app.investigation.claim import InvalidClaimError, validate_claim
 from app.investigation.pipeline import InvestigationPipelineError
 from app.investigation.repository import InvestigationNotFoundError
@@ -274,6 +275,17 @@ def investigation_result(
     language = investigation.language or "en"
     verdict = investigation.verdict or "INCONCLUSIVE"
     confidence = investigation.confidence or "LOW"
+    user_id = request.session.get("user_id")
+    session_id = request.session.get("guest_session_id")
+    selected_feedback = next(
+        (
+            item.value
+            for item in investigation.feedback
+            if (isinstance(user_id, str) and str(item.user_id) == user_id)
+            or (isinstance(session_id, str) and item.session_id == session_id)
+        ),
+        None,
+    )
     return render(
         request,
         "result.html",
@@ -283,7 +295,41 @@ def investigation_result(
             "investigation": investigation,
             "verdict_label": VERDICT_COPY[language].get(verdict, verdict),
             "confidence_label": CONFIDENCE_COPY[language].get(confidence, confidence),
+            "csrf_token": csrf_token(request),
+            "selected_feedback": selected_feedback,
         },
+    )
+
+
+@router.post("/investigations/{investigation_id}/feedback", include_in_schema=False)
+def investigation_feedback(
+    request: Request,
+    investigation_id: UUID,
+    value: Annotated[str, Form()],
+    csrf: Annotated[str, Form()],
+    service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
+    session: Annotated[Session, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> Response:
+    require_csrf(request, csrf)
+    try:
+        investigation = service.get(investigation_id)
+    except InvestigationNotFoundError:
+        return HTMLResponse("Not found", status_code=404)
+    user = current_user(request, session, settings)
+    guest_id = request.session.get("guest_session_id")
+    try:
+        submit_feedback(
+            session,
+            investigation,
+            value,
+            user_id=user.id if user else None,
+            session_id=guest_id if isinstance(guest_id, str) else None,
+        )
+    except FeedbackError:
+        return HTMLResponse("Request failed", status_code=403)
+    return RedirectResponse(
+        f"/investigations/{investigation_id}/result?feedback=received", status_code=303
     )
 
 

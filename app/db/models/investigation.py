@@ -53,6 +53,9 @@ class Investigation(Base):
     evidence: Mapped[list["EvidenceRecord"]] = relationship(
         back_populates="investigation", cascade="all, delete-orphan"
     )
+    feedback: Mapped[list["Feedback"]] = relationship(
+        back_populates="investigation", cascade="all, delete-orphan"
+    )
     user: Mapped["User | None"] = relationship(back_populates="investigations")
 
 
@@ -104,4 +107,5 @@ class EvidenceRecord(Base):
     source: Mapped[Source] = relationship(back_populates="evidence")
 
 
+from app.db.models.feedback import Feedback  # noqa: E402
 from app.db.models.user import User  # noqa: E402
