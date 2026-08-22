@@ -2,45 +2,49 @@
 {% block title %}Operations — Truth Hunter{% endblock %}
 {% block head %}<meta http-equiv="refresh" content="30">{% endblock %}
 {% block content %}
-<section class="admin-page">
-  <header class="admin-heading">
-    <div><p class="signal-line"><span></span>PRIVATE OPERATIONS</p><h1 class="page-title">System dashboard</h1></div>
-    <p class="admin-refresh">Auto-refresh: 30s<br>Generated {{ dashboard.generated_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</p>
+<section class="ops-shell">
+  <header class="ops-header">
+    <div><p class="signal-line"><span></span>TRUTH HUNTER / CONTROL ROOM</p><h1>Operations</h1><p>Live investigation and provider telemetry</p></div>
+    <div class="ops-live"><i></i><span>LIVE</span><small>30s refresh</small></div>
   </header>
-
-  <div class="health-strip" aria-label="Service health">
-    {% for service, state in dashboard.health.items() %}<div><span class="health-dot"></span><strong>{{ service|upper }}</strong><small>{{ state }}</small></div>{% endfor %}
-  </div>
-
-  <section class="metric-grid" aria-label="Investigation metrics">
-    <article><span>ALL</span><strong>{{ dashboard.totals.all }}</strong><small>investigations</small></article>
-    <article><span>SUCCESS</span><strong>{{ dashboard.totals.success_rate }}%</strong><small>{{ dashboard.totals.completed }} completed</small></article>
-    <article><span>FAILED</span><strong class="metric-danger">{{ dashboard.totals.failed }}</strong><small>terminal failures</small></article>
-    <article><span>RUNNING</span><strong>{{ dashboard.totals.running }}</strong><small>active now</small></article>
-    <article><span>AVERAGE</span><strong>{% if dashboard.totals.average_seconds is not none %}{{ dashboard.totals.average_seconds }}s{% else %}—{% endif %}</strong><small>completion time</small></article>
-    <article><span>FALLBACKS</span><strong>{{ dashboard.totals.fallback_investigations }}</strong><small>multi-provider runs</small></article>
-    <article><span>PAID AI</span><strong>{{ dashboard.totals.paid_calls }}</strong><small>successful calls</small></article>
+  <section class="ops-health" aria-label="Service health">
+    <div class="ops-health-title"><span>System status</span><strong>All systems operational</strong></div>
+    {% for service, state in dashboard.health.items() %}<div class="health-service"><i></i><span>{{ service }}</span><strong>{{ state }}</strong></div>{% endfor %}
+    <time>{{ dashboard.generated_at.strftime('%H:%M:%S') }} UTC</time>
   </section>
-
-  <div class="admin-two-column">
-    <section class="admin-panel"><h2>Provider activity</h2>
-      {% if dashboard.providers %}<table><thead><tr><th>Provider</th><th>Outcome</th><th>Calls</th></tr></thead><tbody>
-      {% for row in dashboard.providers %}<tr><td>{{ row.provider }}</td><td><span class="status-pill status-{{ row.outcome|lower }}">{{ row.outcome }}</span></td><td>{{ row.count }}</td></tr>{% endfor %}
-      </tbody></table>{% else %}<p class="muted">No provider telemetry yet.</p>{% endif %}
+  <section class="ops-kpis" aria-label="Core metrics">
+    <article class="kpi-card kpi-primary"><div class="kpi-label"><span>Total investigations</span><b>ALL TIME</b></div><strong>{{ dashboard.totals.all }}</strong><small>{{ dashboard.totals.running }} active right now</small></article>
+    <article class="kpi-card"><div class="kpi-label"><span>Success rate</span><b>TERMINAL</b></div><div class="kpi-rate"><strong>{{ dashboard.totals.success_rate }}%</strong><div class="mini-ring" style="--rate:{{ dashboard.totals.success_rate }}"></div></div><small>{{ dashboard.totals.completed }} completed · {{ dashboard.totals.failed }} failed</small></article>
+    <article class="kpi-card"><div class="kpi-label"><span>Average runtime</span><b>SPEED</b></div><strong>{% if dashboard.totals.average_seconds is not none %}{{ dashboard.totals.average_seconds }}<em>s</em>{% else %}—{% endif %}</strong><small>completed investigations</small></article>
+    <article class="kpi-card"><div class="kpi-label"><span>Provider fallbacks</span><b>RESILIENCE</b></div><strong>{{ dashboard.totals.fallback_investigations }}</strong><small>{{ dashboard.totals.paid_calls }} paid safety-net calls</small></article>
+  </section>
+  <div class="ops-grid">
+    <section class="ops-card provider-card">
+      <header><div><span class="card-kicker">AI ROUTING</span><h2>Provider performance</h2></div><span class="legend"><i class="good"></i>success <i class="bad"></i>failed</span></header>
+      {% if dashboard.provider_summary %}<div class="provider-stack">{% for item in dashboard.provider_summary %}<article class="provider-row">
+        <div class="provider-identity"><span class="provider-mark">{{ item.provider[0]|upper }}</span><div><strong>{{ item.provider|capitalize }}</strong><small>{{ item.calls }} actual calls · {{ item.cooldown }} protected skips</small></div></div>
+        <div class="provider-score"><strong>{{ item.success_rate }}%</strong><small>success</small></div>
+        <div class="provider-bar"><span class="provider-good" style="width:{{ item.success_rate }}%"></span><span class="provider-bad"></span></div>
+        <div class="provider-numbers"><span>{{ item.succeeded }} passed</span><span>{{ item.failed }} failed</span></div>
+      </article>{% endfor %}</div>{% else %}<div class="ops-empty">Provider telemetry will appear after the first investigation.</div>{% endif %}
     </section>
-    <section class="admin-panel"><h2>Failure categories</h2>
-      {% if dashboard.failures %}<table><thead><tr><th>Category</th><th>Events</th></tr></thead><tbody>
-      {% for category, count in dashboard.failures %}<tr><td>{{ category }}</td><td>{{ count }}</td></tr>{% endfor %}
-      </tbody></table>{% else %}<p class="muted">No provider failures recorded.</p>{% endif %}
-      <h2 class="panel-subheading">Investigation states</h2>
-      <div class="status-list">{% for state, count in dashboard.statuses %}<span>{{ state }} <strong>{{ count }}</strong></span>{% endfor %}</div>
+    <section class="ops-card trend-card">
+      <header><div><span class="card-kicker">7 DAY WINDOW</span><h2>Investigation volume</h2></div><span class="trend-total">{{ dashboard.totals.all }}<small>all time</small></span></header>
+      <div class="bar-chart" aria-label="Investigations over the last seven days">{% for day in dashboard.daily %}<div class="bar-day" title="{{ day.date }}: {{ day.all }} investigations"><div class="bar-track"><span class="bar-success" style="height:{{ (day.completed / dashboard.max_daily * 100)|round }}%"></span><span class="bar-failed" style="height:{{ (day.failed / dashboard.max_daily * 100)|round }}%"></span></div><strong>{{ day.all }}</strong><small>{{ day.label }}</small></div>{% endfor %}</div>
+      <div class="trend-legend"><span><i class="good"></i>Completed</span><span><i class="bad"></i>Failed</span></div>
+    </section>
+    <section class="ops-card failure-card">
+      <header><div><span class="card-kicker">DIAGNOSTICS</span><h2>Failure signals</h2></div><span class="alert-count">{{ dashboard.totals.failed }}</span></header>
+      {% if dashboard.failures %}<div class="failure-list">{% for category, count in dashboard.failures %}<div><span>{{ category|replace('_', ' ') }}</span><progress value="{{ count }}" max="{{ dashboard.failures[0][1] }}"></progress><strong>{{ count }}</strong></div>{% endfor %}</div>{% else %}<div class="ops-empty success-empty"><i>✓</i><strong>No provider failures</strong><span>The route is clean right now.</span></div>{% endif %}
+      <div class="state-chips">{% for state, count in dashboard.statuses %}<span class="state-{{ state|lower }}">{{ state|replace('_',' ') }} <b>{{ count }}</b></span>{% endfor %}</div>
     </section>
   </div>
-
-  <section class="admin-panel recent-panel"><h2>Recent investigations</h2><p class="privacy-note">Claims and user identities are intentionally omitted from operational telemetry.</p>
-    {% if dashboard.recent %}<div class="table-scroll"><table><thead><tr><th>Created</th><th>ID</th><th>Status</th><th>Verdict</th><th>Lang</th><th>Sources</th><th>Duration</th><th>Final model</th></tr></thead><tbody>
-    {% for item in dashboard.recent %}<tr><td>{{ item.created_at.strftime('%m-%d %H:%M') }}</td><td><code>{{ item.id|string|truncate(13, True, '…') }}</code></td><td><span class="status-pill status-{{ item.status|lower }}">{{ item.status }}</span></td><td>{{ item.verdict or '—' }}</td><td>{{ item.language or '—' }}</td><td>{{ item.sources }}</td><td>{% if item.duration_seconds is not none %}{{ item.duration_seconds }}s{% else %}—{% endif %}</td><td>{{ item.model or '—' }}</td></tr>{% endfor %}
-    </tbody></table></div>{% else %}<p class="muted">No investigations yet.</p>{% endif %}
+  <section class="ops-card activity-card">
+    <header><div><span class="card-kicker">AUDIT STREAM</span><h2>Recent investigations</h2></div><span class="privacy-lock">◈ PRIVACY SAFE</span></header>
+    {% if dashboard.recent %}<div class="activity-table-wrap"><table class="activity-table"><thead><tr><th>Started</th><th>Run ID</th><th>State</th><th>Assessment</th><th>Input</th><th>Sources</th><th>Time</th><th>Final route</th></tr></thead><tbody>{% for item in dashboard.recent %}<tr>
+      <td><time>{{ item.created_at.strftime('%m-%d') }}<small>{{ item.created_at.strftime('%H:%M') }}</small></time></td><td><code>{{ (item.id|string)[:8] }}</code></td><td><span class="run-status run-{{ item.status|lower }}"><i></i>{{ item.status|replace('_',' ') }}</span></td><td><strong class="verdict-text verdict-{{ (item.verdict or '')|lower }}">{{ (item.verdict or 'Pending')|replace('_',' ') }}</strong></td><td><span class="lang-tag">{{ (item.language or '—')|upper }}</span></td><td>{{ item.sources }}</td><td>{% if item.duration_seconds is not none %}{{ item.duration_seconds }}s{% else %}—{% endif %}</td><td><span class="model-route">{{ (item.model or '—').split('/')[0] }}</span></td>
+    </tr>{% endfor %}</tbody></table></div>{% else %}<div class="ops-empty">No investigation activity yet.</div>{% endif %}
+    <footer>Raw claims, user identities, email addresses, and credentials are excluded from this view.</footer>
   </section>
 </section>
 {% endblock %}
