@@ -18,6 +18,8 @@ from app.auth.session import current_user, sign_in, sign_out
 from app.core.config import Settings, get_settings
 from app.db.models import User
 from app.db.session import get_session
+from app.payments.service import MonetizationService
+from app.payments.view import payment_context
 from app.web.csrf import csrf_token, require_csrf
 from app.web.i18n import (
     STATUS_COPY,
@@ -25,6 +27,7 @@ from app.web.i18n import (
     account_error_for,
     language_from_request,
     language_switch_url,
+    payment_copy_for,
 )
 
 router = APIRouter()
@@ -43,6 +46,7 @@ def _render(
         "app_version": request.app.state.settings.app_version,
         "language": language,
         "a": account_copy_for(language),
+        "p": payment_copy_for(language),
         "status_copy": STATUS_COPY[language],
         "language_urls": {
             "en": language_switch_url(request, "en"),
@@ -50,6 +54,7 @@ def _render(
         },
         "csrf_token": csrf_token(request),
     }
+    base.update(payment_context(request))
     base.update(context)
     return cast(
         Response,
@@ -326,7 +331,18 @@ def account(
     user = _require_user(request, session, settings)
     if user is None:
         return RedirectResponse("/login", status_code=303)
-    return _render(request, "account.html", {"current_user": user, "error": None})
+    payment = payment_context(request)
+    show_monetization = payment.get("show_monetization") is True
+    service = MonetizationService(session, settings)
+    return _render(
+        request,
+        "account.html",
+        {
+            "current_user": user,
+            "error": None,
+            "payments": service.purchase_history(user) if show_monetization else [],
+        },
+    )
 
 
 @router.post("/account/delete", include_in_schema=False)

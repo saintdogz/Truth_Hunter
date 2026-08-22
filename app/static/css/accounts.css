@@ -10,3 +10,7 @@
 .history-list a { display:grid; gap:.4rem; padding:1rem; border:1px solid var(--line); border-radius:8px; color:#e8edf2; text-decoration:none; background:#0a1218; }
 .history-list a:hover { border-color:#3d7165; }
 .history-list span { color:var(--muted); font:.72rem ui-monospace,Consolas,monospace; }
+.history-list > div,.source-card { display:grid; gap:.4rem; padding:1rem; border:1px solid var(--line); border-radius:8px; background:#0a1218; }
+.credit-balance { display:flex; justify-content:space-between; align-items:center; margin:1rem 0; padding:1rem; border:1px solid #28584b; border-radius:8px; background:#0d211d; }
+.credit-balance strong { color:var(--mint); font-size:1.5rem; }
+.source-card { margin:1rem 0; }

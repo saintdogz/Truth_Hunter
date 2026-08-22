@@ -18,6 +18,10 @@ class AccountEmailSender(Protocol):
 
     def send_password_reset(self, email: str, url: str, language: str) -> None: ...
 
+    def send_purchase_confirmation(
+        self, email: str, account_url: str, balance: int, language: str
+    ) -> None: ...
+
 
 @dataclass(frozen=True)
 class DevelopmentEmail:
@@ -39,6 +43,12 @@ class DevelopmentEmailSender:
     def send_password_reset(self, email: str, url: str, language: str) -> None:
         del language
         self.outbox.append(DevelopmentEmail("password_reset", email, url))
+
+    def send_purchase_confirmation(
+        self, email: str, account_url: str, balance: int, language: str
+    ) -> None:
+        del balance, language
+        self.outbox.append(DevelopmentEmail("purchase_confirmation", email, account_url))
 
 
 class ResendEmailSender:
@@ -84,6 +94,26 @@ class ResendEmailSender:
             )
         )
         self._send(email, *copy, url, "password_reset")
+
+    def send_purchase_confirmation(
+        self, email: str, account_url: str, balance: int, language: str
+    ) -> None:
+        copy = (
+            (
+                "Sikeres Truth Hunter-vásárlás",
+                "Öt vizsgálati kredit hozzáadva",
+                f"A fizetést megerősítettük. Jelenlegi egyenleged: {balance} kredit.",
+                "Fiók megnyitása",
+            )
+            if language == "hu"
+            else (
+                "Truth Hunter purchase confirmed",
+                "Five investigation credits added",
+                f"Your payment was confirmed. Your current balance is {balance} credits.",
+                "Open account",
+            )
+        )
+        self._send(email, *copy, account_url, "purchase_confirmation")
 
     def _send(
         self,

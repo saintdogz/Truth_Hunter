@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ p.credits }} · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="page-card credits-card">
+  <p class="signal-line"><span></span>{{ p.credits|upper }}</p>
+  <h1 class="page-title">{{ p.buy_credits }}</h1>
+  <div class="credit-balance"><span>{{ p.balance }}</span><strong id="credit-balance">{{ credit_balance }}</strong></div>
+  <div class="credit-product">
+    <h2>{{ p.pack }}</h2>
+    <strong>{{ currency }} {{ '%.2f'|format(price_minor / 100) }}</strong>
+    {% if paypal_client_id %}<div id="paypal-button-container"></div><p id="payment-message" class="muted" role="status"></p>{% else %}<p class="form-error">{{ p.checkout_unavailable }}</p>{% endif %}
+  </div>
+  <hr>
+  <h2>{{ p.purchase_history }}</h2>
+  {% if payments %}<div class="payment-history"><div><strong>{{ p.date }}</strong><strong>{{ p.amount }}</strong><strong>{{ p.status }}</strong></div>{% for payment in payments %}<div><span>{{ payment.created_at }}</span><span>{{ payment.currency }} {{ '%.2f'|format(payment.amount_minor / 100) }}</span><span>{{ payment.status }}</span></div>{% endfor %}</div>{% else %}<p class="muted">{{ p.no_purchases }}</p>{% endif %}
+</section>
+{% endblock %}
+{% block scripts %}{% if paypal_client_id %}<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id|urlencode }}&currency={{ currency }}&intent=capture"></script><script>
+(() => {
+  const csrf = {{ csrf_token|tojson }};
+  const message = document.getElementById("payment-message");
+  paypal.Buttons({
+    createOrder: async () => {
+      const response = await fetch("/api/paypal/orders", {method: "POST", headers: {"X-CSRF-Token": csrf}});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "payment-start-failed");
+      return data.id;
+    },
+    onApprove: async (data) => {
+      const response = await fetch(`/api/paypal/orders/${encodeURIComponent(data.orderID)}/capture`, {method: "POST", headers: {"X-CSRF-Token": csrf}});
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.detail || "payment-capture-failed");
+      document.getElementById("credit-balance").textContent = result.balance;
+      message.textContent = {{ p.payment_success|tojson }};
+    },
+    onError: () => { message.textContent = {{ p.payment_failed|tojson }}; }
+  }).render("#paypal-button-container");
+})();
+</script>{% endif %}{% endblock %}

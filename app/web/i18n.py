@@ -27,6 +27,12 @@ COPY: dict[str, dict[str, str]] = {
         "original": "Original claim",
         "interpreted": "Interpreted claim",
         "yes": "Yes, investigate this",
+        "yes_credit": "Confirm and use 1 credit",
+        "free_confirmation": "This uses your one free investigation.",
+        "credit_confirmation": "This reserves 1 credit. It is consumed only when the investigation succeeds.",
+        "credits_required": "Your free investigation has been used. Sign in and buy credits to continue.",
+        "turnstile_failed": "Human verification failed. Please try again.",
+        "too_many_investigations": "Too many free attempts from this network. Please try again later.",
         "no": "No — I'll describe it myself",
         "correct_label": "Corrected claim",
         "correct_submit": "Investigate corrected claim",
@@ -44,7 +50,9 @@ COPY: dict[str, dict[str, str]] = {
         "method_text": "Truth Hunter searched fresh English and Hungarian sources, extracted relevant evidence, assessed its relevance, strength, quality, independence and recency, then applied versioned deterministic scoring. The evidence balance is not a probability that the claim is true.",
         "metadata": "Investigation metadata",
         "sources": "Evidence and sources",
-        "locked": "Detailed evidence excerpts and source URLs will be protected by server-side entitlement when payments are introduced in Phase 5.",
+        "locked": "Detailed evidence excerpts and source URLs are locked for this result.",
+        "unlock": "Unlock sources for 1 credit",
+        "source_excerpt": "Evidence excerpt",
         "new": "Investigate another claim",
         "conflict": "Conflicting evidence detected",
         "insufficient_balance": "Insufficient evidence for a meaningful balance.",
@@ -72,6 +80,12 @@ COPY: dict[str, dict[str, str]] = {
         "original": "Eredeti állítás",
         "interpreted": "Értelmezett állítás",
         "yes": "Igen, vizsgáld meg",
+        "yes_credit": "Megerősítés és 1 kredit felhasználása",
+        "free_confirmation": "Ez felhasználja az egy ingyenes vizsgálatodat.",
+        "credit_confirmation": "Ez lefoglal 1 kreditet. Csak sikeres vizsgálat esetén kerül felhasználásra.",
+        "credits_required": "Az ingyenes vizsgálatodat már felhasználtad. Jelentkezz be és vásárolj kreditet a folytatáshoz.",
+        "turnstile_failed": "Az emberi ellenőrzés sikertelen. Próbáld újra.",
+        "too_many_investigations": "Túl sok ingyenes próbálkozás érkezett erről a hálózatról. Próbáld újra később.",
         "no": "Nem — én fogalmazom meg",
         "correct_label": "Javított állítás",
         "correct_submit": "Javított állítás vizsgálata",
@@ -89,7 +103,9 @@ COPY: dict[str, dict[str, str]] = {
         "method_text": "A Truth Hunter friss magyar és angol forrásokat keresett, kinyerte a releváns bizonyítékokat, értékelte azok relevanciáját, erejét, minőségét, függetlenségét és frissességét, majd verziózott, determinisztikus pontozást alkalmazott. A bizonyítékok megoszlása nem az állítás igazságának valószínűsége.",
         "metadata": "Vizsgálati metaadatok",
         "sources": "Bizonyítékok és források",
-        "locked": "A részletes bizonyítékrészleteket és forráslinkeket az 5. fázisban bevezetett szerveroldali jogosultság védi majd.",
+        "locked": "A részletes bizonyítékrészletek és forráslinkek ennél az eredménynél zárolva vannak.",
+        "unlock": "Források feloldása 1 kreditért",
+        "source_excerpt": "Bizonyítékrészlet",
         "new": "Új állítás vizsgálata",
         "conflict": "Ellentmondó bizonyítékot találtunk",
         "insufficient_balance": "Nincs elegendő bizonyíték az érdemi megoszláshoz.",
@@ -250,6 +266,39 @@ ACCOUNT_ERROR_COPY: dict[str, dict[str, str]] = {
     }
 }
 
+PAYMENT_COPY: dict[str, dict[str, str]] = {
+    "en": {
+        "credits": "Credits",
+        "buy_credits": "Buy investigation credits",
+        "pack": "Five non-expiring investigation credits",
+        "balance": "Current balance",
+        "checkout_unavailable": "Private checkout is not configured yet.",
+        "purchase_history": "Purchase history",
+        "no_purchases": "No purchases yet.",
+        "payment_success": "Payment confirmed. Your credits are ready.",
+        "payment_failed": "Payment could not be completed. No credits were added.",
+        "status": "Status",
+        "date": "Date",
+        "amount": "Amount",
+        "delete_credit_warning": "Any unused credits will be permanently forfeited.",
+    },
+    "hu": {
+        "credits": "Kreditek",
+        "buy_credits": "Vizsgálati kreditek vásárlása",
+        "pack": "Öt, le nem járó vizsgálati kredit",
+        "balance": "Jelenlegi egyenleg",
+        "checkout_unavailable": "A privát fizetési teszt még nincs beállítva.",
+        "purchase_history": "Vásárlási előzmények",
+        "no_purchases": "Még nincs vásárlás.",
+        "payment_success": "A fizetést megerősítettük. A kreditek használhatók.",
+        "payment_failed": "A fizetés nem sikerült. Nem adtunk hozzá kreditet.",
+        "status": "Állapot",
+        "date": "Dátum",
+        "amount": "Összeg",
+        "delete_credit_warning": "A fel nem használt kreditek végleg elvesznek.",
+    },
+}
+
 
 def copy_for(language: str | None) -> dict[str, str]:
     return COPY["hu" if language == "hu" else "en"]
@@ -257,6 +306,10 @@ def copy_for(language: str | None) -> dict[str, str]:
 
 def account_copy_for(language: str | None) -> dict[str, str]:
     return ACCOUNT_COPY["hu" if language == "hu" else "en"]
+
+
+def payment_copy_for(language: str | None) -> dict[str, str]:
+    return PAYMENT_COPY["hu" if language == "hu" else "en"]
 
 
 def account_error_for(language: str | None, message: str) -> str:

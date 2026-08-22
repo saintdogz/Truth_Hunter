@@ -170,6 +170,9 @@ class AccountService:
             .where(Investigation.session_id == session_id, Investigation.user_id.is_(None))
             .values(user_id=user.id, session_id=None)
         )
+        from app.payments.service import MonetizationService
+
+        MonetizationService(self._session, self._settings).claim_guest_entitlement(user, session_id)
         self._session.commit()
         return len(investigation_ids)
 
@@ -183,6 +186,9 @@ class AccountService:
         )
 
     def delete_account(self, user: User) -> None:
+        from app.payments.service import MonetizationService
+
+        MonetizationService(self._session, self._settings).anonymize_for_account_deletion(user)
         self._session.execute(delete(Investigation).where(Investigation.user_id == user.id))
         user.email = f"deleted-{user.id}@invalid.local"
         user.password_hash = None
