@@ -11,7 +11,24 @@
     <section class="argument-grid"><div class="argument-card pro"><h2>{{ t.pro }}</h2>{% if investigation.pro_arguments %}<ol>{% for item in investigation.pro_arguments[:3] %}<li>{{ item }}</li>{% endfor %}</ol>{% else %}<p class="muted">—</p>{% endif %}</div><div class="argument-card contra"><h2>{{ t.contra }}</h2>{% if investigation.contra_arguments %}<ol>{% for item in investigation.contra_arguments[:3] %}<li>{{ item }}</li>{% endfor %}</ol>{% else %}<p class="muted">—</p>{% endif %}</div></section>
     <details class="methodology"><summary>{{ t.methodology }}</summary><p>{{ t.method_text }}</p></details>
     <section class="metadata-card"><h2>{{ t.metadata }}</h2><dl><div><dt>{{ t.timestamp }}</dt><dd>{{ investigation.completed_at }}</dd></div><div><dt>{{ t.ai_model }}</dt><dd>{{ investigation.ai_model }}</dd></div><div><dt>{{ t.search }}</dt><dd>{{ investigation.search_provider }} · EN + HU</dd></div><div><dt>{{ t.sources_analyzed }}</dt><dd>{{ investigation.source_count }}</dd></div><div><dt>{{ t.method }}</dt><dd>{{ investigation.scoring_version }} · {{ investigation.prompt_version }}</dd></div></dl></section>
-    <section class="locked-card"><div aria-hidden="true">⌁</div><h2>{{ t.sources }}</h2><p>{{ t.locked }}</p></section>
+    <section class="evidence-section" aria-labelledby="evidence-title">
+      <div class="evidence-heading"><div><span class="section-label">{{ t.evidence_trail }}</span><h2 id="evidence-title">{{ t.sources }}</h2></div><span class="source-count">{{ investigation.sources|length }} {{ t.source_count_label }}</span></div>
+      <p class="evidence-intro">{{ t.evidence_intro }}</p>
+      {% if investigation.sources %}<div class="source-list">{% for source in investigation.sources %}{% set assessment = source.evidence[0] if source.evidence else none %}
+        <details class="source-card source-{{ assessment.position|lower if assessment else 'unrated' }}">
+          <summary><span class="source-index">{{ '%02d'|format(loop.index) }}</span><span class="source-identity"><strong>{{ source.title or source.domain }}</strong><small>{{ source.publisher or source.domain }}{% if source.published_at %} · {{ source.published_at.strftime('%Y-%m-%d') }}{% endif %}</small></span>{% if assessment %}<span class="position-badge position-{{ assessment.position|lower }}">{{ t['position_' ~ assessment.position|lower] }}</span>{% endif %}<span class="expand-label">{{ t.expand }}</span></summary>
+          <div class="source-detail">
+            {% if assessment %}<p class="evidence-summary">{{ assessment.summary }}</p>{% endif %}
+            {% if source.excerpt %}<blockquote><span>{{ t.relevant_excerpt }}</span>“{{ source.excerpt }}”</blockquote>{% endif %}
+            <dl class="source-scores">
+              {% if source.source_type %}<div><dt>{{ t.source_type }}</dt><dd>{{ source.source_type|replace('_', ' ')|title }}</dd></div>{% endif %}
+              {% if assessment %}<div><dt>{{ t.strength }}</dt><dd>{{ (assessment.strength * 100)|round|int }}%</dd></div><div><dt>{{ t.quality }}</dt><dd>{{ (assessment.quality * 100)|round|int }}%</dd></div><div><dt>{{ t.relevance }}</dt><dd>{{ (assessment.relevance * 100)|round|int }}%</dd></div>{% endif %}
+            </dl>
+            <a class="source-link" href="{{ source.url }}" target="_blank" rel="noopener noreferrer nofollow">{{ t.open_source }} <span aria-hidden="true">↗</span></a>
+          </div>
+        </details>{% endfor %}</div>{% else %}<div class="evidence-empty"><p>{{ t.no_source_details }}</p></div>{% endif %}
+      <p class="evidence-disclaimer">{{ t.evidence_disclaimer }}</p>
+    </section>
     <section class="feedback-card" aria-labelledby="feedback-title"><div><span class="feedback-icon" aria-hidden="true">◇</span><div><h2 id="feedback-title">{{ t.feedback_question }}</h2><p>{{ t.feedback_note }}</p></div></div>{% if request.query_params.get('feedback') == 'received' %}<p class="feedback-thanks" role="status">✓ {{ t.feedback_thanks }}</p>{% endif %}<div class="feedback-actions"><form method="post" action="/investigations/{{ investigation.id }}/feedback"><input type="hidden" name="csrf" value="{{ csrf_token }}"><input type="hidden" name="value" value="HELPFUL"><button class="feedback-button{% if selected_feedback == 'HELPFUL' %} selected{% endif %}" type="submit" aria-pressed="{{ 'true' if selected_feedback == 'HELPFUL' else 'false' }}"><span aria-hidden="true">↑</span>{{ t.helpful }}</button></form><form method="post" action="/investigations/{{ investigation.id }}/feedback"><input type="hidden" name="csrf" value="{{ csrf_token }}"><input type="hidden" name="value" value="NOT_HELPFUL"><button class="feedback-button negative{% if selected_feedback == 'NOT_HELPFUL' %} selected{% endif %}" type="submit" aria-pressed="{{ 'true' if selected_feedback == 'NOT_HELPFUL' else 'false' }}"><span aria-hidden="true">↓</span>{{ t.not_helpful }}</button></form></div></section>
     <a class="button secondary" href="/?lang={{ language }}">← {{ t.new }}</a>
   </article>

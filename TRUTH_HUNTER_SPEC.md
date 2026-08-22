@@ -764,11 +764,23 @@ Free users receive:
 -   Conflict indication
 -   Methodology summary
 -   Investigation metadata
+-   During the pre-monetization testing period, the detailed evidence trail,
+    bounded excerpts, structured evidence scores, and original source URLs.
 
 ### Locked
 
-The detailed evidence trail and source URLs are locked until the user
-has paid/unlocked the investigation entitlement.
+The detailed evidence trail and source URLs are intended to be locked until
+the user has paid/unlocked the investigation entitlement. **During the current
+pre-monetization testing period they are deliberately available without
+payment** so testers can evaluate evidence quality and provide useful product
+feedback. This temporary policy must be reversible without changing stored
+investigation data.
+
+The testing-period evidence UI may show source titles, publishers/domains,
+dates, evidence position, bounded excerpts, structured assessment scores, and
+links to the original pages. It must never expose the full retained extracted
+source text. Source links must open safely with appropriate external-link
+attributes.
 
 The backend must enforce access control. Never merely hide source URLs
 with frontend CSS/JavaScript.

@@ -1,5 +1,6 @@
 """One-click feedback ownership and duplicate-safety tests."""
 
+from collections.abc import Iterator
 from uuid import uuid4
 
 import pytest
@@ -12,7 +13,7 @@ from app.feedback.service import FeedbackError, submit_feedback
 
 
 @pytest.fixture
-def session() -> Session:
+def session() -> Iterator[Session]:
     engine = create_engine("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(engine)
     with Session(engine) as database_session:
