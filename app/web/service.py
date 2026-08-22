@@ -61,3 +61,24 @@ class InvestigationWebService:
                 raise InvestigationNotFoundError(str(investigation_id))
             session.expunge(investigation)
             return investigation
+
+    def get_public(self, public_slug: str) -> Investigation:
+        with Session(get_engine()) as session:
+            statement = (
+                select(Investigation)
+                .where(
+                    Investigation.public_slug == public_slug,
+                    Investigation.is_public.is_(True),
+                    Investigation.status == "COMPLETED",
+                )
+                .options(
+                    selectinload(Investigation.sources).selectinload(Source.evidence),
+                    selectinload(Investigation.evidence),
+                    selectinload(Investigation.feedback),
+                )
+            )
+            investigation = session.scalar(statement)
+            if investigation is None:
+                raise InvestigationNotFoundError(public_slug)
+            session.expunge(investigation)
+            return investigation

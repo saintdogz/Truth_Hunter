@@ -14,7 +14,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.config import Settings, get_settings
 from app.db.base import Base
-from app.db.models import Feedback, Investigation
+from app.db.models import Feedback, Investigation, PublicReport
 from app.db.session import get_session
 from app.main import create_app
 
@@ -135,6 +135,14 @@ def test_dashboard_aggregates_provider_fallbacks(admin_client: TestClient) -> No
             value="HELPFUL",
         )
     )
+    session.add(
+        PublicReport(
+            investigation_id=investigation.id,
+            reporter_session_id="report-test-session",
+            reason="SPAM",
+            status="OPEN",
+        )
+    )
     session.commit()
     generator.close()
 
@@ -144,4 +152,6 @@ def test_dashboard_aggregates_provider_fallbacks(admin_client: TestClient) -> No
     assert "gemini" in dashboard.text
     assert "Helpful results" in dashboard.text
     assert "1 helpful" in dashboard.text
+    assert "Public reports" in dashboard.text
+    assert "1 total" in dashboard.text
     assert "sensitive claim" not in dashboard.text
