@@ -831,6 +831,13 @@ No 2FA required in MVP.
 
 Mandatory 2FA.
 
+The initial operational dashboard uses step-up authentication: the administrator
+must first sign in with the normal verified email/password account and then open
+a short-lived access link delivered to the allowlisted administrator email.
+Administrator email addresses are configured through `ADMIN_EMAILS`; they are
+not inferred from the first registered account. Access links expire after 10
+minutes by default, and an elevated dashboard session expires after 30 minutes.
+
 Admin dashboard can live at a normal route such as:
 
 ``` text
@@ -838,6 +845,25 @@ Admin dashboard can live at a normal route such as:
 ```
 
 Do not add unnecessary IP/VPN restrictions in MVP.
+
+### Operational dashboard
+
+The private `/admin` dashboard is read-only in its first iteration. It may show:
+
+- investigation totals, terminal success rate, running and failed counts;
+- average completed-investigation duration;
+- provider successes, failures, cooldowns, and failure categories;
+- investigations that used more than one provider and successful paid-fallback
+  call counts;
+- recent investigation IDs, states, verdicts, languages, source counts,
+  durations, and final models; and
+- non-sensitive application, database, and search configuration health.
+
+Do not display API keys, credentials, raw user claims, source text, email
+addresses, or user identities in operational telemetry. Log successful admin
+step-up and dashboard access without logging recipient addresses or access
+tokens. The dashboard may refresh periodically and must not mutate application
+or investigation state.
 
 ------------------------------------------------------------------------
 

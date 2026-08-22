@@ -101,3 +101,12 @@ def test_empty_compose_fallback_values_are_unset() -> None:
     )
 
     assert settings.ai_fallback_provider is None
+
+
+def test_admin_email_allowlist_is_normalized() -> None:
+    settings = Settings(
+        app_env="test",
+        admin_emails=" Owner@Example.com,second@example.com, ",
+    )
+
+    assert settings.admin_email_allowlist == {"owner@example.com", "second@example.com"}
