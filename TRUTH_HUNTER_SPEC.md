@@ -987,6 +987,13 @@ No comment box in MVP.
 
 Prevent obvious duplicate feedback per user/session/investigation.
 
+The implemented one-click feedback control is available on completed result
+pages in English and Hungarian. Feedback is ownership-bound to the
+authenticated user or anonymous investigation session, protected by CSRF, and
+stored as one mutable record per actor/investigation pair. The MVP does not
+collect a free-text comment. Aggregate helpful, not-helpful, and helpful-rate
+metrics are visible only in the private admin dashboard.
+
 ------------------------------------------------------------------------
 
 ## 31. Analytics

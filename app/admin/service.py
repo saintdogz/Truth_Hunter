@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Investigation, User
+from app.db.models import Feedback, Investigation, User
 
 TERMINAL_STATUSES = {"COMPLETED", "FAILED"}
 
@@ -32,6 +32,7 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
         session.scalars(select(Investigation).order_by(Investigation.created_at.desc())).all()
     )
     users = list(session.scalars(select(User)).all())
+    feedback_rows = list(session.scalars(select(Feedback)).all())
     status_counts = Counter(item.status for item in investigations)
     provider_outcomes: Counter[tuple[str, str]] = Counter()
     failure_categories: Counter[str] = Counter()
@@ -77,6 +78,7 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
         )
         >= seven_days_ago
     ]
+    helpful_feedback = sum(item.value == "HELPFUL" for item in feedback_rows)
     provider_names = sorted({provider for provider, _ in provider_outcomes})
     provider_summary = [
         {
@@ -131,6 +133,14 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
             "verified": sum(user.email_verified for user in active_users),
             "deleted": len(users) - len(active_users),
             "new_last_7_days": len(recent_users),
+        },
+        "feedback": {
+            "total": len(feedback_rows),
+            "helpful": helpful_feedback,
+            "not_helpful": len(feedback_rows) - helpful_feedback,
+            "helpful_rate": round(helpful_feedback / len(feedback_rows) * 100, 1)
+            if feedback_rows
+            else None,
         },
         "statuses": status_counts.most_common(),
         "providers": [

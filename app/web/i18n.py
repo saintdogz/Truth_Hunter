@@ -54,6 +54,11 @@ COPY: dict[str, dict[str, str]] = {
         "search": "Search",
         "sources_analyzed": "Sources analyzed",
         "method": "Method",
+        "feedback_question": "Was this investigation helpful?",
+        "feedback_note": "Your response helps us improve evidence quality.",
+        "helpful": "Helpful",
+        "not_helpful": "Not helpful",
+        "feedback_thanks": "Thanks — your feedback was recorded.",
     },
     "hu": {
         "tagline": "Ne hidd el. Vizsgáld meg.",
@@ -99,6 +104,11 @@ COPY: dict[str, dict[str, str]] = {
         "search": "Keresés",
         "sources_analyzed": "Elemzett források",
         "method": "Módszer",
+        "feedback_question": "Hasznos volt ez a vizsgálat?",
+        "feedback_note": "A válaszod segít javítani a bizonyítékok minőségét.",
+        "helpful": "Hasznos",
+        "not_helpful": "Nem hasznos",
+        "feedback_thanks": "Köszönjük — a visszajelzésedet rögzítettük.",
     },
 }
 

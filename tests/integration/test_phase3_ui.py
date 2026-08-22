@@ -184,3 +184,5 @@ def test_result_never_exposes_locked_source_urls(client: TestClient) -> None:
     assert "72.0% PRO" in response.text
     assert "https://secret-source.example" not in response.text
     assert "Detailed evidence excerpts" in response.text
+    assert "Was this investigation helpful?" in response.text
+    assert f"/investigations/{investigation_id}/feedback" in response.text
