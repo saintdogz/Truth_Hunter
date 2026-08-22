@@ -2,8 +2,8 @@
 {% block title %}{{ t.progress_title }} — Truth Hunter{% endblock %}
 {% block content %}
   <section class="page-card progress-card" data-progress-url="/investigations/{{ investigation.id }}/status">
-    <div class="radar" aria-hidden="true"><span></span></div><p class="signal-line centered"><span></span>LIVE INVESTIGATION</p><h1 class="page-title">{{ t.progress_title }}</h1>
-    <p id="progress-status" class="progress-status">{{ status_text }}</p><div class="indeterminate"><span></span></div><p class="muted">{{ t.progress_note }}</p><p id="progress-error" class="form-error" hidden>{{ t.failed }}</p><blockquote>{{ investigation.interpreted_claim }}</blockquote>
+    <div class="radar" aria-hidden="true"><span></span></div><p class="signal-line centered"><span></span>LIVE INVESTIGATION</p><h1 id="progress-title" class="page-title">{{ t.progress_title }}</h1>
+    <p id="progress-status" class="progress-status">{{ status_text }}</p><div id="progress-bar" class="indeterminate"><span></span></div><p id="progress-note" class="muted">{{ t.progress_note }}</p><p id="progress-error" class="form-error" hidden>{{ t.failed }}</p><blockquote>{{ investigation.interpreted_claim }}</blockquote>
   </section>
 {% endblock %}
 {% block scripts %}<script src="{{ url_for('static', path='/js/progress.js') }}" defer></script>{% endblock %}
