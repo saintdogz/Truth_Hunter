@@ -98,7 +98,9 @@ class StructuredChatProvider:
                     max_tokens=2_500,
                     **kwargs,
                 )
-                content = response.choices[0].message.content
+                choice = response.choices[0]
+                message = getattr(choice, "message", None)
+                content = getattr(message, "content", None)
                 if not content:
                     raise ValueError("empty response")
                 return schema.model_validate_json(content)
