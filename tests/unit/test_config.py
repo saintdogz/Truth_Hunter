@@ -66,6 +66,12 @@ def test_empty_optional_brave_search_key_is_unset() -> None:
     assert settings.brave_search_api_key is None
 
 
+def test_optional_support_url_can_be_configured_or_hidden() -> None:
+    assert Settings(app_env="test", support_url="").support_url is None
+    settings = Settings(app_env="test", support_url="https://support.example.com/truth-hunter")
+    assert str(settings.support_url) == "https://support.example.com/truth-hunter"
+
+
 def test_deepseek_provider_is_accepted() -> None:
     settings = Settings(
         app_env="test",

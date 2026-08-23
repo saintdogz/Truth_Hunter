@@ -4,6 +4,7 @@ body { margin:0; min-width:320px; min-height:100vh; background:radial-gradient(c
 a { color:var(--mint); } button,textarea,input { font:inherit; }
 .site-header,.site-footer { width:min(1180px,calc(100% - 2rem)); margin:auto; display:flex; justify-content:space-between; align-items:center; }
 .site-header { height:72px; border-bottom:1px solid rgb(38 54 65 / 65%); }.site-footer { min-height:72px; border-top:1px solid rgb(38 54 65 / 65%); color:#60727d; font:.72rem ui-monospace,Consolas,monospace; }
+.footer-links { display:flex; align-items:center; gap:.55rem; }.footer-links a { color:#8da0aa; text-decoration:none; }.footer-links a:hover { color:var(--mint); }
 .wordmark { color:#edf5f4; text-decoration:none; font:800 1rem/1 ui-monospace,Consolas,monospace; letter-spacing:-.04em; }.wordmark span,h1 span { color:var(--mint); }
 .language-nav { color:#50626e; font:700 .74rem ui-monospace,Consolas,monospace; }.language-nav a { padding:.5rem; color:#8da0aa; text-decoration:none; }
 .shell { width:min(1120px,calc(100% - 2rem)); min-height:calc(100vh - 144px); margin:auto; padding:clamp(3rem,7vw,7rem) 0; }.hero { max-width:870px; margin:0 auto; text-align:center; }

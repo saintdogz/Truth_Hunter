@@ -131,7 +131,8 @@ Brand:
 Landing page should contain:
 
 -   Main claim input
--   Clear indication of one free investigation
+-   Clear indication that the service is free to use, subject to fair-use and
+    abuse-prevention limits
 -   A few fixed demo/example investigations
 -   Simple 3-step explanation:
     1.  Submit a claim
@@ -348,7 +349,7 @@ evidence after evaluation, the investigation must terminate as
 `SEARCH_FAILED`. Merely fetching irrelevant pages does not satisfy this gate.
 The run must not generate a summary, arguments, verdict, or evidence-free
 `INCONCLUSIVE` result. The UI must identify evidence search as temporarily
-unavailable and the failed run must not consume a credit or free allowance.
+unavailable.
 
 When `BRAVE_SEARCH_API_KEY` is configured, the official Brave Web Search API is
 a metered last-resort search tier. The application must complete the free,
@@ -405,8 +406,7 @@ Government source = true
 Social media = false
 ```
 
-Source scores/assessments should be visible to users when evidence is
-unlocked.
+Source scores/assessments should be visible to users.
 
 ------------------------------------------------------------------------
 
@@ -696,8 +696,6 @@ Do not endlessly retry permanent errors.
 
 If an investigation ultimately fails:
 
--   Do not consume a paid investigation credit.
--   Restore the user's free attempt where applicable.
 -   Show a friendly error message.
 -   Log the failure for admin review without exposing sensitive/internal
     details.
@@ -737,8 +735,10 @@ spending. The per-investigation paid-call cap remains mandatory.
 
 ## 22. Anonymous Free Use
 
-A visitor can perform **one free investigation without creating an
-account**.
+A visitor can perform investigations without creating an account. The service
+is free to use during and after MVP, subject to fair-use, capacity, anti-bot,
+and abuse-prevention limits. These operational limits are safeguards, not paid
+entitlements.
 
 Flow:
 
@@ -769,81 +769,38 @@ account where practical.
 
 ------------------------------------------------------------------------
 
-## 23. Monetization
+## 23. Free-First Sustainability
 
-MVP product:
+Truth Hunter is free to use. Verdicts, explanations, evidence details, and
+original source links are not sold or locked behind credits.
 
-> **€3 for 5 investigations**
+The MVP may display a discreet optional **Support Truth Hunter** link to an
+externally hosted contribution page. Support must be voluntary and must not
+grant credits, faster processing, additional evidence, preferential treatment,
+or any other product entitlement. The link must be configuration-driven and
+hidden when no destination is configured.
 
-Unused investigations do **not expire**.
+Truth Hunter must not describe voluntary support as purchasing the service.
+Before accepting contributions, the owner must select an appropriate provider
+and confirm applicable Hungarian/EU accounting, tax, consumer, and privacy
+obligations. The application must not process or store financial details in
+MVP.
 
-Do not build subscriptions in MVP.
-
-Keep pricing/product configuration outside hardcoded business logic so
-it can be changed later.
-
-### Free result
-
-Free users receive:
-
--   Verdict
--   Evidence balance
--   Confidence
--   Short explanation
--   Pro/Contra summaries
--   Conflict indication
--   Methodology summary
--   Investigation metadata
--   During the pre-monetization testing period, the detailed evidence trail,
-    bounded excerpts, structured evidence scores, and original source URLs.
-
-### Locked
-
-The detailed evidence trail and source URLs are intended to be locked until
-the user has paid/unlocked the investigation entitlement. **During the current
-pre-monetization testing period they are deliberately available without
-payment** so testers can evaluate evidence quality and provide useful product
-feedback. This temporary policy must be reversible without changing stored
-investigation data.
-
-The testing-period evidence UI may show source titles, publishers/domains,
-dates, evidence position, bounded excerpts, structured assessment scores, and
-links to the original pages. It must never expose the full retained extracted
-source text. Source links must open safely with appropriate external-link
-attributes.
-
-The backend must enforce access control. Never merely hide source URLs
-with frontend CSS/JavaScript.
-
-Paid/unlocked investigations can be shared by the user.
+Subscriptions, investigation-credit sales, evidence unlocking, and integrated
+checkout are deferred contingency options, not part of the current roadmap.
 
 ------------------------------------------------------------------------
 
-## 24. Payments
+## 24. Voluntary Support
 
-Initial payment provider: **PayPal**.
+MVP support integration is an ordinary external HTTPS link only. Do not add
+payment SDKs, checkout sessions, webhooks, donor identity records, contribution
+amounts, public donor lists, or donor rewards. The external provider owns its
+payment security and receipt flow.
 
-Use a payment abstraction.
-
-Conceptual interface:
-
-``` python
-class PaymentProvider(Protocol):
-    async def create_payment(...):
-        ...
-
-    async def verify_payment(...):
-        ...
-
-    async def handle_webhook(...):
-        ...
-```
-
-Only server-side verified payment events can grant credits.
-
-Never trust browser-side payment-success claims.
-
-Design so Stripe or another provider can be added later.
+If integrated payments are deliberately introduced in a later specification,
+they must use server-side verification and a provider abstraction. Browser-side
+success claims must never grant an entitlement.
 
 ------------------------------------------------------------------------
 
@@ -925,7 +882,7 @@ The service is intended to operate from Hungary/EU and should be
 designed with GDPR principles in mind.
 
 Core data should remain self-hosted where practical, while external
-services may be used for AI, payments, authentication/email, and similar
+services may be used for AI, voluntary support, authentication/email, and similar
 necessary functions.
 
 Marketing/newsletter functionality is **not** part of MVP.
@@ -980,8 +937,8 @@ Public investigations receive permanent shareable URLs, for example:
 Public pages should show the **original claim exactly as submitted**, as
 well as the interpreted claim.
 
-If a paid/unlocked investigation is shared publicly, its unlocked
-evidence/source trail may be shared as part of that public result.
+If an investigation is shared publicly, its evidence/source trail may be shared
+as part of that public result.
 
 Search-engine indexing of public investigations is **deferred**. Build
 it so indexing can be enabled/disabled later.
@@ -1065,10 +1022,9 @@ claim_confirmed
 investigation_started
 investigation_completed
 investigation_failed
-free_investigation_used
+anonymous_investigation_started
 registration_completed
-payment_completed
-investigation_unlocked
+support_link_opened
 public_shared
 feedback_positive
 feedback_negative
@@ -1265,7 +1221,6 @@ truth-hunter/
 │   ├── api/
 │   │   ├── auth.py
 │   │   ├── investigations.py
-│   │   ├── payments.py
 │   │   ├── reports.py
 │   │   ├── feedback.py
 │   │   └── admin.py
@@ -1292,9 +1247,6 @@ truth-hunter/
 │   ├── search/
 │   │   ├── base.py
 │   │   └── searxng.py
-│   ├── payments/
-│   │   ├── base.py
-│   │   └── paypal.py
 │   ├── analytics/
 │   │   └── service.py
 │   └── templates/
@@ -1306,7 +1258,6 @@ truth-hunter/
 │       ├── history.html
 │       ├── login.html
 │       ├── register.html
-│       ├── payment.html
 │       ├── public_investigation.html
 │       ├── report.html
 │       └── admin/
@@ -1376,7 +1327,6 @@ prompt_version
 search_provider
 scoring_version
 source_count
-is_unlocked
 is_public
 public_slug
 created_at
@@ -1413,30 +1363,6 @@ quality
 independence
 recency
 summary
-```
-
-### payments
-
-``` text
-id
-user_id
-provider
-provider_transaction_id
-amount
-currency
-status
-created_at
-```
-
-### credits
-
-``` text
-id
-user_id
-payment_id
-amount
-remaining
-created_at
 ```
 
 ### reports
@@ -1602,9 +1528,7 @@ AI_MODEL
 
 SEARXNG_URL
 
-PAYPAL_CLIENT_ID
-PAYPAL_CLIENT_SECRET
-PAYPAL_ENVIRONMENT
+SUPPORT_URL
 
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
@@ -1733,8 +1657,8 @@ Estimated provider cost
 Failures/retries
 ```
 
-The €3/5-investigation business model should be measurable later if paid
-providers are introduced.
+Operational cost per investigation should remain measurable so the owner can
+judge whether voluntary support and available capacity are sustainable.
 
 ------------------------------------------------------------------------
 
@@ -1901,13 +1825,16 @@ investigation engine yet.
 -   History
 -   Account deletion
 
-### Phase 5 --- Monetization
+### Phase 5 --- Free Access / Voluntary Support
 
--   PayPal
--   €3 product
--   Five investigation credits
--   Credit consumption/refund
--   Evidence/source unlocking
+-   Free access to complete results and evidence
+-   Configurable external support link
+-   Clear statement that support is optional and grants no entitlement
+-   Fair-use and abuse-prevention controls
+-   Cost-per-investigation measurement
+
+Integrated payments, credits, subscriptions, and evidence locking are
+explicitly deferred.
 
 ### Phase 6 --- Sharing / Feedback
 
@@ -1968,18 +1895,20 @@ The MVP is complete when a new visitor can:
 11. See up to 3 Pro and 3 Contra arguments.
 12. See conflicts where relevant.
 13. See methodology and investigation metadata.
-14. Complete one free investigation without an account.
+14. Complete an investigation without an account, subject to fair-use limits.
 
 A registered user can:
 
 15. Register via email/password.
 16. Verify email.
-17. Sign in with Google.
+17. Sign in after verifying their email. Google authentication remains
+    deferred until after MVP.
 18. View history.
 19. Delete their account/data.
-20. Purchase the MVP PayPal product.
-21. Receive five non-expiring investigation credits.
-22. Unlock evidence/source links according to entitlement.
+20. Access the complete evidence trail without payment.
+21. Optionally open the configured external support page without receiving a
+    product entitlement.
+22. Continue using the service without purchasing credits.
 23. Make an investigation public.
 24. Share a permanent URL.
 25. Report public investigations.
@@ -1989,7 +1918,8 @@ An admin can:
 
 27. Authenticate with mandatory 2FA.
 28. See basic users/investigation metrics.
-29. See payments/credits.
+29. See operational usage and estimated provider costs without handling donor
+    financial details.
 30. See reports.
 31. See feedback.
 32. See failures and provider usage.
@@ -2016,7 +1946,8 @@ Codex should follow these rules while implementing the project:
 3.  Do not implement future features merely because they seem useful.
 4.  Prefer simple, maintainable solutions.
 5.  Avoid unnecessary infrastructure.
-6.  Preserve provider abstractions for AI, search, and payments.
+6.  Preserve provider abstractions for AI and search; keep voluntary support
+    decoupled from product entitlements.
 7.  Never commit secrets.
 8.  Use migrations for database schema changes.
 9.  Add tests for meaningful domain/security behavior.

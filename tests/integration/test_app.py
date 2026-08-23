@@ -1,6 +1,10 @@
 """Server-rendered application behavior tests."""
 
 from fastapi.testclient import TestClient
+from pydantic import AnyHttpUrl
+
+from app.core.config import Settings
+from app.main import create_app
 
 
 def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
@@ -20,6 +24,21 @@ def test_home_supports_hungarian_interface(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert "Ne hidd el. Vizsgáld meg." in response.text
+
+
+def test_support_link_is_hidden_when_not_configured(client: TestClient) -> None:
+    response = client.get("/")
+
+    assert "Support Truth Hunter" not in response.text
+
+
+def test_configured_support_link_is_safe_and_visible(settings: Settings) -> None:
+    settings.support_url = AnyHttpUrl("https://support.example.com/truth-hunter")
+    with TestClient(create_app(settings)) as support_client:
+        response = support_client.get("/")
+
+    assert 'href="https://support.example.com/truth-hunter"' in response.text
+    assert 'target="_blank" rel="noopener noreferrer"' in response.text
 
 
 def test_static_stylesheet_is_served(client: TestClient) -> None:

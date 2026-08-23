@@ -26,12 +26,12 @@ Implemented:
 - Claim interpretation, confirmation, and one-time correction flow
 - Background investigation execution with a polling progress experience
 - Bilingual assessment pages with evidence balance, confidence, strongest arguments, conflict disclosure, methodology, and run metadata
-- Server-side withholding of detailed evidence excerpts and source URLs until Phase 5 entitlements exist
+- Complete evidence details and original source links for free investigations
 - Email/password accounts with Argon2id hashing, signed verification and reset links, secure signed sessions, CSRF protection, and authentication attempt throttling
 - Investigation history, guest-investigation claiming, logout, and account/data deletion
 - Replaceable account-email boundary with development-only in-memory delivery and a Resend transactional adapter
 
-Google OAuth still requires provider credentials. Resend production delivery requires a verified sender domain, `EMAIL_DELIVERY_MODE=resend`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and a public `PUBLIC_BASE_URL`. Payments, credits, analytics, sharing, detailed source access, and other later-phase features are not implemented.
+Google OAuth is deferred until after MVP. Resend production delivery requires a verified sender domain, `EMAIL_DELIVERY_MODE=resend`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and a public `PUBLIC_BASE_URL`. Truth Hunter is free to use; an optional external voluntary-support link can be configured with `SUPPORT_URL`, and grants no product entitlement.
 
 ## Requirements
 

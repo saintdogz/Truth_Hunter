@@ -18,7 +18,10 @@
       </nav>
     </header>
     <main class="shell">{% block content %}{% endblock %}</main>
-    <footer class="site-footer"><span>Truth Hunter v{{ app_version }}</span><span>Discord: saintdogz</span></footer>
+    <footer class="site-footer">
+      <span>Truth Hunter v{{ app_version }}</span>
+      <span class="footer-links">{% if support_url %}<a href="{{ support_url }}" target="_blank" rel="noopener noreferrer">{{ t.support }}</a><span>·</span>{% endif %}<span>Discord: saintdogz</span></span>
+    </footer>
     {% block scripts %}{% endblock %}
   </body>
 </html>

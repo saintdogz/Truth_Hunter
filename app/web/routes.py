@@ -50,6 +50,7 @@ def render(
     base_context: dict[str, object] = {
         "app_name": request.app.state.settings.app_name,
         "app_version": request.app.state.settings.app_version,
+        "support_url": request.app.state.settings.support_url,
     }
     base_context["current_user"] = request.session.get("user_id")
     context_language = context.get("language")

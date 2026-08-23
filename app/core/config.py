@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     fetch_max_bytes: int = Field(default=2_000_000, ge=10_000, le=5_000_000)
     fetch_redirect_limit: int = Field(default=4, ge=0, le=10)
     public_base_url: AnyHttpUrl = AnyHttpUrl("http://localhost")
+    support_url: AnyHttpUrl | None = None
     email_delivery_mode: Literal["development", "resend"] = "development"
     email_token_max_age_seconds: int = Field(default=86_400, ge=300, le=604_800)
     reset_token_max_age_seconds: int = Field(default=3_600, ge=300, le=86_400)
@@ -103,6 +104,7 @@ class Settings(BaseSettings):
         "google_client_secret",
         "resend_api_key",
         "resend_from_email",
+        "support_url",
         mode="before",
     )
     @classmethod
