@@ -115,6 +115,25 @@ class IrrelevantAI(FakeAI):
         )
 
 
+class FallbackAwareAI(IrrelevantAI):
+    async def evaluate_evidence(self, claim: str, source: SourceDocument) -> EvidenceAssessment:
+        if source.domain.startswith("brave"):
+            return await FakeAI.evaluate_evidence(self, claim, source)
+        return await super().evaluate_evidence(claim, source)
+
+
+class FakeBraveSearch:
+    provider_name = "brave"
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str]] = []
+
+    async def search(self, query: str, language: str, limit: int) -> list[SearchResult]:
+        del limit
+        self.calls.append((query, language))
+        return [SearchResult(url=f"https://brave{len(self.calls)}.example/evidence")]
+
+
 class FakeFetcher(SafeSourceFetcher):
     def __init__(self) -> None:
         pass
@@ -283,4 +302,43 @@ async def test_irrelevant_fetched_pages_fail_without_generating_summary() -> Non
         assert stored.summary is None
         assert stored.source_count == 0
         assert ai.summary_calls == 0
+    engine.dispose()
+
+
+@pytest.mark.anyio
+async def test_brave_fallback_runs_only_after_free_evidence_is_not_useful() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        ai = FallbackAwareAI(
+            SearchQueries(
+                scope="general",
+                use_hungarian=False,
+                english=["query one", "query two", "query three"],
+                hungarian=[],
+            )
+        )
+        fallback = FakeBraveSearch()
+        pipeline = InvestigationPipeline(
+            ai,
+            FakeSearch(),
+            FakeFetcher(),
+            InvestigationRepository(session),
+            search_delay_seconds=0,
+            fallback_search=fallback,
+            fallback_search_query_limit=2,
+        )
+        investigation_id, _ = await pipeline.create_and_interpret(
+            "The Moon landing footage was filmed in a studio."
+        )
+
+        await pipeline.investigate_confirmed(
+            investigation_id, "The Moon landing footage was filmed in a studio."
+        )
+
+        stored = session.get(Investigation, investigation_id)
+        assert fallback.calls == [("query one", "en"), ("query two", "en")]
+        assert stored is not None
+        assert stored.status == "COMPLETED"
+        assert stored.search_provider == "fake-search -> brave"
     engine.dispose()

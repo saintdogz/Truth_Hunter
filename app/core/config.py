@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     deepseek_api_key: SecretStr | None = None
     deepseek_model: str = "deepseek-v4-flash"
     searxng_url: AnyHttpUrl = AnyHttpUrl("http://searxng:8080")
+    brave_search_api_key: SecretStr | None = None
+    brave_search_url: AnyHttpUrl = AnyHttpUrl("https://api.search.brave.com/res/v1/web/search")
+    brave_search_max_queries_per_investigation: int = Field(default=2, ge=1, le=2)
     search_result_limit: int = Field(default=20, ge=1, le=50)
     search_delay_seconds: float = Field(default=1.0, ge=0, le=10)
     search_retry_attempts: int = Field(default=1, ge=0, le=2)
@@ -95,6 +98,7 @@ class Settings(BaseSettings):
         "gemini_api_key",
         "openrouter_api_key",
         "deepseek_api_key",
+        "brave_search_api_key",
         "google_client_id",
         "google_client_secret",
         "resend_api_key",
@@ -143,6 +147,12 @@ class Settings(BaseSettings):
             and "change-me" in self.ai_fallback_api_key.get_secret_value()
         ):
             raise ValueError("AI_FALLBACK_API_KEY must be replaced in production")
+        if (
+            self.app_env == "production"
+            and self.brave_search_api_key is not None
+            and "change-me" in self.brave_search_api_key.get_secret_value()
+        ):
+            raise ValueError("BRAVE_SEARCH_API_KEY must be replaced in production")
         if self.allow_paid_ai_fallback and self.ai_max_paid_fallback_calls == 0:
             raise ValueError(
                 "AI_MAX_PAID_FALLBACK_CALLS must be positive when paid fallback is enabled"

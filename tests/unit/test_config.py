@@ -60,6 +60,12 @@ def test_empty_optional_ai_key_is_unset() -> None:
     assert settings.ai_api_key is None
 
 
+def test_empty_optional_brave_search_key_is_unset() -> None:
+    settings = Settings(app_env="test", brave_search_api_key="")
+
+    assert settings.brave_search_api_key is None
+
+
 def test_deepseek_provider_is_accepted() -> None:
     settings = Settings(
         app_env="test",

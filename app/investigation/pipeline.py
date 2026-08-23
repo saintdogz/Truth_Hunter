@@ -75,6 +75,8 @@ class InvestigationPipeline:
         useful_source_limit: int = 15,
         source_evaluation_limit: int = 15,
         ai_source_text_max_chars: int = 12_000,
+        fallback_search: SearchProvider | None = None,
+        fallback_search_query_limit: int = 2,
     ) -> None:
         self._ai = ai
         self._search = search
@@ -86,6 +88,8 @@ class InvestigationPipeline:
         self._useful_source_limit = useful_source_limit
         self._source_evaluation_limit = source_evaluation_limit
         self._ai_source_text_max_chars = ai_source_text_max_chars
+        self._fallback_search = fallback_search
+        self._fallback_search_query_limit = fallback_search_query_limit
 
     async def create_and_interpret(
         self,
@@ -127,48 +131,28 @@ class InvestigationPipeline:
             if queries.use_hungarian and queries.scope == "hungary_specific":
                 query_plan.extend(("hu", query) for query in queries.hungarian)
             search_languages = list(dict.fromkeys(item[0] for item in query_plan))
-            candidates: list[SearchResult] = []
-            for index, (query_language, query) in enumerate(query_plan):
-                remaining = self._search_result_limit - len(deduplicate_results(candidates))
-                if remaining <= 0:
-                    break
-                try:
-                    results = await self._search_with_retry(
-                        query, query_language, min(8, remaining)
-                    )
-                except SearchProviderError:
-                    results = []
-                candidates.extend(results)
-                if index < len(query_plan) - 1 and self._search_delay_seconds:
-                    await asyncio.sleep(self._search_delay_seconds)
-            candidates = deduplicate_results(candidates)
-            if not candidates:
-                raise SearchEvidenceUnavailableError("Evidence search returned no candidates")
+            providers_used = [self._search.provider_name]
+            candidates = await self._search_candidates(self._search, query_plan)
+            evidence, evaluated_count, seen_urls = await self._evaluate_candidates(
+                investigation_id, confirmed_claim, candidates
+            )
 
-            self._repository.set_status(investigation_id, "COLLECTING_SOURCES")
-            evidence: list[EvidenceAssessment] = []
-            evaluated_count = 0
-            for candidate in candidates:
-                if (
-                    len(evidence) >= self._useful_source_limit
-                    or evaluated_count >= self._source_evaluation_limit
-                ):
-                    break
-                try:
-                    document = await self._fetcher.fetch(candidate)
-                except (SourceFetchError, UnsafeUrlError):
-                    continue
-                source = self._repository.add_source(investigation_id, document)
-                self._repository.set_status(investigation_id, "EVALUATING_EVIDENCE")
-                ai_document = document.model_copy(
-                    update={"text": document.text[: self._ai_source_text_max_chars]}
+            if not evidence and self._fallback_search is not None:
+                providers_used.append(self._fallback_search.provider_name)
+                fallback_plan = query_plan[: self._fallback_search_query_limit]
+                fallback_candidates = await self._search_candidates(
+                    self._fallback_search, fallback_plan
                 )
-                item = await self._ai.evaluate_evidence(confirmed_claim, ai_document)
-                evaluated_count += 1
-                item = item.model_copy(update={"source_id": source.id})
-                self._repository.add_evidence(investigation_id, source, item)
-                if item.relevance >= 0.35:
-                    evidence.append(item)
+                fallback_candidates = [
+                    item
+                    for item in fallback_candidates
+                    if canonical_url(str(item.url)) not in seen_urls
+                ]
+                fallback_evidence, fallback_count, _ = await self._evaluate_candidates(
+                    investigation_id, confirmed_claim, fallback_candidates
+                )
+                evidence.extend(fallback_evidence)
+                evaluated_count += fallback_count
 
             if not evidence:
                 raise SearchEvidenceUnavailableError("No useful evidence could be collected")
@@ -188,7 +172,7 @@ class InvestigationPipeline:
                 ai_model=self._ai.model_name,
                 ai_provider_attempts=getattr(self._ai, "attempts", []),
                 prompt_version=PROMPT_VERSION,
-                search_provider=self._search.provider_name,
+                search_provider=" -> ".join(providers_used),
                 search_languages=search_languages,
                 source_count=evaluated_count,
             )
@@ -200,10 +184,69 @@ class InvestigationPipeline:
             self._repository.set_status(investigation_id, "FAILED")
             raise InvestigationPipelineError("Investigation failed") from exc
 
-    async def _search_with_retry(self, query: str, language: str, limit: int) -> list[SearchResult]:
+    async def _search_candidates(
+        self, provider: SearchProvider, query_plan: list[tuple[str, str]]
+    ) -> list[SearchResult]:
+        candidates: list[SearchResult] = []
+        for index, (query_language, query) in enumerate(query_plan):
+            remaining = self._search_result_limit - len(deduplicate_results(candidates))
+            if remaining <= 0:
+                break
+            try:
+                results = await self._search_with_retry(
+                    provider, query, query_language, min(8, remaining)
+                )
+            except SearchProviderError:
+                results = []
+            candidates.extend(results)
+            if index < len(query_plan) - 1 and self._search_delay_seconds:
+                await asyncio.sleep(self._search_delay_seconds)
+        return deduplicate_results(candidates)
+
+    async def _evaluate_candidates(
+        self,
+        investigation_id: UUID,
+        confirmed_claim: str,
+        candidates: list[SearchResult],
+    ) -> tuple[list[EvidenceAssessment], int, set[str]]:
+        self._repository.set_status(investigation_id, "COLLECTING_SOURCES")
+        evidence: list[EvidenceAssessment] = []
+        evaluated_count = 0
+        seen_urls: set[str] = set()
+        for candidate in candidates:
+            if (
+                len(evidence) >= self._useful_source_limit
+                or evaluated_count >= self._source_evaluation_limit
+            ):
+                break
+            seen_urls.add(canonical_url(str(candidate.url)))
+            try:
+                document = await self._fetcher.fetch(candidate)
+            except (SourceFetchError, UnsafeUrlError):
+                continue
+            source = self._repository.add_source(investigation_id, document)
+            self._repository.set_status(investigation_id, "EVALUATING_EVIDENCE")
+            ai_document = document.model_copy(
+                update={"text": document.text[: self._ai_source_text_max_chars]}
+            )
+            item = await self._ai.evaluate_evidence(confirmed_claim, ai_document)
+            evaluated_count += 1
+            item = item.model_copy(update={"source_id": source.id})
+            self._repository.add_evidence(investigation_id, source, item)
+            if item.relevance >= 0.35:
+                evidence.append(item)
+        return evidence, evaluated_count, seen_urls
+
+    async def _search_with_retry(
+        self,
+        provider: SearchProvider,
+        query: str,
+        language: str,
+        limit: int,
+    ) -> list[SearchResult]:
         for attempt in range(self._search_retry_attempts + 1):
             try:
-                return await self._search.search(query, language, limit)
+                return await provider.search(query, language, limit)
             except SearchProviderError:
                 if attempt >= self._search_retry_attempts:
                     raise
@@ -214,7 +257,9 @@ class InvestigationPipeline:
     async def aclose(self) -> None:
         """Close provider-owned network clients when the pipeline scope ends."""
 
-        for component in (self._ai, self._search, self._fetcher):
+        for component in (self._ai, self._search, self._fallback_search, self._fetcher):
+            if component is None:
+                continue
             close = getattr(component, "close", None)
             if close is not None:
                 await close()
