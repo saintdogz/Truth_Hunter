@@ -170,8 +170,8 @@ class InvestigationPipeline:
                 if item.relevance >= 0.35:
                     evidence.append(item)
 
-            if evaluated_count == 0:
-                raise SearchEvidenceUnavailableError("No search result could be collected")
+            if not evidence:
+                raise SearchEvidenceUnavailableError("No useful evidence could be collected")
 
             self._repository.set_status(investigation_id, "CALCULATING_ASSESSMENT")
             balance = calculate_balance(evidence)

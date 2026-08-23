@@ -99,6 +99,22 @@ class EmptySearch:
         return []
 
 
+class IrrelevantAI(FakeAI):
+    async def evaluate_evidence(self, claim: str, source: SourceDocument) -> EvidenceAssessment:
+        del claim, source
+        return EvidenceAssessment(
+            position=EvidencePosition.NEUTRAL,
+            strength=0.0,
+            relevance=0.1,
+            quality=0.8,
+            independence=0.5,
+            recency=0.5,
+            source_type=SourceType.UNKNOWN,
+            summary="The page does not address the investigated claim.",
+            excerpt="Unrelated material",
+        )
+
+
 class FakeFetcher(SafeSourceFetcher):
     def __init__(self) -> None:
         pass
@@ -234,6 +250,37 @@ async def test_zero_search_results_fail_without_generating_summary() -> None:
         assert stored.summary is None
         assert stored.pro_arguments == []
         assert stored.contra_arguments == []
+        assert stored.source_count == 0
+        assert ai.summary_calls == 0
+    engine.dispose()
+
+
+@pytest.mark.anyio
+async def test_irrelevant_fetched_pages_fail_without_generating_summary() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        ai = IrrelevantAI()
+        pipeline = InvestigationPipeline(
+            ai,
+            FakeSearch(),
+            FakeFetcher(),
+            InvestigationRepository(session),
+            search_delay_seconds=0,
+        )
+        investigation_id, _ = await pipeline.create_and_interpret(
+            "The Moon landing footage was filmed in a studio."
+        )
+
+        with pytest.raises(InvestigationPipelineError, match="Evidence search failed"):
+            await pipeline.investigate_confirmed(
+                investigation_id, "The Moon landing footage was filmed in a studio."
+            )
+
+        stored = session.get(Investigation, investigation_id)
+        assert stored is not None
+        assert stored.status == "SEARCH_FAILED"
+        assert stored.summary is None
         assert stored.source_count == 0
         assert ai.summary_calls == 0
     engine.dispose()
