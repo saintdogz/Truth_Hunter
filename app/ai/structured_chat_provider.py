@@ -20,7 +20,7 @@ from app.investigation.models import (
 from app.investigation.prompts import (
     CLAIM_INTERPRETATION_PROMPT_V1,
     EVIDENCE_EVALUATION_PROMPT_V1,
-    SEARCH_QUERY_PROMPT_V1,
+    SEARCH_QUERY_PROMPT_V2,
     SUMMARY_PROMPT_V1,
 )
 
@@ -135,7 +135,7 @@ class StructuredChatProvider:
 
     async def generate_search_queries(self, claim: str, detected_language: str) -> SearchQueries:
         return await self._parse(
-            SEARCH_QUERY_PROMPT_V1,
+            SEARCH_QUERY_PROMPT_V2,
             {"untrusted_claim": claim, "input_language": detected_language},
             SearchQueries,
         )

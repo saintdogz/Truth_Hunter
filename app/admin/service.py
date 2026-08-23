@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Feedback, Investigation, PublicReport, User
 
-TERMINAL_STATUSES = {"COMPLETED", "FAILED"}
+TERMINAL_STATUSES = {"COMPLETED", "FAILED", "SEARCH_FAILED"}
 
 
 def _duration_seconds(item: Investigation, now: datetime) -> int | None:
@@ -66,7 +66,7 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
             durations.append(duration)
 
     completed = status_counts["COMPLETED"]
-    failed = status_counts["FAILED"]
+    failed = status_counts["FAILED"] + status_counts["SEARCH_FAILED"]
     terminal = completed + failed
     active_users = [user for user in users if user.deleted_at is None]
     seven_days_ago = timestamp - timedelta(days=7)
@@ -104,7 +104,7 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
         day = (timestamp - timedelta(days=days_ago)).date()
         items = [item for item in investigations if item.created_at.date() == day]
         completed_count = sum(item.status == "COMPLETED" for item in items)
-        failed_count = sum(item.status == "FAILED" for item in items)
+        failed_count = sum(item.status in {"FAILED", "SEARCH_FAILED"} for item in items)
         max_daily = max(max_daily, len(items))
         daily_rows.append(
             {

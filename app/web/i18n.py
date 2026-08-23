@@ -194,6 +194,7 @@ STATUS_COPY: dict[str, dict[str, str]] = {
         "GENERATING_RESULT": "Preparing assessment",
         "COMPLETED": "Assessment ready",
         "FAILED": "Investigation failed",
+        "SEARCH_FAILED": "Evidence search temporarily unavailable",
     },
     "hu": {
         "CREATED": "Az állítás értelmezése",
@@ -206,6 +207,7 @@ STATUS_COPY: dict[str, dict[str, str]] = {
         "GENERATING_RESULT": "Értékelés készítése",
         "COMPLETED": "Az értékelés elkészült",
         "FAILED": "A vizsgálat sikertelen",
+        "SEARCH_FAILED": "A bizonyítékkeresés átmenetileg nem érhető el",
     },
 }
 

@@ -244,8 +244,16 @@ Behavior:
 
 -   Automatically detect the user's input language.
 -   No mandatory language selector.
--   Search Hungarian and English sources where relevant.
--   Internally compare evidence across both languages.
+-   Use adaptive English-first search. General, international, scientific,
+    historical, and similar claims search English sources by default even when
+    the submitted claim is Hungarian.
+-   Add targeted Hungarian queries only when the evidence itself is specific
+    to Hungary, Hungarian law, government, institutions, people, statistics,
+    or local events. Hungarian input language alone is not sufficient.
+-   Evaluate sources in their original language, calculate the assessment from
+    structured evidence, and render the final explanation in the user's
+    language. Preserve original source URLs and excerpts; label any translated
+    excerpt as a translation.
 -   Return the result in the language of the user's submitted claim.
 
 Architecture should permit adding languages later.
@@ -329,6 +337,17 @@ APIs.
 ### Search scope
 
 Aim for approximately **10--15 useful sources per investigation**.
+
+Begin with no more than three English queries and, only for Hungary-specific
+claims, no more than two Hungarian queries. Bound the total candidate pool,
+stagger requests, retry transient provider errors with backoff, and stop once
+the configured candidate or useful-evidence limit is reached.
+
+If search returns no candidates, or no candidate can be fetched and evaluated,
+the investigation must terminate as `SEARCH_FAILED`. It must not generate a
+summary, arguments, verdict, or evidence-free `INCONCLUSIVE` result. The UI
+must identify evidence search as temporarily unavailable and the failed run
+must not consume a credit or free allowance.
 
 Do not force equal numbers of supporting and contradicting sources.
 

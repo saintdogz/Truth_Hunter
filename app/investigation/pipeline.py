@@ -1,5 +1,6 @@
 """Phase 2 investigation orchestration without UI or background infrastructure."""
 
+import asyncio
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from uuid import UUID
 
@@ -17,7 +18,7 @@ from app.investigation.prompts import PROMPT_VERSION
 from app.investigation.repository import InvestigationRepository
 from app.investigation.scoring import calculate_balance
 from app.investigation.verdict import calculate_assessment
-from app.search.base import SearchProvider
+from app.search.base import SearchProvider, SearchProviderError
 
 TRACKING_QUERY_PREFIXES = ("utm_",)
 TRACKING_QUERY_NAMES = {"fbclid", "gclid", "mc_cid", "mc_eid"}
@@ -25,6 +26,10 @@ TRACKING_QUERY_NAMES = {"fbclid", "gclid", "mc_cid", "mc_eid"}
 
 class InvestigationPipelineError(RuntimeError):
     """Sanitized terminal pipeline failure."""
+
+
+class SearchEvidenceUnavailableError(RuntimeError):
+    """No source could be collected because evidence search was unavailable."""
 
 
 def canonical_url(url: str) -> str:
@@ -65,6 +70,8 @@ class InvestigationPipeline:
         repository: InvestigationRepository,
         *,
         search_result_limit: int = 20,
+        search_delay_seconds: float = 1.0,
+        search_retry_attempts: int = 1,
         useful_source_limit: int = 15,
         source_evaluation_limit: int = 15,
         ai_source_text_max_chars: int = 12_000,
@@ -74,6 +81,8 @@ class InvestigationPipeline:
         self._fetcher = fetcher
         self._repository = repository
         self._search_result_limit = search_result_limit
+        self._search_delay_seconds = search_delay_seconds
+        self._search_retry_attempts = search_retry_attempts
         self._useful_source_limit = useful_source_limit
         self._source_evaluation_limit = source_evaluation_limit
         self._ai_source_text_max_chars = ai_source_text_max_chars
@@ -114,13 +123,27 @@ class InvestigationPipeline:
         try:
             self._repository.set_status(investigation_id, "SEARCHING")
             queries = await self._ai.generate_search_queries(confirmed_claim, language)
+            query_plan = [("en", query) for query in queries.english]
+            if queries.use_hungarian and queries.scope == "hungary_specific":
+                query_plan.extend(("hu", query) for query in queries.hungarian)
+            search_languages = list(dict.fromkeys(item[0] for item in query_plan))
             candidates: list[SearchResult] = []
-            for query_language, query_list in (("en", queries.english), ("hu", queries.hungarian)):
-                for query in query_list:
-                    candidates.extend(
-                        await self._search.search(query, query_language, self._search_result_limit)
+            for index, (query_language, query) in enumerate(query_plan):
+                remaining = self._search_result_limit - len(deduplicate_results(candidates))
+                if remaining <= 0:
+                    break
+                try:
+                    results = await self._search_with_retry(
+                        query, query_language, min(8, remaining)
                     )
+                except SearchProviderError:
+                    results = []
+                candidates.extend(results)
+                if index < len(query_plan) - 1 and self._search_delay_seconds:
+                    await asyncio.sleep(self._search_delay_seconds)
             candidates = deduplicate_results(candidates)
+            if not candidates:
+                raise SearchEvidenceUnavailableError("Evidence search returned no candidates")
 
             self._repository.set_status(investigation_id, "COLLECTING_SOURCES")
             evidence: list[EvidenceAssessment] = []
@@ -147,6 +170,9 @@ class InvestigationPipeline:
                 if item.relevance >= 0.35:
                     evidence.append(item)
 
+            if evaluated_count == 0:
+                raise SearchEvidenceUnavailableError("No search result could be collected")
+
             self._repository.set_status(investigation_id, "CALCULATING_ASSESSMENT")
             balance = calculate_balance(evidence)
             assessment = calculate_assessment(evidence, balance, ClaimType(claim_type_value))
@@ -163,12 +189,27 @@ class InvestigationPipeline:
                 ai_provider_attempts=getattr(self._ai, "attempts", []),
                 prompt_version=PROMPT_VERSION,
                 search_provider=self._search.provider_name,
+                search_languages=search_languages,
                 source_count=evaluated_count,
             )
             return assessment
+        except SearchEvidenceUnavailableError as exc:
+            self._repository.set_status(investigation_id, "SEARCH_FAILED")
+            raise InvestigationPipelineError("Evidence search failed") from exc
         except Exception as exc:
             self._repository.set_status(investigation_id, "FAILED")
             raise InvestigationPipelineError("Investigation failed") from exc
+
+    async def _search_with_retry(self, query: str, language: str, limit: int) -> list[SearchResult]:
+        for attempt in range(self._search_retry_attempts + 1):
+            try:
+                return await self._search.search(query, language, limit)
+            except SearchProviderError:
+                if attempt >= self._search_retry_attempts:
+                    raise
+                if self._search_delay_seconds:
+                    await asyncio.sleep(self._search_delay_seconds * (2 ** (attempt + 1)))
+        return []
 
     async def aclose(self) -> None:
         """Close provider-owned network clients when the pipeline scope ends."""

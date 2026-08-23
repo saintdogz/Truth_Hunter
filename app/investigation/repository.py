@@ -118,6 +118,7 @@ class InvestigationRepository:
         ai_provider_attempts: list[dict[str, object]],
         prompt_version: str,
         search_provider: str,
+        search_languages: list[str],
         source_count: int,
     ) -> None:
         investigation = self.get(investigation_id)
@@ -138,7 +139,7 @@ class InvestigationRepository:
         investigation.ai_provider_attempts = ai_provider_attempts
         investigation.prompt_version = prompt_version
         investigation.search_provider = search_provider
-        investigation.search_languages = ["en", "hu"]
+        investigation.search_languages = search_languages
         investigation.scoring_version = assessment.balance.scoring_version
         investigation.source_count = source_count
         investigation.completed_at = datetime.now(timezone.utc)

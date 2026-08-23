@@ -21,7 +21,7 @@
       const data = await response.json();
       status.textContent = data.label;
       if (data.result_url) { window.location.assign(data.result_url); return; }
-      if (data.status === 'FAILED') { showFailure(data.label); return; }
+      if (data.status.endsWith('FAILED')) { showFailure(data.label); return; }
     } catch (_) { showFailure('Investigation status unavailable'); return; }
     window.setTimeout(poll, 2000);
   };

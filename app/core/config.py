@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     deepseek_model: str = "deepseek-v4-flash"
     searxng_url: AnyHttpUrl = AnyHttpUrl("http://searxng:8080")
     search_result_limit: int = Field(default=20, ge=1, le=50)
+    search_delay_seconds: float = Field(default=1.0, ge=0, le=10)
+    search_retry_attempts: int = Field(default=1, ge=0, le=2)
     source_useful_limit: int = Field(default=15, ge=1, le=15)
     source_evaluation_limit: int = Field(default=15, ge=1, le=30)
     ai_source_text_max_chars: int = Field(default=12_000, ge=1_000, le=50_000)
