@@ -343,11 +343,12 @@ claims, no more than two Hungarian queries. Bound the total candidate pool,
 stagger requests, retry transient provider errors with backoff, and stop once
 the configured candidate or useful-evidence limit is reached.
 
-If search returns no candidates, or no candidate can be fetched and evaluated,
-the investigation must terminate as `SEARCH_FAILED`. It must not generate a
-summary, arguments, verdict, or evidence-free `INCONCLUSIVE` result. The UI
-must identify evidence search as temporarily unavailable and the failed run
-must not consume a credit or free allowance.
+If search returns no candidates, or the fetched candidates produce no useful
+evidence after evaluation, the investigation must terminate as
+`SEARCH_FAILED`. Merely fetching irrelevant pages does not satisfy this gate.
+The run must not generate a summary, arguments, verdict, or evidence-free
+`INCONCLUSIVE` result. The UI must identify evidence search as temporarily
+unavailable and the failed run must not consume a credit or free allowance.
 
 Do not force equal numbers of supporting and contradicting sources.
 
