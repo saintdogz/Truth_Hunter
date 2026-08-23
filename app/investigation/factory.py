@@ -7,12 +7,19 @@ from app.core.config import Settings
 from app.investigation.fetcher import FetchPolicy, SafeSourceFetcher
 from app.investigation.pipeline import InvestigationPipeline
 from app.investigation.repository import InvestigationRepository
+from app.search.brave import BraveSearchProvider
 from app.search.searxng import SearXNGProvider
 
 
 def create_pipeline(settings: Settings, session: Session) -> InvestigationPipeline:
     ai = create_ai_provider(settings)
     search = SearXNGProvider(str(settings.searxng_url))
+    fallback_search = None
+    if settings.brave_search_api_key is not None:
+        fallback_search = BraveSearchProvider(
+            settings.brave_search_api_key.get_secret_value(),
+            str(settings.brave_search_url),
+        )
     fetcher = SafeSourceFetcher(
         FetchPolicy(
             timeout_seconds=settings.fetch_timeout_seconds,
@@ -31,4 +38,6 @@ def create_pipeline(settings: Settings, session: Session) -> InvestigationPipeli
         useful_source_limit=settings.source_useful_limit,
         source_evaluation_limit=settings.source_evaluation_limit,
         ai_source_text_max_chars=settings.ai_source_text_max_chars,
+        fallback_search=fallback_search,
+        fallback_search_query_limit=settings.brave_search_max_queries_per_investigation,
     )

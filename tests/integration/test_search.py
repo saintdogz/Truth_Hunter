@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from app.search.base import SearchProviderError
+from app.search.brave import BraveSearchProvider
 from app.search.searxng import SearXNGProvider
 
 
@@ -50,4 +51,37 @@ async def test_searxng_surfaces_engine_outage_when_results_are_empty() -> None:
 
     with pytest.raises(SearchProviderError, match="engines were unavailable"):
         await provider.search("claim", "en", 8)
+    await client.aclose()
+
+
+@pytest.mark.anyio
+async def test_brave_maps_results_and_authenticates() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["X-Subscription-Token"] == "test-key"
+        assert request.url.params["search_lang"] == "en"
+        assert request.url.params["count"] == "2"
+        return httpx.Response(
+            200,
+            json={
+                "web": {
+                    "results": [
+                        {
+                            "url": "https://evidence.example/one",
+                            "title": "Evidence one",
+                            "description": "Relevant source",
+                        },
+                        {"url": "not-a-url", "title": "Invalid"},
+                        {"url": "https://evidence.example/two", "title": "Evidence two"},
+                    ]
+                }
+            },
+        )
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    provider = BraveSearchProvider("test-key", client=client)
+
+    results = await provider.search("claim evidence", "en", 2)
+
+    assert [result.title for result in results] == ["Evidence one", "Evidence two"]
+    assert {result.engine for result in results} == {"brave-api"}
     await client.aclose()

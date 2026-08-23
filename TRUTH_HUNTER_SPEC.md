@@ -350,6 +350,16 @@ The run must not generate a summary, arguments, verdict, or evidence-free
 `INCONCLUSIVE` result. The UI must identify evidence search as temporarily
 unavailable and the failed run must not consume a credit or free allowance.
 
+When `BRAVE_SEARCH_API_KEY` is configured, the official Brave Web Search API is
+a metered last-resort search tier. The application must complete the free,
+self-hosted SearXNG attempt first. Brave may be queried only when that attempt
+produces no useful evidence, and no more than
+`BRAVE_SEARCH_MAX_QUERIES_PER_INVESTIGATION` generated queries may be sent to
+Brave. The default and maximum paid-search route is two queries per
+investigation. Successful snapshots must record whether the route was
+`searxng` or `searxng -> brave`. If Brave is absent, exhausted, rate-limited,
+or unsuccessful, the existing `SEARCH_FAILED` behavior applies.
+
 Do not force equal numbers of supporting and contradicting sources.
 
 The evidence distribution must reflect what was actually found.
