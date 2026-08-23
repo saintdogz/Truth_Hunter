@@ -32,6 +32,9 @@ class SearXNGProvider:
         except (httpx.HTTPError, ValueError) as exc:
             raise SearchProviderError("SearXNG search failed") from exc
 
+        if not payload.get("results") and payload.get("unresponsive_engines"):
+            raise SearchProviderError("SearXNG engines were unavailable")
+
         results: list[SearchResult] = []
         for raw in payload.get("results", []):
             try:

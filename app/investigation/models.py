@@ -26,8 +26,10 @@ class ClaimInterpretation(StrictModel):
 
 
 class SearchQueries(StrictModel):
-    english: list[str] = Field(min_length=1, max_length=4)
-    hungarian: list[str] = Field(min_length=1, max_length=4)
+    scope: Literal["general", "hungary_specific"]
+    use_hungarian: bool
+    english: list[str] = Field(min_length=1, max_length=3)
+    hungarian: list[str] = Field(default_factory=list, max_length=2)
 
 
 class SearchResult(StrictModel):

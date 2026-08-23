@@ -149,6 +149,13 @@ def test_progress_status_is_localized(client: TestClient) -> None:
     assert response.json()["label"] == "Bizonyítékok értékelése"
     assert response.json()["result_url"] is None
 
+    fake.items[investigation_id].status = "SEARCH_FAILED"
+    response = client.get(f"/investigations/{investigation_id}/status")
+
+    assert response.status_code == 200
+    assert response.json()["label"] == "A bizonyítékkeresés átmenetileg nem érhető el"
+    assert response.json()["result_url"] is None
+
 
 def test_result_exposes_bounded_evidence_details_during_testing(client: TestClient) -> None:
     fake = install_fake(client)

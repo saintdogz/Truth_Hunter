@@ -22,15 +22,17 @@ from app.investigation.models import (
     SourceType,
     Verdict,
 )
-from app.investigation.pipeline import InvestigationPipeline
+from app.investigation.pipeline import InvestigationPipeline, InvestigationPipelineError
 from app.investigation.repository import InvestigationRepository
 
 
 class FakeAI:
     model_name = "fake-structured-model"
 
-    def __init__(self) -> None:
+    def __init__(self, search_queries: SearchQueries | None = None) -> None:
         self.source_text_lengths: list[int] = []
+        self.summary_calls = 0
+        self.search_queries = search_queries
 
     async def interpret_claim(self, claim: str, detected_language: str) -> ClaimInterpretation:
         return ClaimInterpretation(
@@ -41,7 +43,9 @@ class FakeAI:
         )
 
     async def generate_search_queries(self, claim: str, detected_language: str) -> SearchQueries:
-        return SearchQueries(english=[claim], hungarian=[f"magyar {claim}"])
+        return self.search_queries or SearchQueries(
+            scope="general", use_hungarian=False, english=[claim], hungarian=[]
+        )
 
     async def evaluate_evidence(self, claim: str, source: SourceDocument) -> EvidenceAssessment:
         self.source_text_lengths.append(len(source.text))
@@ -64,6 +68,7 @@ class FakeAI:
         evidence: list[EvidenceAssessment],
         language: str,
     ) -> InvestigationSummary:
+        self.summary_calls += 1
         assert assessment.verdict == Verdict.TRUE
         return InvestigationSummary(
             explanation="The application-calculated evidence strongly supports the claim.",
@@ -74,12 +79,24 @@ class FakeAI:
 class FakeSearch:
     provider_name = "fake-search"
 
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str]] = []
+
     async def search(self, query: str, language: str, limit: int) -> list[SearchResult]:
-        del query, limit
+        del limit
+        self.calls.append((query, language))
         return [
             SearchResult(url=f"https://{language}{number}.example/article?utm_source=test")
             for number in range(1, 6)
         ]
+
+
+class EmptySearch:
+    provider_name = "empty-search"
+
+    async def search(self, query: str, language: str, limit: int) -> list[SearchResult]:
+        del query, language, limit
+        return []
 
 
 class FakeFetcher(SafeSourceFetcher):
@@ -135,7 +152,8 @@ async def test_pipeline_persists_historical_snapshot() -> None:
         assert stored.status == "COMPLETED"
         assert stored.source_count == 5
         assert stored.scoring_version == "evidence-v1"
-        assert stored.prompt_version == "phase2-prompts-v1"
+        assert stored.prompt_version == "adaptive-search-v2"
+        assert stored.search_languages == ["en"]
         assert len(stored.sources) == 5
         assert len(stored.evidence) == 5
         assert ai.source_text_lengths == [24] * 5
@@ -144,4 +162,78 @@ async def test_pipeline_persists_historical_snapshot() -> None:
                 investigation_id, "A second correction", corrected=True
             )
 
+    engine.dispose()
+
+
+@pytest.mark.anyio
+async def test_hungary_specific_plan_adds_targeted_hungarian_search() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        ai = FakeAI(
+            SearchQueries(
+                scope="hungary_specific",
+                use_hungarian=True,
+                english=["Hungary official statistics"],
+                hungarian=["Magyarország hivatalos statisztika"],
+            )
+        )
+        search = FakeSearch()
+        pipeline = InvestigationPipeline(
+            ai,
+            search,
+            FakeFetcher(),
+            InvestigationRepository(session),
+            useful_source_limit=2,
+            source_evaluation_limit=2,
+            search_delay_seconds=0,
+        )
+        investigation_id, _ = await pipeline.create_and_interpret(
+            "A magyar hivatal közzétette az adatot."
+        )
+
+        await pipeline.investigate_confirmed(
+            investigation_id, "A magyar hivatal közzétette az adatot."
+        )
+
+        stored = session.get(Investigation, investigation_id)
+        assert search.calls == [
+            ("Hungary official statistics", "en"),
+            ("Magyarország hivatalos statisztika", "hu"),
+        ]
+        assert stored is not None
+        assert stored.search_languages == ["en", "hu"]
+    engine.dispose()
+
+
+@pytest.mark.anyio
+async def test_zero_search_results_fail_without_generating_summary() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        ai = FakeAI()
+        pipeline = InvestigationPipeline(
+            ai,
+            EmptySearch(),
+            FakeFetcher(),
+            InvestigationRepository(session),
+            search_delay_seconds=0,
+        )
+        investigation_id, _ = await pipeline.create_and_interpret(
+            "The Moon landing footage was filmed in a studio."
+        )
+
+        with pytest.raises(InvestigationPipelineError, match="Evidence search failed"):
+            await pipeline.investigate_confirmed(
+                investigation_id, "The Moon landing footage was filmed in a studio."
+            )
+
+        stored = session.get(Investigation, investigation_id)
+        assert stored is not None
+        assert stored.status == "SEARCH_FAILED"
+        assert stored.summary is None
+        assert stored.pro_arguments == []
+        assert stored.contra_arguments == []
+        assert stored.source_count == 0
+        assert ai.summary_calls == 0
     engine.dispose()

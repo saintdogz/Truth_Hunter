@@ -26,6 +26,8 @@ def create_pipeline(settings: Settings, session: Session) -> InvestigationPipeli
         fetcher,
         InvestigationRepository(session),
         search_result_limit=settings.search_result_limit,
+        search_delay_seconds=settings.search_delay_seconds,
+        search_retry_attempts=settings.search_retry_attempts,
         useful_source_limit=settings.source_useful_limit,
         source_evaluation_limit=settings.source_evaluation_limit,
         ai_source_text_max_chars=settings.ai_source_text_max_chars,
