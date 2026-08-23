@@ -1,5 +1,6 @@
 """Web-facing Phase 3 service around the Phase 2 pipeline."""
 
+import logging
 from uuid import UUID
 
 from sqlalchemy import select
@@ -10,7 +11,10 @@ from app.db.models import Investigation, Source
 from app.db.session import get_engine
 from app.investigation.factory import create_pipeline
 from app.investigation.models import ClaimInterpretation
+from app.investigation.pipeline import InvestigationPipelineError
 from app.investigation.repository import InvestigationNotFoundError
+
+logger = logging.getLogger(__name__)
 
 
 class InvestigationWebService:
@@ -42,6 +46,8 @@ class InvestigationWebService:
                 await pipeline.investigate_confirmed(
                     investigation_id, confirmed_claim, corrected=corrected
                 )
+            except InvestigationPipelineError:
+                logger.warning("Investigation %s ended in a terminal failure", investigation_id)
             finally:
                 await pipeline.aclose()
 
