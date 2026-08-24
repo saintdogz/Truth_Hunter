@@ -13,8 +13,13 @@
         <label for="claim">{{ t.claim_label }}</label>
         <textarea id="claim" name="claim" maxlength="500" placeholder="{{ t.claim_placeholder }}">{{ claim }}</textarea>
         <div class="upload-divider"><span>{{ t.or_image }}</span></div>
-        <label class="image-upload" for="claim-image"><strong>{{ t.upload_image }}</strong><small>{{ t.upload_note }}</small></label>
+        <label class="image-upload" for="claim-image"><strong>{{ t.upload_image }}</strong><small>{{ t.upload_note }}</small><small class="paste-hint">{{ t.paste_image }}</small></label>
         <input id="claim-image" name="image" type="file" accept="image/jpeg,image/png,image/webp">
+        <div id="image-preview" class="image-preview" hidden>
+          <img id="image-preview-thumbnail" alt="{{ t.preview_alt }}">
+          <div><strong id="image-preview-name"></strong><small id="image-preview-size"></small></div>
+          <button id="remove-image" type="button" aria-label="{{ t.remove_image }}">{{ t.remove_image }}</button>
+        </div>
         <div class="form-foot"><small>{{ t.limit }}</small><button type="submit" class="button primary">{{ t.submit }} <span aria-hidden="true">→</span></button></div>
       </form>
     </div>
@@ -28,4 +33,4 @@
     <button type="button" data-example="A Holdra szállás felvételeit egy stúdióban készítették.">Holdra szállás</button>
   </div></section>
 {% endblock %}
-{% block scripts %}<script>document.querySelectorAll('[data-example]').forEach((button)=>{button.addEventListener('click',()=>{const input=document.querySelector('#claim');input.value=button.dataset.example;input.focus();});});</script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', path='/js/claim-input.js') }}" defer></script>{% endblock %}

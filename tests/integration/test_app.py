@@ -19,6 +19,9 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert 'enctype="multipart/form-data"' in response.text
     assert 'maxlength="500"' in response.text
     assert 'accept="image/jpeg,image/png,image/webp"' in response.text
+    assert "Ctrl+V" in response.text
+    assert 'id="image-preview"' in response.text
+    assert 'src="http://testserver/static/js/claim-input.js"' in response.text
 
 
 def test_home_supports_hungarian_interface(client: TestClient) -> None:
@@ -48,6 +51,14 @@ def test_static_stylesheet_is_served(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert "text/css" in response.headers["content-type"]
+
+
+def test_clipboard_image_script_is_served(client: TestClient) -> None:
+    response = client.get("/static/js/claim-input.js")
+
+    assert response.status_code == 200
+    assert "DataTransfer" in response.text
+    assert 'document.addEventListener("paste"' in response.text
 
 
 def test_custom_not_found_page(client: TestClient) -> None:

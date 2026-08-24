@@ -175,6 +175,10 @@ Users may alternatively upload one JPEG, PNG, or WebP image containing a
 written claim. The application performs local OCR, treats the extracted text as
 untrusted claim data, passes it through the existing AI interpretation step,
 and shows the same confirmation/correction screen before investigation.
+The browser interface should also accept a supported image pasted from the
+clipboard, populate the same upload field, show a removable local preview, and
+submit through exactly the same server-side validation and OCR path. File
+selection remains available when clipboard access is unsupported.
 
 This feature reads text only. It does not identify people or objects, infer a
 claim from visual content, authenticate an image, detect manipulation, or
