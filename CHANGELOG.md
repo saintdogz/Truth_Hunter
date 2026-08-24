@@ -5,6 +5,15 @@ All notable changes to Truth Hunter are documented in this file.
 The project follows [Semantic Versioning](https://semver.org/). Truth Hunter is
 currently a public beta, so behavior and interfaces may change before version 1.0.
 
+## [Unreleased]
+
+### Fixed
+
+- Treat material prerequisites and exceptions as contradictions of unconditional
+  claims instead of supporting a narrower interpretation.
+- Prioritize authoritative regulatory evidence and preserve context around
+  ambiguous acronyms in technical and legal searches.
+
 ## [0.1.0] - 2026-08-24
 
 ### Added

@@ -430,6 +430,12 @@ Social media = false
 
 Source scores/assessments should be visible to users.
 
+For laws, regulations, licensing rules, and technical standards, search queries
+must preserve domain context around ambiguous acronyms and must seek the
+responsible authority or primary legal text. Application-owned domain rules may
+correct a model's source-type classification for narrowly identified official
+publishers, but must not equate official publication with factual support.
+
 ------------------------------------------------------------------------
 
 ## 13. Source Storage
@@ -485,6 +491,13 @@ NEUTRAL
 The AI may evaluate evidence attributes, but **the application
 calculates the final evidence balance**.
 
+Evidence evaluation must assess the entire proposition, including absolute
+qualifiers such as `regardless`, `always`, `never`, and `without exception`. A
+material exception, prerequisite, threshold, or scope restriction contradicts
+an unconditional claim even when it supports a narrower version of that claim.
+The application must apply narrow deterministic guardrails for high-impact
+qualification errors before calculating the evidence balance.
+
 ------------------------------------------------------------------------
 
 ## 15. Evidence Scoring
@@ -513,6 +526,9 @@ Weights should account for factors such as:
 -   Source quality
 -   Independence
 -   Recency when relevant
+-   Source category, with primary official, legal, and research evidence given
+    greater evidentiary weight than otherwise equivalent secondary, unknown, or
+    social-media material
 
 Neutral evidence should not artificially move the
 supporting/contradicting balance.

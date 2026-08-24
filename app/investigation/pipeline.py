@@ -16,7 +16,7 @@ from app.investigation.models import (
 )
 from app.investigation.prompts import PROMPT_VERSION
 from app.investigation.repository import InvestigationRepository
-from app.investigation.scoring import calculate_balance
+from app.investigation.scoring import apply_evidence_guardrails, calculate_balance
 from app.investigation.verdict import calculate_assessment
 from app.search.base import SearchProvider, SearchProviderError
 
@@ -231,6 +231,7 @@ class InvestigationPipeline:
             )
             item = await self._ai.evaluate_evidence(confirmed_claim, ai_document)
             evaluated_count += 1
+            item = apply_evidence_guardrails(confirmed_claim, item, document.domain)
             item = item.model_copy(update={"source_id": source.id})
             self._repository.add_evidence(investigation_id, source, item)
             if item.relevance >= 0.35:

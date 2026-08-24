@@ -8,7 +8,12 @@ from app.investigation.models import (
     SourceType,
     Verdict,
 )
-from app.investigation.scoring import calculate_balance
+from app.investigation.scoring import (
+    DEFAULT_SCORING_CONFIG,
+    apply_evidence_guardrails,
+    calculate_balance,
+    evidence_weight,
+)
 from app.investigation.verdict import calculate_assessment
 
 
@@ -81,3 +86,36 @@ def test_strong_evidence_on_both_sides_surfaces_conflict() -> None:
 
     assert assessment.conflict.detected is True
     assert assessment.conflict.summary is not None
+
+
+def test_official_qualification_contradicts_unconditional_claim() -> None:
+    item = EvidenceAssessment(
+        position=EvidencePosition.SUPPORTING,
+        strength=0.7,
+        relevance=0.9,
+        quality=0.5,
+        independence=0.5,
+        recency=0.9,
+        source_type=SourceType.SECONDARY,
+        summary="Pilots may carry three passengers only after completing 10 PIC hours.",
+    )
+
+    guarded = apply_evidence_guardrails(
+        "A LAPL(A) pilot may carry three passengers regardless of post-licence PIC hours.",
+        item,
+        "www.easa.europa.eu",
+    )
+
+    assert guarded.position == EvidencePosition.CONTRADICTING
+    assert guarded.source_type == SourceType.PRIMARY_OFFICIAL
+    assert guarded.quality == 0.9
+    assert guarded.strength == 0.8
+
+
+def test_authoritative_sources_outweigh_equivalent_secondary_sources() -> None:
+    official = evidence(EvidencePosition.SUPPORTING)
+    secondary = official.model_copy(update={"source_type": SourceType.SECONDARY})
+
+    assert evidence_weight(official, DEFAULT_SCORING_CONFIG) > evidence_weight(
+        secondary, DEFAULT_SCORING_CONFIG
+    )
