@@ -20,7 +20,7 @@
     <main class="shell">{% block content %}{% endblock %}</main>
     <footer class="site-footer">
       <span>Truth Hunter v{{ app_version }}</span>
-      <span class="footer-links">{% if support_url %}<a href="{{ support_url }}" target="_blank" rel="noopener noreferrer">{{ t.support }}</a><span>·</span>{% endif %}<span>Discord: saintdogz</span></span>
+      <span class="footer-links">{% if support_url %}<a href="{{ support_url }}" target="_blank" rel="noopener noreferrer">{{ t.support }}</a><span>·</span>{% endif %}<a href="https://github.com/saintdogz/Truth_Hunter" target="_blank" rel="noopener noreferrer">GitHub</a></span>
     </footer>
     {% block scripts %}{% endblock %}
   </body>

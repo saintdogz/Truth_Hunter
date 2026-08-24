@@ -53,17 +53,14 @@ If reliable evidence is insufficient, the correct result is
 
 ## 3. Target Server / Deployment Environment
 
-Initial production host:
+Initial production target:
 
--   Windows 11
--   AMD Ryzen 9 5900X
--   32 GB RAM
--   AMD Radeon RX 6700 XT 12 GB
--   Large local storage (approximately 32 TB HDD plus NVMe SSD storage)
--   Gigabit download
--   Approximately 200--250 Mbps upload
--   Server operates 24/7
--   Docker Desktop already installed
+-   A continuously available Docker host
+-   Sufficient CPU and memory for the application, PostgreSQL, SearXNG, Caddy,
+    and local OCR
+-   Persistent storage for PostgreSQL and backups
+-   Reliable broadband connectivity
+-   Docker Compose support
 
 The server also hosts other services, so Truth Hunter should be
 resource-conscious.
@@ -1689,9 +1686,9 @@ judge whether voluntary support and available capacity are sustainable.
 
 ## 46. Support
 
-Initial support/contact channel:
-
-**Discord: `saintdogz`**
+Initial support/contact channels are the product feedback controls and the
+project's GitHub repository. Security reports must follow `SECURITY.md` and
+must not be posted publicly.
 
 Do not build a support ticket system in MVP.
 

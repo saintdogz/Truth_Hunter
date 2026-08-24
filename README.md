@@ -1,45 +1,112 @@
 # Truth Hunter
 
-Truth Hunter is a self-hosted evidence-investigation web application. This repository currently implements **Phases 1 through 3** and the self-hosted account foundation from Phase 4 of `TRUTH_HUNTER_SPEC.md`.
+**Don't believe it. Investigate it.**
 
-Version: **0.1.0**
+Truth Hunter is a self-hosted evidence-investigation web application. A user
+submits a claim as text or an image, confirms the proposition the system
+understood, and receives a transparent assessment built from fresh web
+evidence—not an unsupported AI answer.
 
-## Implemented scope
+[Live beta](https://truth.abathur.hu) · [Product specification](TRUTH_HUNTER_SPEC.md) · [Security policy](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
-Implemented:
+> Early beta: Truth Hunter is designed to help people inspect evidence. It is
+> not an oracle and should not replace qualified medical, legal, financial, or
+> safety advice.
 
-- FastAPI application factory and server-rendered Jinja2 foundation
-- Branded bilingual claim-submission homepage
-- PostgreSQL connectivity through SQLAlchemy 2
-- Alembic migration baseline
-- Independent liveness and database-aware readiness endpoints
-- Docker Compose services for the application, PostgreSQL, minimally configured SearXNG, and Caddy
-- Basic security headers, trusted-host validation, safe configuration, tests, linting, formatting, and type checking
-- English/Hungarian claim detection and strict claim/AI output schemas
-- Registry-based AI provider chain with Groq, Gemini, OpenRouter, OpenAI, and official DeepSeek adapters, free-first routing, explicit bounded paid fallback, and SearXNG integration
-- Versioned prompts separating trusted instructions from hostile claim/source data
-- SSRF-aware URL validation, redirect checks, timeouts, content limits, and bounded extraction
-- Deterministic evidence weighting, sufficiency, confidence, conflict, and verdict rules
-- Historical investigation, source, and evidence persistence
-- A mocked end-to-end investigation pipeline integration test
-- Session-bound CSRF protection for public forms
-- Claim interpretation, confirmation, and one-time correction flow
-- Local English/Hungarian OCR for bounded JPEG, PNG, and WebP claim images, feeding the existing confirmation flow without retaining uploads
-- Background investigation execution with a polling progress experience
-- Bilingual assessment pages with evidence balance, confidence, strongest arguments, conflict disclosure, methodology, and run metadata
-- Complete evidence details and original source links for free investigations
-- Email/password accounts with Argon2id hashing, signed verification and reset links, secure signed sessions, CSRF protection, and authentication attempt throttling
-- Investigation history, guest-investigation claiming, logout, and account/data deletion
-- Replaceable account-email boundary with development-only in-memory delivery and a Resend transactional adapter
+![Truth Hunter claim submission interface](docs/images/truth-hunter-home.png)
 
-Google OAuth is deferred until after MVP. Resend production delivery requires a verified sender domain, `EMAIL_DELIVERY_MODE=resend`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and a public `PUBLIC_BASE_URL`. Truth Hunter is free to use; an optional external voluntary-support link can be configured with `SUPPORT_URL`, and grants no product entitlement.
+## Why this project exists
 
-## Requirements
+Most AI fact-checking demos ask a language model to produce a confident answer.
+Truth Hunter takes a more accountable route: search first, retain the evidence,
+score it with versioned application rules, show disagreements, and return
+**Inconclusive** when the evidence is insufficient.
 
-- Docker Desktop with Docker Compose (reference workflow)
-- Optionally Python 3.10 or newer for native development
+The application is free to use. Complete evidence details and source links are
+available to users; optional voluntary support is deliberately separate from
+product access.
 
-## Docker workflow (Windows PowerShell)
+## How an investigation works
+
+```mermaid
+flowchart LR
+    A[Text or image claim] --> B[Interpretation]
+    B --> C{User confirms?}
+    C -->|Yes| D[Fresh web search]
+    C -->|Correct once| D
+    D --> E[Safe page fetching]
+    E --> F[Structured evidence]
+    F --> G[Deterministic scoring]
+    G --> H[Transparent result]
+```
+
+1. **Understand the claim.** AI converts the submission into a clear factual
+   proposition. The user confirms or corrects it before research begins.
+2. **Find current evidence.** SearXNG is used first. The official Brave Search
+   API is a bounded fallback only when the free route finds no useful evidence.
+3. **Evaluate sources.** Relevant pages are fetched through an SSRF-aware,
+   size-limited extractor and converted into structured supporting,
+   contradicting, or neutral evidence.
+4. **Calculate the assessment.** Versioned application code—not an unrestricted
+   model response—calculates evidence balance, sufficiency, confidence, and the
+   verdict.
+5. **Show the work.** Results include concise reasoning, strongest arguments,
+   conflicts, method metadata, bounded excerpts, and original source links.
+
+## Highlights
+
+- English and Hungarian interfaces and result generation
+- Text, file-upload, and clipboard-image claim submission
+- Local English/Hungarian Tesseract OCR; uploaded images are not retained
+- Free-first AI routing through Groq and Gemini with bounded DeepSeek fallback
+- SearXNG search with a metered, last-resort official Brave Search fallback
+- Deterministic evidence weighting, sufficiency, confidence, and verdict rules
+- Explicit conflict detection and evidence-first `INCONCLUSIVE` behavior
+- Email verification, password reset, signed sessions, history, and deletion
+- Private-by-default results with permanent optional public sharing
+- Helpful/not-helpful feedback and a privacy-conscious operations dashboard
+- Docker Compose deployment with FastAPI, PostgreSQL, SearXNG, and Caddy
+- More than 100 automated unit, integration, and security tests
+
+## Architecture
+
+| Component | Responsibility |
+| --- | --- |
+| FastAPI + Jinja2 | Server-rendered application, sessions, forms, and APIs |
+| PostgreSQL + SQLAlchemy | Users, investigations, sources, evidence, feedback, and provider telemetry |
+| Alembic | Versioned database migrations |
+| SearXNG | Primary self-hosted search abstraction |
+| Brave Search API | Bounded fallback when free search yields no useful evidence |
+| Groq + Gemini | Free-first structured AI operations |
+| DeepSeek | Explicitly enabled and capped paid fallback |
+| Tesseract + Pillow | Local, bounded OCR and safe raster-image decoding |
+| Caddy | HTTPS, security headers, request limits, and reverse proxying |
+
+Provider adapters are isolated behind application interfaces, so routing can
+evolve without coupling the investigation pipeline to a single vendor.
+
+## Security and privacy decisions
+
+- `.env`, credentials, databases, and build artifacts are excluded from Git.
+- Production rejects placeholder secrets and development email delivery.
+- The application container runs as an unprivileged user.
+- PostgreSQL and SearXNG do not publish host ports.
+- Claims, model outputs, fetched pages, and uploaded files are treated as
+  untrusted data.
+- CSRF protection, secure signed cookies, trusted-host validation, security
+  headers, password hashing, and authentication throttling are enabled.
+- URL fetching blocks private/internal destinations, revalidates redirects,
+  ignores environment proxies, and enforces time, size, redirect, and content
+  limits.
+- JPEG, PNG, and WebP uploads are verified by decoded content, bounded by bytes
+  and pixels, and discarded after OCR.
+- Provider attempt telemetry stores outcomes without API keys or source text.
+
+Please report vulnerabilities according to [SECURITY.md](SECURITY.md).
+
+## Run with Docker Compose
+
+Requirements: Docker Desktop or Docker Engine with Docker Compose.
 
 ```powershell
 Copy-Item .env.example .env
@@ -49,25 +116,25 @@ docker compose up --build -d
 docker compose ps
 Invoke-WebRequest http://localhost/health/live
 Invoke-WebRequest http://localhost/health/ready
-Start-Process http://localhost
 ```
 
-Replace all `change-me` development values before any production deployment. The application container applies Alembic migrations before starting. PostgreSQL and SearXNG are internal-only; Caddy is the public entry point.
+Use development placeholders only for local development. Replace every
+`change-me` value and configure real provider credentials before production.
+The application applies Alembic migrations before starting.
 
-Providers are attempted in `AI_PROVIDER_ORDER`; entries without keys are skipped. Groq, Gemini, and the `openrouter/free` router are treated as free. DeepSeek and OpenAI are paid and are never called unless `ALLOW_PAID_AI_FALLBACK=true`, `AI_MAX_PAID_FALLBACK_CALLS` is positive, and every attempted free provider failed with an eligible quota, rate-limit, timeout, or availability error. Configuration and model-output failures never authorize paid usage. Legacy `AI_PROVIDER`/`AI_API_KEY` settings remain supported. Provider attempts are recorded with each completed investigation, without secrets.
-
-Inspect logs and shut down without deleting data:
+To inspect logs or stop the stack without deleting persistent data:
 
 ```powershell
 docker compose logs --tail 200 truthhunter postgres caddy searxng
 docker compose down
 ```
 
-`docker compose down -v` deletes database and service volumes and should only be used when that data is intentionally disposable.
+`docker compose down -v` deletes service volumes and should only be used when
+the database is intentionally disposable.
 
 ## Native development
 
-From PowerShell:
+Python 3.10 or newer is supported.
 
 ```powershell
 py -m venv .venv
@@ -78,7 +145,10 @@ Copy-Item .env.example .env
 uvicorn app.main:app --reload
 ```
 
-The default `DATABASE_URL` in `.env.example` addresses PostgreSQL by its Compose service name. For a native application process, either run PostgreSQL on a locally reachable port or change `DATABASE_URL` to the appropriate development database address. PostgreSQL is deliberately not published by the reference Compose configuration.
+The Compose `DATABASE_URL` uses the internal `postgres` service hostname. Set a
+locally reachable PostgreSQL URL when running the application outside Compose.
+Native OCR also requires a local Tesseract installation with English and
+Hungarian language data; the Docker image includes both automatically.
 
 ## Quality checks
 
@@ -90,40 +160,34 @@ python -m mypy app tests
 docker compose config --quiet
 ```
 
-The PostgreSQL migration integration test is opt-in because it upgrades the configured database. Point `TEST_DATABASE_URL` at a disposable PostgreSQL database before running it:
-
-```powershell
-$env:TEST_DATABASE_URL = "postgresql+psycopg://user:password@host:5432/truthhunter_test"
-python -m pytest -m database
-```
-
-All other tests run without PostgreSQL. The readiness tests replace the database probe at the FastAPI dependency boundary.
-
-## Database migrations
-
-```powershell
-docker compose exec truthhunter alembic current
-docker compose exec truthhunter alembic upgrade head
-docker compose exec truthhunter alembic downgrade -1
-docker compose exec truthhunter alembic revision --autogenerate -m "describe change"
-```
-
-Every schema change must be represented by an Alembic migration. Phase 1 creates the baseline, Phase 2 adds investigation snapshots, Phase 3 records confirmation state, and the Phase 4 foundation adds users and investigation ownership.
+The migration integration test is opt-in because it upgrades its configured
+database. Point `TEST_DATABASE_URL` to a disposable PostgreSQL database before
+running `python -m pytest -m database`.
 
 ## Health endpoints
 
-- `GET /health/live` checks only that the application process is serving requests.
-- `GET /health/ready` checks PostgreSQL connectivity and returns `503` with a sanitized response when unavailable.
+- `GET /health/live` checks only the application process.
+- `GET /health/ready` checks PostgreSQL readiness and returns a sanitized `503`
+  response when the database is unavailable.
 
-## Configuration and security notes
+## Current limitations
 
-- `.env` is excluded from Git and Docker build context.
-- Production startup rejects the documented placeholder application secret.
-- Application and Caddy responses include baseline security headers.
-- The application runs as an unprivileged container user.
-- PostgreSQL and SearXNG have no published host ports.
-- Debug documentation endpoints are disabled when `APP_ENV=production`.
-- Fetching blocks non-public address ranges and internal hostnames, revalidates redirects, bounds time/size/redirects, checks content types, and ignores environment proxies. Further production SSRF hardening remains in Phase 8.
-- Backup/encryption, rate limiting, authentication security, and provider-specific production hardening remain in their specification phases.
+- Search engines and source websites may rate-limit or block automated access.
+- The service currently investigates written claims, not video, audio, faces,
+  image authenticity, or general visual content.
+- AI can misunderstand ambiguous wording or source material; users should
+  inspect the original evidence.
+- The beta is operated on a small self-hosted deployment and uses fair-use
+  safeguards rather than a paid entitlement system.
 
-The product specification remains authoritative: [`TRUTH_HUNTER_SPEC.md`](TRUTH_HUNTER_SPEC.md).
+## Roadmap
+
+Near-term work focuses on evidence quality, source deduplication, abuse
+protection, operational trend snapshots, backup/restore verification, and
+continued private/public beta evaluation. Integrated subscriptions and credit
+sales are intentionally deferred; voluntary support may be linked externally
+without storing financial information or granting product benefits.
+
+## License
+
+Released under the [MIT License](LICENSE).
