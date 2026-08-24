@@ -732,6 +732,14 @@ Examples:
 
 Do not endlessly retry permanent errors.
 
+AI and search boundaries must classify failures into sanitized, typed categories
+that carry retry policy. At minimum distinguish rate limiting, exhausted quota,
+temporary availability, authentication/configuration, invalid provider output,
+and oversized requests where applicable. Authentication, configuration, and
+exhausted paid-search quota failures are permanent for the current request and
+must not be retried blindly. Temporary availability and rate limiting may use
+bounded retry/backoff before the next configured fallback.
+
 If an investigation ultimately fails:
 
 -   Show a friendly error message.
@@ -1677,6 +1685,16 @@ weak/insufficient/conflicting evidence
 ```
 
 The LLM must not directly control the final numerical evidence balance.
+
+### Reviewed regression corpus
+
+Real user reports that expose a confirmed reasoning failure should be converted
+into sanitized, reviewed regression fixtures. Each fixture records the precise
+claim, representative structured evidence, review date, and expected verdict and
+confidence. The corpus must run in CI without live AI or search calls so known
+logical failures cannot silently return. The first corpus case covers an
+unconditional LAPL(A) passenger claim contradicted by the post-licence PIC-hour
+prerequisite in FCL.105.A.
 
 ------------------------------------------------------------------------
 

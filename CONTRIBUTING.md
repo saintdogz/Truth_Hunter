@@ -30,3 +30,26 @@ docker compose config --quiet
 - Do not expose private chain-of-thought.
 
 For vulnerabilities, follow `SECURITY.md` instead of opening a public issue.
+
+## Adding an AI provider
+
+1. Implement the `AIProvider` protocol in `app/ai/base.py`. Providers must return
+   the existing validated Pydantic models and must never decide the final verdict.
+2. Prefer the shared `StructuredChatProvider` adapter when the service supports an
+   OpenAI-compatible structured-output API.
+3. Map provider failures to the sanitized types in `app/ai/errors.py`. Never log
+   API keys, raw response bodies containing user data, or hidden reasoning.
+4. Register the provider in `app/ai/factory.py` and expose only non-sensitive
+   configuration in `.env.example`.
+5. Add unit tests for successful structured output, malformed output, rate limits,
+   quota exhaustion, authentication failure, fallback order, and cooldown behavior.
+
+Free providers belong before paid providers. Paid fallback must remain explicitly
+enabled and bounded; a new provider must not bypass those controls.
+
+## Adding a reviewed regression case
+
+Add a sanitized fixture to `tests/regression/cases.json` only after checking the
+claim against authoritative sources. Include the review date, expected verdict,
+expected confidence, and representative structured evidence. Do not include user
+identifiers, private investigation links, or copyrighted full-page content.

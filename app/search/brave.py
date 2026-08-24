@@ -4,7 +4,13 @@ import httpx
 from pydantic import ValidationError
 
 from app.investigation.models import SearchResult
-from app.search.base import SearchProviderError
+from app.search.base import (
+    SearchAuthenticationError,
+    SearchQuotaError,
+    SearchRateLimitError,
+    SearchResponseError,
+    SearchUnavailableError,
+)
 
 
 class BraveSearchProvider:
@@ -46,8 +52,19 @@ class BraveSearchProvider:
             )
             response.raise_for_status()
             payload = response.json()
-        except (httpx.HTTPError, ValueError) as exc:
-            raise SearchProviderError("Brave Search API failed") from exc
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code
+            if status in {401, 403}:
+                raise SearchAuthenticationError("Brave") from exc
+            if status == 402:
+                raise SearchQuotaError("Brave") from exc
+            if status == 429:
+                raise SearchRateLimitError("Brave") from exc
+            raise SearchUnavailableError("Brave") from exc
+        except (httpx.TimeoutException, httpx.RequestError) as exc:
+            raise SearchUnavailableError("Brave") from exc
+        except ValueError as exc:
+            raise SearchResponseError("Brave") from exc
 
         results: list[SearchResult] = []
         for raw in payload.get("web", {}).get("results", []):

@@ -248,8 +248,8 @@ class InvestigationPipeline:
         for attempt in range(self._search_retry_attempts + 1):
             try:
                 return await provider.search(query, language, limit)
-            except SearchProviderError:
-                if attempt >= self._search_retry_attempts:
+            except SearchProviderError as exc:
+                if not exc.retryable or attempt >= self._search_retry_attempts:
                     raise
                 if self._search_delay_seconds:
                     await asyncio.sleep(self._search_delay_seconds * (2 ** (attempt + 1)))

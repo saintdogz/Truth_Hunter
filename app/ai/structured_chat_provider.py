@@ -8,7 +8,7 @@ from openai import AsyncOpenAI, OpenAIError
 from pydantic import BaseModel, ValidationError
 
 from app.ai.base import AIProviderError
-from app.ai.errors import classify_provider_error
+from app.ai.errors import ModelOutputError, classify_provider_error
 from app.investigation.models import (
     AssessmentDraft,
     ClaimInterpretation,
@@ -119,12 +119,7 @@ class StructuredChatProvider:
 
         if isinstance(last_error, AIProviderError):
             raise last_error
-        raise AIProviderError(
-            f"The {self.provider_name} provider returned no valid structured output",
-            category="model_output",
-            retryable=True,
-            permits_paid_fallback=True,
-        ) from last_error
+        raise ModelOutputError(self.provider_name) from last_error
 
     async def interpret_claim(self, claim: str, detected_language: str) -> ClaimInterpretation:
         return await self._parse(

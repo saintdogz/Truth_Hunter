@@ -1,49 +1,81 @@
-"""Sanitized classification for OpenAI-compatible provider failures."""
+"""Typed, sanitized classification for OpenAI-compatible provider failures."""
 
 from openai import OpenAIError
 
 from app.ai.base import AIProviderError
 
 
-def classify_provider_error(provider: str, exc: OpenAIError) -> AIProviderError:
-    status = getattr(exc, "status_code", None)
-    if status in {402, 429}:
-        category = "quota" if status == 402 else "rate_limit"
-        return AIProviderError(
-            f"The {provider} provider is temporarily unavailable",
-            category=category,
+class RateLimitError(AIProviderError):
+    def __init__(self, provider: str) -> None:
+        super().__init__(
+            f"The {provider} provider is temporarily rate limited",
+            category="rate_limit",
             retryable=True,
             permits_paid_fallback=True,
         )
-    if status == 413:
-        return AIProviderError(
+
+
+class QuotaExhaustedError(AIProviderError):
+    def __init__(self, provider: str) -> None:
+        super().__init__(
+            f"The {provider} provider quota is unavailable",
+            category="quota",
+            retryable=True,
+            permits_paid_fallback=True,
+        )
+
+
+class ProviderUnavailableError(AIProviderError):
+    def __init__(self, provider: str) -> None:
+        super().__init__(
+            f"The {provider} provider is temporarily unavailable",
+            category="availability",
+            retryable=True,
+            permits_paid_fallback=True,
+        )
+
+
+class PayloadTooLargeError(AIProviderError):
+    def __init__(self, provider: str) -> None:
+        super().__init__(
             f"The {provider} provider rejected an oversized request",
             category="payload_too_large",
             retryable=True,
             permits_paid_fallback=True,
         )
-    if status == 422:
-        return AIProviderError(
-            f"The {provider} provider rejected a generated response",
+
+
+class ModelOutputError(AIProviderError):
+    def __init__(self, provider: str) -> None:
+        super().__init__(
+            f"The {provider} provider returned invalid structured output",
             category="model_output",
             retryable=True,
             permits_paid_fallback=True,
         )
+
+
+class ProviderConfigurationError(AIProviderError):
+    def __init__(self, provider: str) -> None:
+        super().__init__(
+            f"The {provider} provider configuration or request was rejected",
+            category="configuration",
+        )
+
+
+def classify_provider_error(provider: str, exc: OpenAIError) -> AIProviderError:
+    status = getattr(exc, "status_code", None)
+    message = str(exc).casefold()
+    if status == 402 or (status == 429 and any(word in message for word in ("quota", "credit"))):
+        return QuotaExhaustedError(provider)
+    if status == 429:
+        return RateLimitError(provider)
+    if status == 413:
+        return PayloadTooLargeError(provider)
+    if status == 422:
+        return ModelOutputError(provider)
     if status is not None and status >= 500:
-        return AIProviderError(
-            f"The {provider} provider is temporarily unavailable",
-            category="availability",
-            retryable=True,
-            permits_paid_fallback=True,
-        )
+        return ProviderUnavailableError(provider)
     if status is None:
-        return AIProviderError(
-            f"The {provider} provider could not be reached",
-            category="availability",
-            retryable=True,
-            permits_paid_fallback=True,
-        )
-    return AIProviderError(
-        f"The {provider} provider configuration or request was rejected",
-        category="configuration",
-    )
+        return ProviderUnavailableError(provider)
+    return ProviderConfigurationError(provider)

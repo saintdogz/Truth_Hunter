@@ -24,6 +24,7 @@ from app.investigation.models import (
 )
 from app.investigation.pipeline import InvestigationPipeline, InvestigationPipelineError
 from app.investigation.repository import InvestigationRepository
+from app.search.base import SearchAuthenticationError, SearchProviderError, SearchUnavailableError
 
 
 class FakeAI:
@@ -99,6 +100,19 @@ class EmptySearch:
         return []
 
 
+class FailingSearch:
+    provider_name = "failing-search"
+
+    def __init__(self, error: SearchProviderError) -> None:
+        self.error = error
+        self.calls = 0
+
+    async def search(self, query: str, language: str, limit: int) -> list[SearchResult]:
+        del query, language, limit
+        self.calls += 1
+        raise self.error
+
+
 class IrrelevantAI(FakeAI):
     async def evaluate_evidence(self, claim: str, source: SourceDocument) -> EvidenceAssessment:
         del claim, source
@@ -120,6 +134,18 @@ class FallbackAwareAI(IrrelevantAI):
         if source.domain.startswith("brave"):
             return await FakeAI.evaluate_evidence(self, claim, source)
         return await super().evaluate_evidence(claim, source)
+
+
+class FlexibleSummaryAI(FallbackAwareAI):
+    async def generate_summary(
+        self,
+        claim: str,
+        assessment: AssessmentDraft,
+        evidence: list[EvidenceAssessment],
+        language: str,
+    ) -> InvestigationSummary:
+        del claim, assessment, evidence, language
+        return InvestigationSummary(explanation="The available evidence was assessed.")
 
 
 class FakeBraveSearch:
@@ -341,4 +367,41 @@ async def test_brave_fallback_runs_only_after_free_evidence_is_not_useful() -> N
         assert stored is not None
         assert stored.status == "COMPLETED"
         assert stored.search_provider == "fake-search -> brave"
+    engine.dispose()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("error", "expected_primary_calls"),
+    [
+        (SearchAuthenticationError("Primary"), 1),
+        (SearchUnavailableError("Primary"), 3),
+    ],
+)
+async def test_search_retry_policy_distinguishes_permanent_and_transient_failures(
+    error: SearchProviderError, expected_primary_calls: int
+) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        primary = FailingSearch(error)
+        fallback = FakeBraveSearch()
+        pipeline = InvestigationPipeline(
+            FlexibleSummaryAI(),
+            primary,
+            FakeFetcher(),
+            InvestigationRepository(session),
+            search_delay_seconds=0,
+            search_retry_attempts=2,
+            fallback_search=fallback,
+        )
+        investigation_id, _ = await pipeline.create_and_interpret("A testable factual claim.")
+
+        assessment = await pipeline.investigate_confirmed(
+            investigation_id, "A testable factual claim."
+        )
+
+        assert primary.calls == expected_primary_calls
+        assert fallback.calls == [("A testable factual claim.", "en")]
+        assert assessment.verdict == Verdict.INCONCLUSIVE
     engine.dispose()

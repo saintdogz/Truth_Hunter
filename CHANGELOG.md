@@ -14,6 +14,15 @@ currently a public beta, so behavior and interfaces may change before version 1.
 - Prioritize authoritative regulatory evidence and preserve context around
   ambiguous acronyms in technical and legal searches.
 
+### Added
+
+- Typed AI and search failure categories for rate limits, quota exhaustion,
+  availability, authentication/configuration, invalid output, and payload limits.
+- Retry policy that retries transient search failures but immediately falls back
+  after permanent authentication or quota failures.
+- A reviewed real-world regression corpus, beginning with the LAPL(A) passenger
+  prerequisite claim.
+
 ## [0.1.0] - 2026-08-24
 
 ### Added

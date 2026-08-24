@@ -3,7 +3,12 @@
 import httpx
 import pytest
 
-from app.search.base import SearchProviderError
+from app.search.base import (
+    SearchAuthenticationError,
+    SearchQuotaError,
+    SearchRateLimitError,
+    SearchUnavailableError,
+)
 from app.search.brave import BraveSearchProvider
 from app.search.searxng import SearXNGProvider
 
@@ -49,8 +54,9 @@ async def test_searxng_surfaces_engine_outage_when_results_are_empty() -> None:
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     provider = SearXNGProvider("http://searxng:8080", client)
 
-    with pytest.raises(SearchProviderError, match="engines were unavailable"):
+    with pytest.raises(SearchUnavailableError) as raised:
         await provider.search("claim", "en", 8)
+    assert raised.value.retryable is True
     await client.aclose()
 
 
@@ -84,4 +90,29 @@ async def test_brave_maps_results_and_authenticates() -> None:
 
     assert [result.title for result in results] == ["Evidence one", "Evidence two"]
     assert {result.engine for result in results} == {"brave-api"}
+    await client.aclose()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("status", "error_type", "retryable"),
+    [
+        (401, SearchAuthenticationError, False),
+        (402, SearchQuotaError, False),
+        (429, SearchRateLimitError, True),
+        (503, SearchUnavailableError, True),
+    ],
+)
+async def test_brave_classifies_failures_for_retry_policy(
+    status: int, error_type: type[Exception], retryable: bool
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(status, request=request)
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    provider = BraveSearchProvider("test-key", client=client)
+
+    with pytest.raises(error_type) as raised:
+        await provider.search("claim", "en", 2)
+    assert raised.value.retryable is retryable  # type: ignore[attr-defined]
     await client.aclose()

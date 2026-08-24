@@ -26,6 +26,7 @@ QUALIFICATION_MARKERS = (
     "subject to",
     "after completing",
     "required before",
+    " until ",
     "csak akkor",
     "csak azt követően",
     "kivéve",

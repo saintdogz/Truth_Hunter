@@ -4,7 +4,11 @@ import httpx
 from pydantic import ValidationError
 
 from app.investigation.models import SearchResult
-from app.search.base import SearchProviderError
+from app.search.base import (
+    SearchRateLimitError,
+    SearchResponseError,
+    SearchUnavailableError,
+)
 
 
 class SearXNGProvider:
@@ -29,11 +33,17 @@ class SearXNGProvider:
             )
             response.raise_for_status()
             payload = response.json()
-        except (httpx.HTTPError, ValueError) as exc:
-            raise SearchProviderError("SearXNG search failed") from exc
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 429:
+                raise SearchRateLimitError("SearXNG") from exc
+            raise SearchUnavailableError("SearXNG") from exc
+        except (httpx.TimeoutException, httpx.RequestError) as exc:
+            raise SearchUnavailableError("SearXNG") from exc
+        except ValueError as exc:
+            raise SearchResponseError("SearXNG") from exc
 
         if not payload.get("results") and payload.get("unresponsive_engines"):
-            raise SearchProviderError("SearXNG engines were unavailable")
+            raise SearchUnavailableError("SearXNG engines")
 
         results: list[SearchResult] = []
         for raw in payload.get("results", []):

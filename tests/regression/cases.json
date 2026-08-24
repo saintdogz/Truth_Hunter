@@ -1,0 +1,36 @@
+[
+  {
+    "id": "lapl-passenger-pic-prerequisite",
+    "reviewed_on": "2026-08-24",
+    "claim": "A LAPL(A) pilot may carry up to three passengers regardless of how many PIC hours they have flown since the licence was issued.",
+    "expected_verdict": "FALSE",
+    "expected_confidence": "HIGH",
+    "evidence": [
+      {
+        "domain": "www.easa.europa.eu",
+        "source_type": "PRIMARY_OFFICIAL",
+        "summary": "A LAPL(A) holder may carry a maximum of three passengers only after completing 10 hours as PIC after licence issuance."
+      },
+      {
+        "domain": "eur-lex.europa.eu",
+        "source_type": "COURT_LEGAL",
+        "summary": "FCL.105.A permits passenger carriage only if 10 post-licence PIC hours have been completed."
+      },
+      {
+        "domain": "www.caa.co.uk",
+        "source_type": "PRIMARY_OFFICIAL",
+        "summary": "Passenger privileges are subject to an initial post-licence PIC requirement."
+      },
+      {
+        "domain": "aviation.example",
+        "source_type": "EXPERT_ANALYSIS",
+        "summary": "A newly licensed holder cannot carry passengers until the required PIC experience is complete."
+      },
+      {
+        "domain": "training.example",
+        "source_type": "SECONDARY",
+        "summary": "The three-passenger ceiling applies only after the initial experience condition is met."
+      }
+    ]
+  }
+]
