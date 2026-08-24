@@ -24,6 +24,7 @@ Implemented:
 - A mocked end-to-end investigation pipeline integration test
 - Session-bound CSRF protection for public forms
 - Claim interpretation, confirmation, and one-time correction flow
+- Local English/Hungarian OCR for bounded JPEG, PNG, and WebP claim images, feeding the existing confirmation flow without retaining uploads
 - Background investigation execution with a polling progress experience
 - Bilingual assessment pages with evidence balance, confidence, strongest arguments, conflict disclosure, methodology, and run metadata
 - Complete evidence details and original source links for free investigations

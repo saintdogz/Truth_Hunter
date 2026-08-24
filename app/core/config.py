@@ -60,6 +60,8 @@ class Settings(BaseSettings):
     fetch_timeout_seconds: float = Field(default=15.0, ge=1, le=60)
     fetch_max_bytes: int = Field(default=2_000_000, ge=10_000, le=5_000_000)
     fetch_redirect_limit: int = Field(default=4, ge=0, le=10)
+    image_upload_max_bytes: int = Field(default=8_000_000, ge=100_000, le=15_000_000)
+    image_upload_max_pixels: int = Field(default=20_000_000, ge=1_000_000, le=40_000_000)
     public_base_url: AnyHttpUrl = AnyHttpUrl("http://localhost")
     support_url: AnyHttpUrl | None = None
     email_delivery_mode: Literal["development", "resend"] = "development"

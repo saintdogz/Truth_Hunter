@@ -16,7 +16,9 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert "Don&#39;t believe it. Investigate it." in response.text
     assert "v0.1.0" in response.text
     assert '<form method="post" action="/investigations"' in response.text
+    assert 'enctype="multipart/form-data"' in response.text
     assert 'maxlength="500"' in response.text
+    assert 'accept="image/jpeg,image/png,image/webp"' in response.text
 
 
 def test_home_supports_hungarian_interface(client: TestClient) -> None:

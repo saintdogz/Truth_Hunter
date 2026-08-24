@@ -6,6 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y tesseract-ocr tesseract-ocr-eng tesseract-ocr-hun \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN addgroup --system truthhunter \
     && adduser --system --ingroup truthhunter --home /app truthhunter
 
@@ -21,4 +25,3 @@ USER truthhunter
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
-

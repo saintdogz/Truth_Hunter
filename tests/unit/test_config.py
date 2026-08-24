@@ -45,6 +45,13 @@ def test_phase_two_resource_limits_are_validated() -> None:
         Settings(app_env="test", source_useful_limit=16)
 
 
+def test_image_resource_limits_are_validated() -> None:
+    with pytest.raises(ValidationError):
+        Settings(app_env="test", image_upload_max_bytes=20_000_000)
+    with pytest.raises(ValidationError):
+        Settings(app_env="test", image_upload_max_pixels=50_000_000)
+
+
 def test_production_rejects_placeholder_ai_key() -> None:
     with pytest.raises(ValidationError, match="AI_API_KEY"):
         Settings(

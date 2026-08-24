@@ -105,6 +105,43 @@ def test_submission_redirects_to_escaped_confirmation(client: TestClient) -> Non
     assert len(fake.items) == 1
 
 
+def test_image_text_enters_existing_confirmation_flow(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = install_fake(client)
+    extracted = "Roger Penrose says the Big Bang ended a previous universe."
+    monkeypatch.setattr("app.web.routes.extract_image_text", lambda *_args, **_kwargs: extracted)
+    home = client.get("/")
+
+    submitted = client.post(
+        "/investigations",
+        data={"csrf": csrf_from(home.text)},
+        files={"image": ("claim.jpg", b"bounded-image-bytes", "image/jpeg")},
+        follow_redirects=False,
+    )
+
+    assert submitted.status_code == 303
+    investigation = next(iter(fake.items.values()))
+    assert investigation.original_claim == extracted
+    confirmation = client.get(submitted.headers["location"])
+    assert confirmation.status_code == 200
+    assert extracted in confirmation.text
+
+
+def test_submission_rejects_text_and_image_together(client: TestClient) -> None:
+    install_fake(client)
+    home = client.get("/")
+
+    response = client.post(
+        "/investigations",
+        data={"claim": "A typed claim", "csrf": csrf_from(home.text)},
+        files={"image": ("claim.png", b"image", "image/png")},
+    )
+
+    assert response.status_code == 400
+    assert "not both" in response.text
+
+
 def test_single_correction_is_forwarded_to_background_service(client: TestClient) -> None:
     fake = install_fake(client)
     home = client.get("/")

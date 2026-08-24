@@ -8,10 +8,13 @@
     <div class="claim-panel">
       <div class="free-badge"><span aria-hidden="true">●</span> {{ t.free }}</div>
       {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
-      <form method="post" action="/investigations" class="claim-form">
+      <form method="post" action="/investigations" enctype="multipart/form-data" class="claim-form">
         <input type="hidden" name="csrf" value="{{ csrf_token }}">
         <label for="claim">{{ t.claim_label }}</label>
-        <textarea id="claim" name="claim" maxlength="500" required placeholder="{{ t.claim_placeholder }}">{{ claim }}</textarea>
+        <textarea id="claim" name="claim" maxlength="500" placeholder="{{ t.claim_placeholder }}">{{ claim }}</textarea>
+        <div class="upload-divider"><span>{{ t.or_image }}</span></div>
+        <label class="image-upload" for="claim-image"><strong>{{ t.upload_image }}</strong><small>{{ t.upload_note }}</small></label>
+        <input id="claim-image" name="image" type="file" accept="image/jpeg,image/png,image/webp">
         <div class="form-foot"><small>{{ t.limit }}</small><button type="submit" class="button primary">{{ t.submit }} <span aria-hidden="true">→</span></button></div>
       </form>
     </div>

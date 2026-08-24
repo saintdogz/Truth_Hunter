@@ -4,9 +4,20 @@ from collections.abc import Callable
 from typing import Annotated, cast
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.auth.session import current_user, guest_session_id
 from app.core.config import Settings, get_settings
@@ -16,6 +27,7 @@ from app.feedback.service import FeedbackError, submit_feedback
 from app.investigation.claim import InvalidClaimError, validate_claim
 from app.investigation.pipeline import InvestigationPipelineError
 from app.investigation.repository import InvestigationNotFoundError
+from app.ocr import ImageTextError, extract_image_text
 from app.sharing.service import SharingError, owns_investigation, set_public, submit_public_report
 from app.web.csrf import csrf_token, require_csrf
 from app.web.i18n import (
@@ -89,23 +101,39 @@ def home(request: Request) -> Response:
 @router.post("/investigations", response_class=HTMLResponse, include_in_schema=False)
 async def submit_claim(
     request: Request,
-    claim: Annotated[str, Form()],
     csrf: Annotated[str, Form()],
     service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
     session: Annotated[Session, Depends(get_session)],
     settings: Annotated[Settings, Depends(get_settings)],
+    claim: Annotated[str, Form()] = "",
+    image: Annotated[UploadFile | None, File()] = None,
 ) -> Response:
     require_csrf(request, csrf)
     language = language_from_request(request)
     try:
-        validate_claim(claim)
+        has_claim = bool(claim.strip())
+        has_image = image is not None and bool(image.filename)
+        if has_claim == has_image:
+            raise InvalidClaimError("Enter a claim or upload one image, but not both.")
+        submitted_claim = claim
+        if image is not None and has_image:
+            payload = await image.read(settings.image_upload_max_bytes + 1)
+            submitted_claim = await run_in_threadpool(
+                extract_image_text,
+                payload,
+                image.content_type,
+                max_bytes=settings.image_upload_max_bytes,
+                max_pixels=settings.image_upload_max_pixels,
+                max_characters=500,
+            )
+        validate_claim(submitted_claim)
         user = current_user(request, session, settings)
         investigation_id, _ = await service.interpret(
-            claim,
+            submitted_claim,
             user_id=user.id if user else None,
             session_id=None if user else guest_session_id(request),
         )
-    except InvalidClaimError as exc:
+    except (InvalidClaimError, ImageTextError) as exc:
         return render(
             request,
             "home.html",

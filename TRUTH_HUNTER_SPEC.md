@@ -169,6 +169,21 @@ Store:
 -   Original claim exactly as entered
 -   Interpreted/confirmed claim
 
+### Image text input
+
+Users may alternatively upload one JPEG, PNG, or WebP image containing a
+written claim. The application performs local OCR, treats the extracted text as
+untrusted claim data, passes it through the existing AI interpretation step,
+and shows the same confirmation/correction screen before investigation.
+
+This feature reads text only. It does not identify people or objects, infer a
+claim from visual content, authenticate an image, detect manipulation, or
+perform general image forensics. Images must be bounded by configured byte and
+decoded-pixel limits, verified by decoded file content rather than filename,
+processed in memory, and discarded immediately after OCR. Do not persist image
+bytes or metadata. Reject animated images, unsupported formats, unreadable
+text, and extracted text exceeding the normal claim limit.
+
 ------------------------------------------------------------------------
 
 ## 7. Claim Interpretation
@@ -1700,7 +1715,8 @@ revised:
 -   Facebook video analysis
 -   YouTube video analysis
 -   Speech transcription pipeline
--   OCR/video frame analysis
+-   OCR of video frames or general visual/image analysis beyond the bounded
+    still-image text extraction defined in Section 6
 -   Automatic complex claim decomposition
 -   Knowledge graph
 -   Subscriptions
@@ -1815,6 +1831,7 @@ investigation engine yet.
 -   Evidence visualization
 -   Methodology section
 -   Bilingual UI
+-   Bounded still-image OCR feeding the existing claim confirmation flow
 
 ### Phase 4 --- Accounts
 
