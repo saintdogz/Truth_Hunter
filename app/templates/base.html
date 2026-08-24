@@ -13,7 +13,7 @@
     <header class="site-header">
       <a class="wordmark" href="/">TRUTH <span>HUNTER</span></a>
       <nav class="language-nav" aria-label="Account and language">
-        {% if current_user %}<a href="/history">{{ a.history_nav }}</a><a href="/account">{{ a.account }}</a>{% else %}<a href="/login">{{ a.sign_in }}</a><a href="/register">{{ a.register }}</a>{% endif %}
+        <a href="/about">{{ a.about }}</a>{% if current_user %}<a href="/history">{{ a.history_nav }}</a><a href="/account">{{ a.account }}</a>{% else %}<a href="/login">{{ a.sign_in }}</a><a href="/register">{{ a.register }}</a>{% endif %}
         <span>·</span><a href="{{ language_urls.en }}" lang="en">EN</a><span>/</span><a href="{{ language_urls.hu }}" lang="hu">HU</a>
       </nav>
     </header>

@@ -141,6 +141,12 @@ Landing page should contain:
 -   Login/register access
 -   English and Hungarian interface support
 
+Provide a public English/Hungarian About page linked from the primary
+navigation. Explain the investigation flow, search routes and fallbacks,
+configured AI providers/models, deterministic scoring, image OCR, privacy,
+limitations, and feedback in plain language suitable for non-technical users.
+Never expose API keys, internal prompts, or security-sensitive configuration.
+
 Do not add a public claims counter in MVP.
 
 ------------------------------------------------------------------------

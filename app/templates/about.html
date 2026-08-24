@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ about.title }} — Truth Hunter{% endblock %}
+{% block content %}
+<article class="about-page">
+  <header class="about-hero"><div class="signal-line"><span></span>{{ about.eyebrow }}</div><h1>{{ about.title }}</h1><p>{{ about.intro }}</p></header>
+  <section class="about-section"><h2>{{ about.flow_title }}</h2><div class="about-flow">
+    <article><strong>{{ about.flow_1_title }}</strong><p>{{ about.flow_1_text }}</p></article>
+    <article><strong>{{ about.flow_2_title }}</strong><p>{{ about.flow_2_text }}</p></article>
+    <article><strong>{{ about.flow_3_title }}</strong><p>{{ about.flow_3_text }}</p></article>
+  </div></section>
+  <div class="about-grid">
+    <section class="about-card"><span>SEARCH</span><h2>{{ about.search_title }}</h2><p>{{ about.search_text }}</p><p class="about-note">{{ about.search_note }}</p>{% if brave_enabled %}<div class="about-chip">SearXNG → Brave Search <small>{{ about.fallback }}</small></div>{% else %}<div class="about-chip">SearXNG</div>{% endif %}</section>
+    <section class="about-card"><span>AI</span><h2>{{ about.ai_title }}</h2><p>{{ about.ai_text }}</p><h3>{{ about.models_label }}</h3><ul class="model-list">{% for item in models %}<li><strong>{{ item.provider }}</strong><code>{{ item.model }}</code></li>{% else %}<li>{{ about.models_unavailable }}</li>{% endfor %}</ul></section>
+    <section class="about-card"><span>METHOD</span><h2>{{ about.scoring_title }}</h2><p>{{ about.scoring_text }}</p></section>
+    <section class="about-card"><span>OCR</span><h2>{{ about.images_title }}</h2><p>{{ about.images_text }}</p></section>
+    <section class="about-card warning-card"><span>LIMITS</span><h2>{{ about.limits_title }}</h2><p>{{ about.limits_text }}</p></section>
+    <section class="about-card"><span>PRIVACY</span><h2>{{ about.privacy_title }}</h2><p>{{ about.privacy_text }}</p></section>
+  </div>
+  <section class="about-feedback"><h2>{{ about.feedback_title }}</h2><p>{{ about.feedback_text }}</p><a class="button primary" href="/">{{ about.cta }} <span aria-hidden="true">→</span></a></section>
+</article>
+{% endblock %}

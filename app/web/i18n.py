@@ -251,6 +251,7 @@ CONFIDENCE_COPY = {
 
 ACCOUNT_COPY: dict[str, dict[str, str]] = {
     "en": {
+        "about": "About",
         "account": "Account",
         "history_nav": "History",
         "sign_in": "Sign in",
@@ -291,6 +292,7 @@ ACCOUNT_COPY: dict[str, dict[str, str]] = {
         "email_unavailable": "Email delivery is temporarily unavailable. Please try again.",
     },
     "hu": {
+        "about": "Rólunk",
         "account": "Fiók",
         "history_nav": "Előzmények",
         "sign_in": "Bejelentkezés",
@@ -332,6 +334,71 @@ ACCOUNT_COPY: dict[str, dict[str, str]] = {
     },
 }
 
+ABOUT_COPY: dict[str, dict[str, str]] = {
+    "en": {
+        "title": "How Truth Hunter works",
+        "eyebrow": "About the project",
+        "intro": "Truth Hunter helps you examine factual claims using fresh web evidence. It does not ask you to trust an AI or promise absolute truth.",
+        "flow_title": "From claim to assessment",
+        "flow_1_title": "1. Understand the claim",
+        "flow_1_text": "Type a claim or upload an image containing text. We rewrite it as a clear question and ask you to confirm that we understood it correctly.",
+        "flow_2_title": "2. Search for evidence",
+        "flow_2_text": "We search the web for relevant material, open useful pages, and compare evidence that supports, contradicts, or adds context to the claim.",
+        "flow_3_title": "3. Explain the result",
+        "flow_3_text": "You receive an assessment, an evidence balance, a confidence level, the strongest arguments on each side, and links to the original sources.",
+        "search_title": "Where the evidence comes from",
+        "search_text": "Our first search route is SearXNG, a privacy-respecting search tool that gathers results from public search engines. If that route finds no useful evidence, Truth Hunter can use the official Brave Search API as a limited fallback.",
+        "search_note": "A search result is only a candidate. Truth Hunter still checks whether the page is relevant and useful for the specific claim.",
+        "ai_title": "How AI is used",
+        "ai_text": "AI helps clarify claims, create search queries, read source material, and summarize relevant evidence. The service can move to another configured provider when one is unavailable or rate-limited.",
+        "models_label": "Currently configured AI models",
+        "models_unavailable": "Provider information is temporarily unavailable.",
+        "scoring_title": "AI does not choose a truth percentage",
+        "scoring_text": "AI describes evidence in a structured form. Truth Hunter's own versioned rules calculate the evidence balance and confidence, and may return Inconclusive when the evidence is weak or conflicting.",
+        "images_title": "Images and copied screenshots",
+        "images_text": "Images are read locally with Tesseract OCR in English and Hungarian. The image is discarded after text extraction; only the extracted claim text continues through the confirmation flow. Truth Hunter does not identify people or determine whether an image was manipulated.",
+        "limits_title": "Important limitations",
+        "limits_text": "Web pages can be wrong, unavailable, outdated, or difficult to access. AI can also misunderstand text. Always inspect the cited sources, especially for medical, legal, financial, or safety-critical decisions.",
+        "privacy_title": "Privacy and transparency",
+        "privacy_text": "Uploaded claim images are not retained. Investigation snapshots keep the claim and the evidence needed to explain the result. We do not expose private AI reasoning; instead, we show the sources, scores, method version, and understandable explanation.",
+        "feedback_title": "Help us improve",
+        "feedback_text": "Use Helpful or Not helpful on a result. If something looks wrong, check the evidence links and send the public investigation link to the project owner with a short explanation.",
+        "cta": "Investigate a claim",
+        "fallback": "fallback",
+    },
+    "hu": {
+        "title": "Hogyan működik a Truth Hunter?",
+        "eyebrow": "A projektről",
+        "intro": "A Truth Hunter friss webes bizonyítékok segítségével vizsgál meg tényállításokat. Nem kéri, hogy vakon bízz a mesterséges intelligenciában, és nem ígér abszolút igazságot.",
+        "flow_title": "Az állítástól az értékelésig",
+        "flow_1_title": "1. Az állítás megértése",
+        "flow_1_text": "Írj be egy állítást, vagy tölts fel szöveget tartalmazó képet. Egyértelmű kérdéssé fogalmazzuk, majd megerősítést kérünk, hogy jól értettük-e.",
+        "flow_2_title": "2. Bizonyítékok keresése",
+        "flow_2_text": "Releváns anyagokat keresünk az interneten, megnyitjuk a hasznos oldalakat, majd összevetjük az állítást alátámasztó, cáfoló vagy árnyaló bizonyítékokat.",
+        "flow_3_title": "3. Az eredmény magyarázata",
+        "flow_3_text": "Értékelést, bizonyítékmegoszlást, megbízhatósági szintet, a két oldal legerősebb érveit és az eredeti forrásokra mutató linkeket kapsz.",
+        "search_title": "Honnan származnak a bizonyítékok?",
+        "search_text": "Elsőként a SearXNG adatvédelmet tiszteletben tartó keresőt használjuk, amely nyilvános keresőmotorok találatait gyűjti össze. Ha így nem találunk használható bizonyítékot, korlátozott tartalékként a hivatalos Brave Search API következhet.",
+        "search_note": "Egy keresési találat még csak jelölt. A Truth Hunter külön ellenőrzi, hogy az oldal releváns és hasznos-e az adott állításhoz.",
+        "ai_title": "Hogyan használjuk a mesterséges intelligenciát?",
+        "ai_text": "Az MI segít pontosítani az állítást, keresőkérdéseket készíteni, elolvasni a forrásokat és összefoglalni a releváns bizonyítékokat. Ha egy szolgáltató nem elérhető vagy korlátoz, a rendszer egy másik beállított szolgáltatóra válthat.",
+        "models_label": "Jelenleg beállított MI-modellek",
+        "models_unavailable": "A szolgáltatói információ átmenetileg nem érhető el.",
+        "scoring_title": "Nem az MI választ igazságszázalékot",
+        "scoring_text": "Az MI strukturált formában írja le a bizonyítékokat. A bizonyítékmegoszlást és a megbízhatóságot a Truth Hunter saját, verziózott szabályai számítják ki, gyenge vagy ellentmondó bizonyíték esetén pedig az eredmény lehet Nem eldönthető.",
+        "images_title": "Képek és beillesztett képernyőképek",
+        "images_text": "A képek angol és magyar szövegét helyben, Tesseract OCR-rel olvassuk ki. A képet a szövegkinyerés után eldobjuk; csak a kinyert állításszöveg kerül a megerősítési folyamatba. A Truth Hunter nem azonosít embereket, és nem dönti el, hogy manipulálták-e a képet.",
+        "limits_title": "Fontos korlátok",
+        "limits_text": "A weboldalak lehetnek tévesek, elavultak, elérhetetlenek vagy nehezen feldolgozhatók. Az MI is félreérthet szövegeket. Orvosi, jogi, pénzügyi vagy biztonsági döntéseknél mindig ellenőrizd az idézett eredeti forrásokat.",
+        "privacy_title": "Adatvédelem és átláthatóság",
+        "privacy_text": "A feltöltött állításképeket nem tároljuk. A vizsgálati pillanatkép megőrzi az állítást és az eredmény magyarázatához szükséges bizonyítékokat. Nem mutatunk belső MI-gondolatmenetet; helyette forrásokat, pontszámokat, módszerverziót és érthető magyarázatot adunk.",
+        "feedback_title": "Segíts a fejlesztésben",
+        "feedback_text": "Jelöld az eredményt Hasznos vagy Nem hasznos értékeléssel. Ha valami hibásnak tűnik, ellenőrizd a forráslinkeket, majd küldd el a nyilvános vizsgálati linket és egy rövid magyarázatot a projekt gazdájának.",
+        "cta": "Állítás vizsgálata",
+        "fallback": "tartalék",
+    },
+}
+
 ACCOUNT_ERROR_COPY: dict[str, dict[str, str]] = {
     "hu": {
         "Enter a valid email address.": "Adj meg egy érvényes e-mail-címet.",
@@ -353,6 +420,10 @@ def copy_for(language: str | None) -> dict[str, str]:
 
 def account_copy_for(language: str | None) -> dict[str, str]:
     return ACCOUNT_COPY["hu" if language == "hu" else "en"]
+
+
+def about_copy_for(language: str | None) -> dict[str, str]:
+    return ABOUT_COPY["hu" if language == "hu" else "en"]
 
 
 def account_error_for(language: str | None, message: str) -> str:

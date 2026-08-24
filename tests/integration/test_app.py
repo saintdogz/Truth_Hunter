@@ -31,6 +31,25 @@ def test_home_supports_hungarian_interface(client: TestClient) -> None:
     assert "Ne hidd el. Vizsgáld meg." in response.text
 
 
+def test_about_page_explains_the_service_without_exposing_secrets(client: TestClient) -> None:
+    response = client.get("/about")
+
+    assert response.status_code == 200
+    assert "How Truth Hunter works" in response.text
+    assert "SearXNG" in response.text
+    assert "AI does not choose a truth percentage" in response.text
+    assert "Tesseract OCR" in response.text
+    assert "test-only-secret" not in response.text
+
+
+def test_about_page_supports_hungarian(client: TestClient) -> None:
+    response = client.get("/about?lang=hu")
+
+    assert response.status_code == 200
+    assert "Hogyan működik a Truth Hunter?" in response.text
+    assert "Fontos korlátok" in response.text
+
+
 def test_support_link_is_hidden_when_not_configured(client: TestClient) -> None:
     response = client.get("/")
 

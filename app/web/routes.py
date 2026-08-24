@@ -34,6 +34,7 @@ from app.web.i18n import (
     CONFIDENCE_COPY,
     STATUS_COPY,
     VERDICT_COPY,
+    about_copy_for,
     account_copy_for,
     copy_for,
     language_from_request,
@@ -94,6 +95,34 @@ def home(request: Request) -> Response:
             "csrf_token": csrf_token(request),
             "claim": "",
             "error": None,
+        },
+    )
+
+
+@router.get("/about", response_class=HTMLResponse, include_in_schema=False)
+def about(request: Request) -> Response:
+    language = language_from_request(request)
+    settings = request.app.state.settings
+    provider_settings = {
+        "groq": (settings.groq_api_key, settings.groq_model, "Groq"),
+        "gemini": (settings.gemini_api_key, settings.gemini_model, "Google Gemini"),
+        "openrouter": (settings.openrouter_api_key, settings.openrouter_model, "OpenRouter"),
+        "deepseek": (settings.deepseek_api_key, settings.deepseek_model, "DeepSeek"),
+    }
+    models = [
+        {"provider": provider_settings[name][2], "model": provider_settings[name][1]}
+        for name in settings.provider_order
+        if name in provider_settings and provider_settings[name][0] is not None
+    ]
+    return render(
+        request,
+        "about.html",
+        {
+            "language": language,
+            "t": copy_for(language),
+            "about": about_copy_for(language),
+            "models": models,
+            "brave_enabled": settings.brave_search_api_key is not None,
         },
     )
 
