@@ -7,7 +7,7 @@ submits a claim as text or an image, confirms the proposition the system
 understood, and receives a transparent assessment built from fresh web
 evidence—not an unsupported AI answer.
 
-[Live beta](https://truth.abathur.hu) · [Product specification](TRUTH_HUNTER_SPEC.md) · [Security policy](SECURITY.md) · [Contributing](CONTRIBUTING.md)
+[Live beta](https://truth.abathur.hu) · [Changelog](CHANGELOG.md) · [Product specification](TRUTH_HUNTER_SPEC.md) · [Security policy](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
 > Early beta: Truth Hunter is designed to help people inspect evidence. It is
 > not an oracle and should not replace qualified medical, legal, financial, or
