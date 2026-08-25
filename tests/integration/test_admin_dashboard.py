@@ -148,7 +148,9 @@ def test_dashboard_aggregates_provider_fallbacks(admin_client: TestClient) -> No
 
     unlock_admin(admin_client)
     dashboard = admin_client.get("/admin")
-    assert "rate limit" in dashboard.text
+    assert "Rate limited" in dashboard.text
+    assert "cooldown and fallback active" in dashboard.text
+    assert "AUTO" in dashboard.text
     assert "gemini" in dashboard.text
     assert "Helpful results" in dashboard.text
     assert "1 helpful" in dashboard.text

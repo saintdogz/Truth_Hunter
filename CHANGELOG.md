@@ -22,6 +22,10 @@ currently a public beta, so behavior and interfaces may change before version 1.
   after permanent authentication or quota failures.
 - A reviewed real-world regression corpus, beginning with the LAPL(A) passenger
   prerequisite claim.
+- Localized, deterministic explanations showing why an investigation received
+  Low, Medium, or High confidence.
+- Actionable admin failure diagnostics that distinguish automatic recovery from
+  owner-attention conditions without exposing sensitive provider details.
 
 ## [0.1.0] - 2026-08-24
 

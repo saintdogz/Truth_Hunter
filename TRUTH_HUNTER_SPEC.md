@@ -588,6 +588,12 @@ application determines evidence sufficiency is inadequate.
 
 Confidence is separate from evidence balance.
 
+Every completed result must explain its Low, Medium, or High confidence label in
+plain language using application-calculated factors: relevant evidence count,
+independent evidence count, average evidence quality, and meaningful conflict
+where applicable. The explanation must be localized and derived from the stored
+evidence snapshot, not generated freely by the LLM.
+
 Values:
 
 ``` text
@@ -911,6 +917,11 @@ addresses, or user identities in operational telemetry. Log successful admin
 step-up and dashboard access without logging recipient addresses or access
 tokens. The dashboard may refresh periodically and must not mutate application
 or investigation state.
+
+Failure categories should use actionable labels. The dashboard must distinguish
+transient failures handled automatically from configuration, authentication, or
+quota conditions that require owner attention, and show a short remediation hint
+without exposing provider response bodies or credentials.
 
 ------------------------------------------------------------------------
 

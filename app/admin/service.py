@@ -10,6 +10,16 @@ from sqlalchemy.orm import Session
 from app.db.models import Feedback, Investigation, PublicReport, User
 
 TERMINAL_STATUSES = {"COMPLETED", "FAILED", "SEARCH_FAILED"}
+FAILURE_GUIDANCE = {
+    "rate_limit": ("Rate limited", "Transient · cooldown and fallback active", True),
+    "quota": ("Quota exhausted", "Check provider allowance; bounded fallback active", False),
+    "availability": ("Provider unavailable", "Transient · retry and fallback active", True),
+    "model_output": ("Invalid model output", "Fallback active; review if recurring", True),
+    "payload_too_large": ("Request too large", "Review provider input limits", True),
+    "configuration": ("Configuration rejected", "Check model and API-key configuration", False),
+    "authentication": ("Authentication failed", "Check the affected provider credential", False),
+    "invalid_response": ("Invalid response", "Transient · inspect provider health", True),
+}
 
 
 def _duration_seconds(item: Investigation, now: datetime) -> int | None:
@@ -167,7 +177,18 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
         "provider_summary": provider_summary,
         "daily": daily_rows,
         "max_daily": max_daily,
-        "failures": failure_categories.most_common(),
+        "failures": [
+            {
+                "category": category,
+                "label": FAILURE_GUIDANCE.get(
+                    category, (category.replace("_", " "), "Review logs", False)
+                )[0],
+                "action": FAILURE_GUIDANCE.get(category, ("", "Review logs", False))[1],
+                "retryable": FAILURE_GUIDANCE.get(category, ("", "", False))[2],
+                "count": count,
+            }
+            for category, count in failure_categories.most_common()
+        ],
         "recent": [
             {
                 "id": item.id,

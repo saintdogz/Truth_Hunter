@@ -256,6 +256,9 @@ def test_result_exposes_bounded_evidence_details_during_testing(client: TestClie
 
     assert response.status_code == 200
     assert "Mostly True" in response.text
+    assert "Why:" in response.text
+    assert "1 relevant evidence item" in response.text
+    assert "average quality was 90%" in response.text
     assert "72.0% PRO" in response.text
     assert 'href="https://secret-source.example/evidence"' in response.text
     assert "A short relevant excerpt" in response.text

@@ -39,7 +39,7 @@
     </section>
     <section class="ops-card failure-card">
       <header><div><span class="card-kicker">DIAGNOSTICS</span><h2>Failure signals</h2></div><span class="alert-count">{{ dashboard.totals.failed }}</span></header>
-      {% if dashboard.failures %}<div class="failure-list">{% for category, count in dashboard.failures %}<div><span>{{ category|replace('_', ' ') }}</span><progress value="{{ count }}" max="{{ dashboard.failures[0][1] }}"></progress><strong>{{ count }}</strong></div>{% endfor %}</div>{% else %}<div class="ops-empty success-empty"><i>✓</i><strong>No provider failures</strong><span>The route is clean right now.</span></div>{% endif %}
+      {% if dashboard.failures %}<div class="failure-list">{% for item in dashboard.failures %}<div class="failure-signal"><span><b>{{ item.label }}</b><small>{{ item.action }}</small></span><progress value="{{ item.count }}" max="{{ dashboard.failures[0].count }}"></progress><strong>{{ item.count }}</strong><em class="{{ 'retryable' if item.retryable else 'attention' }}">{{ 'AUTO' if item.retryable else 'CHECK' }}</em></div>{% endfor %}</div>{% else %}<div class="ops-empty success-empty"><i>✓</i><strong>No provider failures</strong><span>The route is clean right now.</span></div>{% endif %}
       <div class="state-chips">{% for state, count in dashboard.statuses %}<span class="state-{{ state|lower }}">{{ state|replace('_',' ') }} <b>{{ count }}</b></span>{% endfor %}</div>
     </section>
   </div>

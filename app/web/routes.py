@@ -29,6 +29,7 @@ from app.investigation.pipeline import InvestigationPipelineError
 from app.investigation.repository import InvestigationNotFoundError
 from app.ocr import ImageTextError, extract_image_text
 from app.sharing.service import SharingError, owns_investigation, set_public, submit_public_report
+from app.web.confidence import confidence_explanation
 from app.web.csrf import csrf_token, require_csrf
 from app.web.i18n import (
     CONFIDENCE_COPY,
@@ -369,6 +370,12 @@ def _render_result(
             "investigation": investigation,
             "verdict_label": VERDICT_COPY[language].get(verdict, verdict),
             "confidence_label": CONFIDENCE_COPY[language].get(confidence, confidence),
+            "confidence_explanation": confidence_explanation(
+                confidence,
+                investigation.evidence,
+                conflict_detected=investigation.conflict_detected,
+                language=language,
+            ),
             "csrf_token": csrf_token(request),
             "selected_feedback": selected_feedback,
             "is_public_view": is_public_view,
