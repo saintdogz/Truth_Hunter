@@ -9,6 +9,10 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ### Fixed
 
+- Stop secondary, unknown, and social sources that merely repeat speculative
+  theories from counting as substantive supporting evidence.
+- Make the permanent public share URL explicit after publishing so owners do not
+  accidentally copy the private UUID route.
 - Treat material prerequisites and exceptions as contradictions of unconditional
   claims instead of supporting a narrower interpretation.
 - Prioritize authoritative regulatory evidence and preserve context around

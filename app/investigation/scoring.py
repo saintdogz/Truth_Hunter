@@ -34,6 +34,40 @@ QUALIFICATION_MARKERS = (
     "miután",
     "szükséges",
 )
+SPECULATIVE_ATTRIBUTION_MARKERS = (
+    "alternative theor",
+    "fringe theor",
+    "proponents",
+    "theorists",
+    "speculat",
+    "hypothes",
+    "concept of",
+    "claimed that",
+    "claims that",
+    "suggesting that",
+    "suggests that",
+    "could have",
+    "may have",
+)
+SUBSTANTIATION_MARKERS = (
+    "archaeological evidence",
+    "contemporaneous record",
+    "historical record",
+    "official record",
+    "measured",
+    "measurement",
+    "experiment",
+    "observed",
+    "data show",
+    "study found",
+    "research found",
+)
+WEAK_NARRATIVE_SOURCE_TYPES = {
+    SourceType.EXPERT_ANALYSIS,
+    SourceType.SECONDARY,
+    SourceType.SOCIAL_MEDIA,
+    SourceType.UNKNOWN,
+}
 SOURCE_TYPE_MULTIPLIERS = {
     SourceType.PRIMARY_OFFICIAL: 1.15,
     SourceType.COURT_LEGAL: 1.15,
@@ -49,7 +83,7 @@ SOURCE_TYPE_MULTIPLIERS = {
 
 @dataclass(frozen=True)
 class ScoringConfig:
-    version: str = "evidence-v2"
+    version: str = "evidence-v3"
     strength_weight: float = 0.25
     relevance_weight: float = 0.30
     quality_weight: float = 0.20
@@ -118,6 +152,20 @@ def apply_evidence_guardrails(
             strength=max(item.strength, 0.8),
             relevance=max(item.relevance, 0.8),
         )
+
+    effective_source_type = updates.get("source_type", item.source_type)
+    effective_position = updates.get("position", item.position)
+    is_speculative_attribution = any(
+        marker in evidence_text for marker in SPECULATIVE_ATTRIBUTION_MARKERS
+    )
+    has_substantiation = any(marker in evidence_text for marker in SUBSTANTIATION_MARKERS)
+    if (
+        effective_position == EvidencePosition.SUPPORTING
+        and effective_source_type in WEAK_NARRATIVE_SOURCE_TYPES
+        and is_speculative_attribution
+        and not has_substantiation
+    ):
+        updates.update(position=EvidencePosition.NEUTRAL, strength=0.0)
 
     return item.model_copy(update=updates) if updates else item
 

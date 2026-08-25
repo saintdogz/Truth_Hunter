@@ -212,8 +212,8 @@ async def test_pipeline_persists_historical_snapshot() -> None:
         assert stored.correction_used is True
         assert stored.status == "COMPLETED"
         assert stored.source_count == 5
-        assert stored.scoring_version == "evidence-v2"
-        assert stored.prompt_version == "adaptive-search-v3"
+        assert stored.scoring_version == "evidence-v3"
+        assert stored.prompt_version == "adaptive-search-v4"
         assert stored.search_languages == ["en"]
         assert len(stored.sources) == 5
         assert len(stored.evidence) == 5

@@ -29,12 +29,12 @@ def test_reviewed_claim(case: dict[str, Any]) -> None:
     evidence = []
     for source in case["evidence"]:
         item = EvidenceAssessment(
-            position=EvidencePosition.SUPPORTING,
-            strength=0.85,
-            relevance=0.9,
-            quality=0.85,
-            independence=0.8,
-            recency=0.9,
+            position=EvidencePosition(source.get("position", "SUPPORTING")),
+            strength=source.get("strength", 0.85),
+            relevance=source.get("relevance", 0.9),
+            quality=source.get("quality", 0.85),
+            independence=source.get("independence", 0.8),
+            recency=source.get("recency", 0.9),
             source_type=SourceType(source["source_type"]),
             summary=source["summary"],
         )

@@ -34,6 +34,13 @@ scope limit CONTRADICTS an unconditional claim even when it supports the claim's
 Treat primary laws, regulations, official records, and responsible-authority publications as more
 authoritative than summaries from secondary websites. Do not treat a primary source as neutral when
 it directly establishes a condition relevant to the proposition.
+Distinguish evidence from discussion of a claim. A source that merely says proponents, theorists,
+critics, or other people claim, suggest, speculate, hypothesize, or believe the proposition is
+NEUTRAL unless it also supplies verifiable observations, records, measurements, or research that
+substantively establish it. The existence or popularity of a theory is not evidence that the theory
+is true. For claims about historical purpose or intent, require archaeological, documentary, or
+other contemporaneous evidence of that purpose; a modern physical property or simulation does not
+by itself establish why an object was built.
 Do not decide a verdict or truth probability. Quote only a short relevant excerpt from the source.
 Return only the requested structured result.
 """.strip()
@@ -46,4 +53,4 @@ contra arguments; do not invent arguments to fill slots. Do not expose hidden re
 Return only the requested structured result.
 """.strip()
 
-PROMPT_VERSION = "adaptive-search-v3"
+PROMPT_VERSION = "adaptive-search-v4"

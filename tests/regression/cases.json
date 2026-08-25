@@ -32,5 +32,51 @@
         "summary": "The three-passenger ceiling applies only after the initial experience condition is met."
       }
     ]
+  },
+  {
+    "id": "pyramid-energy-speculation-is-not-evidence",
+    "reviewed_on": "2026-08-25",
+    "claim": "The pyramids were constructed to harness energy.",
+    "expected_verdict": "FALSE",
+    "expected_confidence": "MEDIUM",
+    "evidence": [
+      {
+        "domain": "visiontimes.com",
+        "source_type": "SECONDARY",
+        "quality": 0.2,
+        "independence": 0.5,
+        "summary": "The article discusses alternative theories suggesting that the pyramids could have functioned as power-generating facilities."
+      },
+      {
+        "domain": "ebsco.com",
+        "source_type": "SECONDARY",
+        "quality": 0.6,
+        "independence": 0.7,
+        "summary": "The source describes the concept of pyramid power and says that proponents claimed pyramids could harness energy."
+      },
+      {
+        "domain": "impacttectonics.org",
+        "source_type": "UNKNOWN",
+        "quality": 0.2,
+        "independence": 0.1,
+        "summary": "The source speculates that the Great Pyramid was a power-generating station."
+      },
+      {
+        "domain": "giza.fas.harvard.edu",
+        "source_type": "ACADEMIC",
+        "position": "CONTRADICTING",
+        "quality": 0.9,
+        "independence": 0.8,
+        "summary": "Archaeological evidence identifies the pyramids and their surrounding complexes as royal funerary monuments."
+      },
+      {
+        "domain": "metmuseum.org",
+        "source_type": "ACADEMIC",
+        "position": "CONTRADICTING",
+        "quality": 0.9,
+        "independence": 0.8,
+        "summary": "Historical records and archaeological evidence identify the standardized pyramid complex as the king's tomb and funerary cult site."
+      }
+    ]
   }
 ]

@@ -498,6 +498,17 @@ an unconditional claim even when it supports a narrower version of that claim.
 The application must apply narrow deterministic guardrails for high-impact
 qualification errors before calculating the evidence balance.
 
+Evidence evaluation must also distinguish substantive evidence from attribution.
+A source that merely reports that proponents, theorists, critics, or other people
+claim, suggest, speculate, hypothesize, or believe a proposition is neutral unless
+it supplies verifiable observations, records, measurements, or research that
+actually establishes the proposition. The existence or popularity of a theory is
+not supporting evidence for the theory. For claims about historical purpose or
+intent, modern simulations or incidental physical properties do not establish
+construction intent without archaeological, documentary, or contemporaneous
+evidence. The application applies a deterministic safeguard to demote weak-source
+speculative attribution that the AI incorrectly labels as supporting evidence.
+
 ------------------------------------------------------------------------
 
 ## 15. Evidence Scoring
@@ -1013,6 +1024,9 @@ Implemented Phase 6 behavior:
 - Publishing is an explicit CSRF-protected owner action. A cryptographically
   random permanent slug is created once and retained if the result is later
   made private and republished.
+- After publishing, the owner page must prominently identify the permanent public
+  URL, distinguish it from the private UUID route in the browser address bar, and
+  provide both copy and open-public-page actions.
 - Making a result private immediately disables its public URL without deleting
   the investigation or changing its slug.
 - Public result pages are marked `noindex,nofollow` while indexing is deferred.

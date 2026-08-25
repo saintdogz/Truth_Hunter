@@ -119,3 +119,43 @@ def test_authoritative_sources_outweigh_equivalent_secondary_sources() -> None:
     assert evidence_weight(official, DEFAULT_SCORING_CONFIG) > evidence_weight(
         secondary, DEFAULT_SCORING_CONFIG
     )
+
+
+def test_speculative_attribution_is_not_counted_as_supporting_evidence() -> None:
+    item = EvidenceAssessment(
+        position=EvidencePosition.SUPPORTING,
+        strength=0.8,
+        relevance=1.0,
+        quality=0.6,
+        independence=0.7,
+        recency=0.8,
+        source_type=SourceType.SECONDARY,
+        summary=(
+            "The source discusses alternative theories suggesting that pyramids could have "
+            "functioned as power-generating facilities."
+        ),
+    )
+
+    guarded = apply_evidence_guardrails(
+        "The pyramids were constructed to harness energy.", item, "example.test"
+    )
+
+    assert guarded.position == EvidencePosition.NEUTRAL
+    assert guarded.strength == 0.0
+
+
+def test_primary_research_with_measurements_is_not_demoted() -> None:
+    item = EvidenceAssessment(
+        position=EvidencePosition.SUPPORTING,
+        strength=0.8,
+        relevance=0.9,
+        quality=0.9,
+        independence=0.8,
+        recency=0.8,
+        source_type=SourceType.PRIMARY_RESEARCH,
+        summary="The experiment measured the predicted effect and the study found it repeatable.",
+    )
+
+    guarded = apply_evidence_guardrails("The measured effect occurs.", item, "journal.test")
+
+    assert guarded.position == EvidencePosition.SUPPORTING

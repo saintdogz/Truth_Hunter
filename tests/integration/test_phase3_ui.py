@@ -29,7 +29,6 @@ class FakeWebService:
         user_id: UUID | None = None,
         session_id: str | None = None,
     ) -> tuple[UUID, ClaimInterpretation]:
-        del user_id, session_id
         investigation_id = uuid4()
         investigation = Investigation(
             id=investigation_id,
@@ -43,6 +42,8 @@ class FakeWebService:
             contra_arguments=[],
             conflicting_source_ids=[],
             search_languages=[],
+            user_id=user_id,
+            session_id=session_id,
         )
         self.items[investigation_id] = investigation
         return investigation_id, ClaimInterpretation(
@@ -268,6 +269,32 @@ def test_result_exposes_bounded_evidence_details_during_testing(client: TestClie
     assert "Stored full source content must remain private" not in response.text
     assert "Public investigation" in response.text
     assert "Report this public result" in response.text
+
+
+def test_owner_result_clearly_identifies_the_public_share_link(client: TestClient) -> None:
+    fake = install_fake(client)
+    home = client.get("/")
+    client.post(
+        "/investigations",
+        data={"claim": "A shareable claim", "csrf": csrf_from(home.text)},
+        follow_redirects=False,
+    )
+    investigation_id = next(iter(fake.items))
+    investigation = fake.items[investigation_id]
+    investigation.status = "COMPLETED"
+    investigation.verdict = "INCONCLUSIVE"
+    investigation.confidence = "LOW"
+    investigation.is_public = True
+    investigation.public_slug = "permanent-public-slug"
+
+    response = client.get(f"/investigations/{investigation_id}/result?sharing=published")
+
+    assert response.status_code == 200
+    assert "Share the public link below" in response.text
+    assert "not the private address in your browser" in response.text
+    assert re.search(r'value="https?://[^\"]+/investigation/permanent-public-slug"', response.text)
+    assert re.search(r'href="https?://[^\"]+/investigation/permanent-public-slug"', response.text)
+    assert "Copy the public link shown below" in response.text
 
 
 def test_result_service_eagerly_loads_nested_source_evidence(
