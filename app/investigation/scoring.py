@@ -83,7 +83,7 @@ SOURCE_TYPE_MULTIPLIERS = {
 
 @dataclass(frozen=True)
 class ScoringConfig:
-    version: str = "evidence-v3"
+    version: str = "evidence-v4"
     strength_weight: float = 0.25
     relevance_weight: float = 0.30
     quality_weight: float = 0.20

@@ -3,8 +3,13 @@
 from collections.abc import Iterable
 from typing import Protocol
 
+from app.investigation.models import EvidencePosition
+
 
 class EvidenceLike(Protocol):
+    @property
+    def position(self) -> str | EvidencePosition: ...
+
     @property
     def relevance(self) -> float: ...
 
@@ -22,7 +27,13 @@ def confidence_explanation(
     conflict_detected: bool,
     language: str,
 ) -> str:
-    relevant = [item for item in evidence if item.relevance >= 0.5]
+    relevant = [
+        item
+        for item in evidence
+        if (item.position.value if isinstance(item.position, EvidencePosition) else item.position)
+        != EvidencePosition.NEUTRAL.value
+        and item.relevance >= 0.5
+    ]
     independent = sum(item.independence >= 0.55 for item in relevant)
     average_quality = (
         round(sum(item.quality for item in relevant) / len(relevant) * 100) if relevant else 0

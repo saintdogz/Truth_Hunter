@@ -60,6 +60,32 @@ def test_neutral_evidence_does_not_move_balance() -> None:
     assert balance.supporting + balance.contradicting == 100
 
 
+def test_neutral_evidence_does_not_reduce_confidence_or_block_false_verdict() -> None:
+    contradicting = [
+        evidence(EvidencePosition.CONTRADICTING, 0.8),
+        evidence(EvidencePosition.CONTRADICTING, 0.7),
+    ]
+    noisy_neutral = [
+        evidence(EvidencePosition.NEUTRAL, 0.2).model_copy(update={"relevance": 0.9})
+        for _ in range(5)
+    ]
+    items = contradicting + noisy_neutral
+
+    assessment = calculate_assessment(items, calculate_balance(items), ClaimType.FACTUAL)
+
+    assert assessment.verdict == Verdict.FALSE
+    assert assessment.confidence == Confidence.MEDIUM
+
+
+def test_neutral_evidence_cannot_satisfy_verdict_sufficiency() -> None:
+    items = [evidence(EvidencePosition.NEUTRAL) for _ in range(5)]
+
+    assessment = calculate_assessment(items, calculate_balance(items), ClaimType.FACTUAL)
+
+    assert assessment.verdict == Verdict.INCONCLUSIVE
+    assert assessment.confidence == Confidence.LOW
+
+
 def test_insufficient_evidence_overrides_numeric_score() -> None:
     items = [evidence(EvidencePosition.SUPPORTING)]
     assessment = calculate_assessment(items, calculate_balance(items), ClaimType.FACTUAL)

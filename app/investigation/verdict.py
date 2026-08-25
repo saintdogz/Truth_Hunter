@@ -7,12 +7,19 @@ from app.investigation.models import (
     Confidence,
     EvidenceAssessment,
     EvidenceBalance,
+    EvidencePosition,
     Verdict,
 )
 
 
 def evidence_is_sufficient(evidence: list[EvidenceAssessment], balance: EvidenceBalance) -> bool:
-    relevant = [item for item in evidence if item.relevance >= 0.5 and item.quality >= 0.45]
+    relevant = [
+        item
+        for item in evidence
+        if item.position != EvidencePosition.NEUTRAL
+        and item.relevance >= 0.5
+        and item.quality >= 0.45
+    ]
     independent = sum(1 for item in relevant if item.independence >= 0.55)
     return balance.meaningful and len(relevant) >= 2 and independent >= 2
 
@@ -20,7 +27,11 @@ def evidence_is_sufficient(evidence: list[EvidenceAssessment], balance: Evidence
 def calculate_confidence(
     evidence: list[EvidenceAssessment], balance: EvidenceBalance, conflict_level: float
 ) -> Confidence:
-    relevant = [item for item in evidence if item.relevance >= 0.5]
+    relevant = [
+        item
+        for item in evidence
+        if item.position != EvidencePosition.NEUTRAL and item.relevance >= 0.5
+    ]
     if not relevant or not balance.meaningful:
         return Confidence.LOW
     average_quality = sum(item.quality for item in relevant) / len(relevant)

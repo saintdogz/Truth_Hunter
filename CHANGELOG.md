@@ -9,6 +9,8 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ### Fixed
 
+- Exclude neutral background material from verdict sufficiency, confidence
+  calculation, and the displayed confidence-factor counts.
 - Diversify generated search queries toward direct primary evidence,
   authoritative explanations, and credible limitations instead of generic topic
   searches.

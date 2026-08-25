@@ -639,6 +639,11 @@ Consider:
 -   Quality of evidence
 -   Independence
 -   Corroboration
+
+Only evidence positioned as `SUPPORTING` or `CONTRADICTING` may satisfy verdict
+sufficiency or contribute to confidence factors. Neutral background material may
+remain visible in the evidence trail, but it must neither inflate the useful
+evidence count nor reduce confidence in the substantive positioned evidence.
 -   Conflicts
 -   Claim ambiguity
 -   Freshness where relevant
