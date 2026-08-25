@@ -366,6 +366,20 @@ claims, no more than two Hungarian queries. Bound the total candidate pool,
 stagger requests, retry transient provider errors with backoff, and stop once
 the configured candidate or useful-evidence limit is reached.
 
+English query plans should be complementary rather than minor rewordings: seek
+direct primary evidence, the authoritative or established explanation of the
+subject, and credible limitations or contrary evidence where useful. Historical
+purpose or intent claims should include a query aimed at archaeological records,
+responsible museums, or academic institutions. Query generation should prefer
+specific institutional and domain terminology over generic words such as
+`science`, `fact`, `history`, or `archaeology`.
+
+Before fetching, the application may conservatively discard candidates that are
+clearly low-value from search metadata, including dictionary definitions and
+generic homepages with no claim-term connection. Missing or ambiguous metadata
+must not be rejected merely for lacking keyword overlap; substantive relevance
+remains an evidence-evaluation decision.
+
 If search returns no candidates, or the fetched candidates produce no useful
 evidence after evaluation, the investigation must terminate as
 `SEARCH_FAILED`. Merely fetching irrelevant pages does not satisfy this gate.
@@ -386,6 +400,12 @@ or unsuccessful, the existing `SEARCH_FAILED` behavior applies.
 Do not force equal numbers of supporting and contradicting sources.
 
 The evidence distribution must reflect what was actually found.
+
+Generated strongest-argument lists must also reflect positioned evidence. A pro
+argument requires at least one `SUPPORTING` evidence item and a contra argument
+requires at least one `CONTRADICTING` item. When a side has no positioned evidence,
+the application clears that side's generated list deterministically; neutral
+background material and descriptions of a theory cannot appear as arguments.
 
 ------------------------------------------------------------------------
 

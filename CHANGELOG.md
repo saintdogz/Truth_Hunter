@@ -9,6 +9,13 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ### Fixed
 
+- Diversify generated search queries toward direct primary evidence,
+  authoritative explanations, and credible limitations instead of generic topic
+  searches.
+- Conservatively skip dictionary definitions and unrelated generic homepages
+  before spending source-evaluation capacity.
+- Prevent neutral evidence or descriptions of a theory from appearing as
+  strongest supporting or contradicting arguments.
 - Stop secondary, unknown, and social sources that merely repeat speculative
   theories from counting as substantive supporting evidence.
 - Make the permanent public share URL explicit after publishing so owners do not
@@ -20,6 +27,8 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ### Added
 
+- A prominent public-beta launch link in the README for visitors who want to test
+  Truth Hunter without self-hosting it.
 - Typed AI and search failure categories for rate limits, quota exhaustion,
   availability, authentication/configuration, invalid output, and payload limits.
 - Retry policy that retries transient search failures but immediately falls back

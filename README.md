@@ -9,6 +9,14 @@ evidence—not an unsupported AI answer.
 
 [Live beta](https://truth.abathur.hu) · [Changelog](CHANGELOG.md) · [Product specification](TRUTH_HUNTER_SPEC.md) · [Security policy](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
+## Try Truth Hunter online
+
+**[Launch the public beta at truth.abathur.hu →](https://truth.abathur.hu/)**
+
+No installation is required, and visitors can run an investigation without an
+account. Truth Hunter is free during the public testing period; please inspect
+the displayed evidence and use the feedback controls to help improve it.
+
 > Early beta: Truth Hunter is designed to help people inspect evidence. It is
 > not an oracle and should not replace qualified medical, legal, financial, or
 > safety advice.

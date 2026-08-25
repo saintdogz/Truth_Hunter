@@ -1,6 +1,7 @@
 """Phase 2 investigation orchestration without UI or background infrastructure."""
 
 import asyncio
+import re
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from uuid import UUID
 
@@ -12,6 +13,8 @@ from app.investigation.models import (
     ClaimInterpretation,
     ClaimType,
     EvidenceAssessment,
+    EvidencePosition,
+    InvestigationSummary,
     SearchResult,
 )
 from app.investigation.prompts import PROMPT_VERSION
@@ -22,6 +25,35 @@ from app.search.base import SearchProvider, SearchProviderError
 
 TRACKING_QUERY_PREFIXES = ("utm_",)
 TRACKING_QUERY_NAMES = {"fbclid", "gclid", "mc_cid", "mc_eid"}
+SEARCH_TEXT_STOPWORDS = {
+    "about",
+    "after",
+    "built",
+    "could",
+    "from",
+    "have",
+    "into",
+    "that",
+    "their",
+    "there",
+    "these",
+    "they",
+    "this",
+    "were",
+    "what",
+    "when",
+    "where",
+    "which",
+    "with",
+}
+DICTIONARY_DOMAINS = {
+    "dictionary.cambridge.org",
+    "dictionary.com",
+    "merriam-webster.com",
+    "www.dictionary.com",
+    "www.merriam-webster.com",
+    "en.wiktionary.org",
+}
 
 
 class InvestigationPipelineError(RuntimeError):
@@ -59,6 +91,43 @@ def deduplicate_results(results: list[SearchResult]) -> list[SearchResult]:
     for result in results:
         unique.setdefault(canonical_url(str(result.url)), result)
     return list(unique.values())
+
+
+def candidate_is_clearly_low_value(claim: str, candidate: SearchResult) -> bool:
+    """Reject only search metadata that is clearly generic or definitional."""
+
+    domain = (candidate.url.host or "").lower()
+    if domain in DICTIONARY_DOMAINS:
+        return True
+    metadata = " ".join((candidate.title, candidate.snippet)).strip().casefold()
+    if not metadata:
+        return False
+    claim_terms = {
+        term
+        for term in re.findall(r"[\w'-]+", claim.casefold())
+        if len(term) >= 4 and term not in SEARCH_TEXT_STOPWORDS
+    }
+    if not claim_terms:
+        return False
+    path = candidate.url.path or "/"
+    searchable = f"{metadata} {path.casefold()}"
+    has_claim_term = any(term in searchable for term in claim_terms)
+    is_generic_homepage = path == "/"
+    return is_generic_homepage and not has_claim_term
+
+
+def ground_summary_arguments(
+    summary: InvestigationSummary, evidence: list[EvidenceAssessment]
+) -> InvestigationSummary:
+    """Prevent neutral evidence from becoming an apparent pro or contra argument."""
+
+    positions = {item.position for item in evidence}
+    updates: dict[str, list[str]] = {}
+    if EvidencePosition.SUPPORTING not in positions:
+        updates["pro_arguments"] = []
+    if EvidencePosition.CONTRADICTING not in positions:
+        updates["contra_arguments"] = []
+    return summary.model_copy(update=updates) if updates else summary
 
 
 class InvestigationPipeline:
@@ -165,6 +234,7 @@ class InvestigationPipeline:
             summary = await self._ai.generate_summary(
                 confirmed_claim, assessment, evidence, language
             )
+            summary = ground_summary_arguments(summary, evidence)
             self._repository.complete(
                 investigation_id,
                 assessment,
@@ -219,6 +289,8 @@ class InvestigationPipeline:
                 or evaluated_count >= self._source_evaluation_limit
             ):
                 break
+            if candidate_is_clearly_low_value(confirmed_claim, candidate):
+                continue
             seen_urls.add(canonical_url(str(candidate.url)))
             try:
                 document = await self._fetcher.fetch(candidate)
