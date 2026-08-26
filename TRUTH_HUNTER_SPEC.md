@@ -394,6 +394,12 @@ The run must not generate a summary, arguments, verdict, or evidence-free
 `INCONCLUSIVE` result. The UI must identify evidence search as temporarily
 unavailable.
 
+While an investigation runs, the progress page should show a localized,
+accessible five-stage indicator for searching, collecting, evaluating,
+comparing, and preparing the result. The indicator reflects persisted pipeline
+state and must switch to a clear terminal failure presentation when processing
+cannot continue.
+
 When `BRAVE_SEARCH_API_KEY` is configured, the official Brave Web Search API is
 a metered last-resort search tier. The application must complete the free,
 self-hosted SearXNG attempt first. Brave may be queried only when that attempt

@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% block title %}{{ t.progress_title }} — Truth Hunter{% endblock %}
 {% block content %}
-  <section class="page-card progress-card" data-progress-url="/investigations/{{ investigation.id }}/status">
+  <section class="page-card progress-card" data-progress-url="/investigations/{{ investigation.id }}/status" data-unavailable-label="{{ t.progress_unavailable }}">
     <div class="radar" aria-hidden="true"><span></span></div><p class="signal-line centered"><span></span>LIVE INVESTIGATION</p><h1 id="progress-title" class="page-title">{{ t.progress_title }}</h1>
-    <p id="progress-status" class="progress-status">{{ status_text }}</p><div id="progress-bar" class="indeterminate"><span></span></div><p id="progress-note" class="muted">{{ t.progress_note }}</p><p id="progress-error" class="form-error" hidden>{{ t.failed }}</p><blockquote>{{ investigation.interpreted_claim }}</blockquote>
+    <p id="progress-status" class="progress-status" role="status" aria-live="polite">{{ status_text }}</p>
+    <div id="progress-bar" class="stage-progress" role="progressbar" aria-label="{{ status_text }}" aria-valuemin="0" aria-valuemax="{{ progress_stage_total }}" aria-valuenow="{{ progress_stage_index }}"><span style="width:{{ (progress_stage_index / progress_stage_total * 100)|round }}%"></span></div>
+    <ol id="progress-steps" class="progress-steps" aria-label="{{ t.progress_stages_label }}">
+      {% for label in [t.progress_search, t.progress_collect, t.progress_evaluate, t.progress_compare, t.progress_prepare] %}<li data-stage-index="{{ loop.index }}" class="{% if loop.index < progress_stage_index %}completed{% elif loop.index == progress_stage_index %}current{% else %}pending{% endif %}"{% if loop.index == progress_stage_index %} aria-current="step"{% endif %}><span>{{ loop.index }}</span><strong>{{ label }}</strong></li>{% endfor %}
+    </ol>
+    <p id="progress-note" class="muted">{{ t.progress_note }}</p><p id="progress-error" class="form-error" hidden>{{ t.failed }}</p><blockquote>{{ investigation.interpreted_claim }}</blockquote>
   </section>
 {% endblock %}
 {% block scripts %}<script src="{{ url_for('static', path='/js/progress.js') }}" defer></script>{% endblock %}

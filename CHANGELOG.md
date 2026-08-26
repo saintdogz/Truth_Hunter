@@ -31,6 +31,7 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ### Added
 
+- A localized, accessible five-stage live investigation progress indicator.
 - Privacy-safe evaluator observability grouped by search-plan and scoring version
   on the operational dashboard.
 - A prominent public-beta launch link in the README for visitors who want to test

@@ -43,6 +43,16 @@ from app.web.i18n import (
 )
 from app.web.service import InvestigationWebService
 
+PROGRESS_STATUS_INDEX = {
+    "SEARCHING": 1,
+    "COLLECTING_SOURCES": 2,
+    "EVALUATING_EVIDENCE": 3,
+    "CALCULATING_ASSESSMENT": 4,
+    "GENERATING_RESULT": 5,
+    "COMPLETED": 5,
+}
+PROGRESS_STAGE_TOTAL = 5
+
 router = APIRouter()
 
 
@@ -290,6 +300,8 @@ def investigation_progress(
             "t": copy_for(language),
             "investigation": investigation,
             "status_text": STATUS_COPY[language].get(investigation.status, investigation.status),
+            "progress_stage_index": PROGRESS_STATUS_INDEX.get(investigation.status, 0),
+            "progress_stage_total": PROGRESS_STAGE_TOTAL,
         },
     )
 
@@ -308,6 +320,8 @@ def investigation_status(
         {
             "status": investigation.status,
             "label": STATUS_COPY[language].get(investigation.status, investigation.status),
+            "stage_index": PROGRESS_STATUS_INDEX.get(investigation.status, 0),
+            "stage_total": PROGRESS_STAGE_TOTAL,
             "result_url": (
                 f"/investigations/{investigation_id}/result"
                 if investigation.status == "COMPLETED"

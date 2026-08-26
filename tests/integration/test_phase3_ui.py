@@ -185,7 +185,15 @@ def test_progress_status_is_localized(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json()["label"] == "Bizonyítékok értékelése"
+    assert response.json()["stage_index"] == 3
+    assert response.json()["stage_total"] == 5
     assert response.json()["result_url"] is None
+
+    progress = client.get(f"/investigations/{investigation_id}/progress")
+    assert progress.status_code == 200
+    assert "Keresés" in progress.text
+    assert "Gyűjtés" in progress.text
+    assert 'aria-valuenow="3"' in progress.text
 
     fake.items[investigation_id].status = "SEARCH_FAILED"
     response = client.get(f"/investigations/{investigation_id}/status")
