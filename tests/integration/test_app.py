@@ -54,6 +54,7 @@ def test_support_link_is_hidden_when_not_configured(client: TestClient) -> None:
     response = client.get("/")
 
     assert "Support Truth Hunter" not in response.text
+    assert "Discord: saintdogz" in response.text
 
 
 def test_configured_support_link_is_safe_and_visible(settings: Settings) -> None:
