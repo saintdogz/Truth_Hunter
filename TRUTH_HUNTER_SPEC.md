@@ -400,6 +400,12 @@ comparing, and preparing the result. The indicator reflects persisted pipeline
 state and must switch to a clear terminal failure presentation when processing
 cannot continue.
 
+The completed snapshot must persist the deterministic evidence-sufficiency
+decision. Precise supporting and contradicting percentages may be displayed only
+when that gate passed. When it did not, the result must explain that the minimum
+quantity, quality, or independence requirements were not met while preserving
+the verdict, summary, arguments, and inspectable evidence trail.
+
 When `BRAVE_SEARCH_API_KEY` is configured, the official Brave Web Search API is
 a metered last-resort search tier. The application must complete the free,
 self-hosted SearXNG attempt first. Brave may be queried only when that attempt

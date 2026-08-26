@@ -216,6 +216,7 @@ def test_result_exposes_bounded_evidence_details_during_testing(client: TestClie
         verdict="MOSTLY_TRUE",
         supporting_score=72.0,
         contradicting_score=28.0,
+        evidence_sufficient=True,
         confidence="HIGH",
         summary="The strongest available evidence supports the claim.",
         pro_arguments=["Primary evidence supports the central proposition."],
@@ -277,6 +278,11 @@ def test_result_exposes_bounded_evidence_details_during_testing(client: TestClie
     assert "Stored full source content must remain private" not in response.text
     assert "Public investigation" in response.text
     assert "Report this public result" in response.text
+
+    investigation.evidence_sufficient = False
+    insufficient = client.get("/investigation/evidence-test-share")
+    assert "72.0% PRO" not in insufficient.text
+    assert "precise percentages would be misleading" in insufficient.text
 
 
 def test_owner_result_clearly_identifies_the_public_share_link(client: TestClient) -> None:

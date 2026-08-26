@@ -42,6 +42,7 @@ class Investigation(Base):
     verdict: Mapped[str | None] = mapped_column(String(32), nullable=True)
     supporting_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     contradicting_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    evidence_sufficient: Mapped[bool] = mapped_column(Boolean, default=False)
     confidence: Mapped[str | None] = mapped_column(String(16), nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     pro_arguments: Mapped[list[str]] = mapped_column(JSON, default=list)

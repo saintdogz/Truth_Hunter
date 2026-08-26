@@ -9,6 +9,8 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ### Fixed
 
+- Hide precise evidence-balance percentages when the deterministic sufficiency
+  gate did not pass, while retaining the complete evidence trail.
 - Prefer diverse government and academic search candidates over repeated domains
   and generic social-platform pages while retaining social primary evidence.
 - Exclude neutral background material from verdict sufficiency, confidence

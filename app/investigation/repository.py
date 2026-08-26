@@ -126,6 +126,7 @@ class InvestigationRepository:
         investigation.verdict = assessment.verdict.value
         investigation.supporting_score = assessment.balance.supporting
         investigation.contradicting_score = assessment.balance.contradicting
+        investigation.evidence_sufficient = assessment.evidence_sufficient
         investigation.confidence = assessment.confidence.value
         investigation.summary = summary.explanation
         investigation.pro_arguments = summary.pro_arguments
