@@ -17,6 +17,7 @@ def anyio_backend() -> str:
 @pytest.fixture
 def settings() -> Settings:
     return Settings(
+        _env_file=None,
         app_env="test",
         app_secret="test-only-secret",
         app_trusted_hosts="testserver,localhost",

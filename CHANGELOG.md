@@ -9,6 +9,8 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ### Fixed
 
+- Isolate automated tests from production `.env` values so local configuration
+  cannot change test behavior.
 - Hide precise evidence-balance percentages when the deterministic sufficiency
   gate did not pass, while retaining the complete evidence trail.
 - Prefer diverse government and academic search candidates over repeated domains
