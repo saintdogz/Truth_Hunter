@@ -954,6 +954,9 @@ The private `/admin` dashboard is read-only in its first iteration. It may show:
 - non-sensitive application, database, and search configuration health.
 - aggregate registration totals including registered, active, email-verified,
   deleted, and newly registered accounts, without exposing account identities.
+- aggregate quality metrics grouped by search-plan and scoring version, including
+  completed runs, useful and neutral evidence rates, average source count,
+  average AI calls, and average runtime.
 
 Do not display API keys, credentials, raw user claims, source text, email
 addresses, or user identities in operational telemetry. Log successful admin

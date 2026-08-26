@@ -43,6 +43,13 @@
       <div class="state-chips">{% for state, count in dashboard.statuses %}<span class="state-{{ state|lower }}">{{ state|replace('_',' ') }} <b>{{ count }}</b></span>{% endfor %}</div>
     </section>
   </div>
+  <section class="ops-card quality-card">
+    <header><div><span class="card-kicker">EVALUATOR OBSERVABILITY</span><h2>Quality by version</h2></div><span class="privacy-lock">AGGREGATE ONLY</span></header>
+    {% if dashboard.version_quality %}<div class="quality-table-wrap"><table class="quality-table"><thead><tr><th>Search plan</th><th>Scoring</th><th>Runs</th><th>Useful evidence</th><th>Neutral evidence</th><th>Avg sources</th><th>Avg AI calls</th><th>Avg time</th></tr></thead><tbody>{% for item in dashboard.version_quality %}<tr>
+      <td><code>{{ item.prompt_version }}</code></td><td><code>{{ item.scoring_version }}</code></td><td><strong>{{ item.investigations }}</strong></td><td><span class="quality-good">{% if item.useful_rate is not none %}{{ item.useful_rate }}%{% else %}—{% endif %}</span></td><td><span class="quality-neutral">{% if item.neutral_rate is not none %}{{ item.neutral_rate }}%{% else %}—{% endif %}</span></td><td>{{ item.average_sources }}</td><td>{{ item.average_calls }}</td><td>{% if item.average_seconds is not none %}{{ item.average_seconds }}s{% else %}—{% endif %}</td>
+    </tr>{% endfor %}</tbody></table></div>{% else %}<div class="ops-empty">Version quality appears after the first completed investigation.</div>{% endif %}
+    <footer>Useful evidence is positioned, relevant, and above the minimum quality threshold. Raw claims and source text are excluded.</footer>
+  </section>
   <section class="ops-card moderation-card">
     <header><div><span class="card-kicker">PUBLIC SAFETY</span><h2>Moderation queue</h2></div><span class="alert-count">{{ dashboard.reports.open }}</span></header>
     {% if dashboard.reports.recent %}<div class="moderation-list">{% for item in dashboard.reports.recent %}<div><time>{{ item.created_at.strftime('%m-%d %H:%M') }}</time><code>{{ (item.investigation_id|string)[:8] }}</code><strong>{{ item.reason|replace('_',' ') }}</strong><span class="run-status run-{{ 'failed' if item.status == 'OPEN' else 'completed' }}"><i></i>{{ item.status }}</span></div>{% endfor %}</div>{% else %}<div class="ops-empty success-empty"><i>✓</i><strong>No public reports</strong><span>The moderation queue is clear.</span></div>{% endif %}

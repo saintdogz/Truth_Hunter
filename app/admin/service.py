@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Feedback, Investigation, PublicReport, User
+from app.db.models import EvidenceRecord, Feedback, Investigation, PublicReport, User
 
 TERMINAL_STATUSES = {"COMPLETED", "FAILED", "SEARCH_FAILED"}
 FAILURE_GUIDANCE = {
@@ -43,6 +43,7 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
     )
     users = list(session.scalars(select(User)).all())
     feedback_rows = list(session.scalars(select(Feedback)).all())
+    evidence_rows = list(session.scalars(select(EvidenceRecord)).all())
     public_reports = list(
         session.scalars(select(PublicReport).order_by(PublicReport.created_at.desc())).all()
     )
@@ -126,6 +127,67 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
             }
         )
 
+    evidence_by_investigation: dict[object, list[EvidenceRecord]] = {}
+    for row in evidence_rows:
+        evidence_by_investigation.setdefault(row.investigation_id, []).append(row)
+    version_groups: dict[tuple[str, str], list[Investigation]] = {}
+    for item in investigations:
+        if item.status != "COMPLETED":
+            continue
+        prompt_version = item.prompt_version or "legacy"
+        scoring_version = item.scoring_version or "legacy"
+        version_groups.setdefault((prompt_version, scoring_version), []).append(item)
+    version_quality: list[dict[str, object]] = []
+    for (prompt_version, scoring_version), items in version_groups.items():
+        version_evidence = [
+            evidence for item in items for evidence in evidence_by_investigation.get(item.id, [])
+        ]
+        useful_evidence = [
+            evidence
+            for evidence in version_evidence
+            if evidence.position != "NEUTRAL"
+            and evidence.relevance >= 0.5
+            and evidence.quality >= 0.45
+        ]
+        neutral_evidence = [
+            evidence for evidence in version_evidence if evidence.position == "NEUTRAL"
+        ]
+        version_durations = [
+            duration
+            for item in items
+            if (duration := _duration_seconds(item, timestamp)) is not None
+        ]
+        actual_calls = sum(
+            sum(attempt.get("status") != "cooldown" for attempt in item.ai_provider_attempts or [])
+            for item in items
+        )
+        evidence_total = len(version_evidence)
+        version_quality.append(
+            {
+                "prompt_version": prompt_version,
+                "scoring_version": scoring_version,
+                "investigations": len(items),
+                "average_sources": round(sum(item.source_count for item in items) / len(items), 1),
+                "average_calls": round(actual_calls / len(items), 1),
+                "average_seconds": round(sum(version_durations) / len(version_durations))
+                if version_durations
+                else None,
+                "useful_rate": round(len(useful_evidence) / evidence_total * 100, 1)
+                if evidence_total
+                else None,
+                "neutral_rate": round(len(neutral_evidence) / evidence_total * 100, 1)
+                if evidence_total
+                else None,
+            }
+        )
+    version_quality.sort(
+        key=lambda row: max(
+            item.created_at
+            for item in version_groups[(str(row["prompt_version"]), str(row["scoring_version"]))]
+        ),
+        reverse=True,
+    )
+
     return {
         "generated_at": timestamp,
         "totals": {
@@ -177,6 +239,7 @@ def dashboard_snapshot(session: Session, *, now: datetime | None = None) -> dict
         "provider_summary": provider_summary,
         "daily": daily_rows,
         "max_daily": max_daily,
+        "version_quality": version_quality,
         "failures": [
             {
                 "category": category,

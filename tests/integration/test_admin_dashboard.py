@@ -14,7 +14,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.config import Settings, get_settings
 from app.db.base import Base
-from app.db.models import Feedback, Investigation, PublicReport
+from app.db.models import EvidenceRecord, Feedback, Investigation, PublicReport, Source
 from app.db.session import get_session
 from app.main import create_app
 
@@ -114,6 +114,8 @@ def test_dashboard_aggregates_provider_fallbacks(admin_client: TestClient) -> No
         language="en",
         source_count=4,
         ai_model="gemini/test",
+        prompt_version="adaptive-search-v6",
+        scoring_version="evidence-v4",
         created_at=now - timedelta(seconds=45),
         completed_at=now,
         ai_provider_attempts=[
@@ -128,6 +130,28 @@ def test_dashboard_aggregates_provider_fallbacks(admin_client: TestClient) -> No
     )
     session.add(investigation)
     session.flush()
+    source = Source(
+        investigation_id=investigation.id,
+        url="https://science.example.gov/evidence",
+        title="Official evidence",
+        domain="science.example.gov",
+        extracted_text="Public evidence text intentionally absent from the dashboard.",
+    )
+    session.add(source)
+    session.flush()
+    session.add(
+        EvidenceRecord(
+            investigation_id=investigation.id,
+            source_id=source.id,
+            position="SUPPORTING",
+            strength=0.8,
+            relevance=0.9,
+            quality=0.9,
+            independence=0.8,
+            recency=0.7,
+            summary="Sensitive evidence summary intentionally absent from the dashboard.",
+        )
+    )
     session.add(
         Feedback(
             investigation_id=investigation.id,
@@ -156,4 +180,9 @@ def test_dashboard_aggregates_provider_fallbacks(admin_client: TestClient) -> No
     assert "1 helpful" in dashboard.text
     assert "Public reports" in dashboard.text
     assert "1 total" in dashboard.text
+    assert "Quality by version" in dashboard.text
+    assert "adaptive-search-v6" in dashboard.text
+    assert "evidence-v4" in dashboard.text
+    assert "100.0%" in dashboard.text
     assert "sensitive claim" not in dashboard.text
+    assert "Sensitive evidence" not in dashboard.text
