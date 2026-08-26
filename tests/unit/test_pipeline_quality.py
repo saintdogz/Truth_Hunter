@@ -10,6 +10,7 @@ from app.investigation.models import (
 from app.investigation.pipeline import (
     candidate_is_clearly_low_value,
     ground_summary_arguments,
+    prioritize_candidates,
 )
 
 
@@ -61,6 +62,34 @@ def test_relevant_or_metadata_free_results_are_kept_conservatively() -> None:
     assert not candidate_is_clearly_low_value(
         claim, SearchResult(url="https://museum.example/research/pyramids")
     )
+
+
+def test_candidates_prefer_authoritative_sources_and_limit_repeated_domains() -> None:
+    candidates = [
+        SearchResult(url="https://facebook.com/posts/1", title="Post one"),
+        SearchResult(url="https://example.com/a", title="Article A"),
+        SearchResult(url="https://example.com/b", title="Article B"),
+        SearchResult(url="https://example.com/c", title="Article C"),
+        SearchResult(url="https://example.com/d", title="Article D"),
+        SearchResult(url="https://science.nasa.gov/climate", title="NASA evidence"),
+    ]
+
+    ranked = prioritize_candidates("Climate change is not real", candidates)
+
+    assert ranked[0].url.host == "science.nasa.gov"
+    assert [item.url.host for item in ranked].count("example.com") == 3
+    assert ranked[-1].url.host == "facebook.com"
+
+
+def test_claimed_social_platform_is_preserved_as_primary_evidence() -> None:
+    candidates = [
+        SearchResult(url="https://example.com/commentary", title="Commentary"),
+        SearchResult(url="https://www.youtube.com/watch?v=claim", title="Claim video"),
+    ]
+
+    ranked = prioritize_candidates("A YouTube video claims the moon is artificial", candidates)
+
+    assert ranked[0].url.host == "www.youtube.com"
 
 
 def test_neutral_evidence_cannot_create_apparent_arguments() -> None:

@@ -380,6 +380,13 @@ generic homepages with no claim-term connection. Missing or ambiguous metadata
 must not be rejected merely for lacking keyword overlap; substantive relevance
 remains an evidence-evaluation decision.
 
+Candidate ordering should prefer government, academic, and intergovernmental
+sources, limit repeated results from the same domain, and place generic social
+platform pages behind substantive web sources. A social source remains eligible
+and should be prioritized when the claim explicitly concerns content published
+on that platform. These rules improve source diversity without treating domain
+class as a verdict or excluding a source solely because it is social media.
+
 If search returns no candidates, or the fetched candidates produce no useful
 evidence after evaluation, the investigation must terminate as
 `SEARCH_FAILED`. Merely fetching irrelevant pages does not satisfy this gate.

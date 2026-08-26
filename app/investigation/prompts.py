@@ -62,4 +62,4 @@ expose hidden reasoning.
 Return only the requested structured result.
 """.strip()
 
-PROMPT_VERSION = "adaptive-search-v5"
+PROMPT_VERSION = "adaptive-search-v6"

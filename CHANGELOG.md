@@ -9,6 +9,8 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ### Fixed
 
+- Prefer diverse government and academic search candidates over repeated domains
+  and generic social-platform pages while retaining social primary evidence.
 - Exclude neutral background material from verdict sufficiency, confidence
   calculation, and the displayed confidence-factor counts.
 - Diversify generated search queries toward direct primary evidence,

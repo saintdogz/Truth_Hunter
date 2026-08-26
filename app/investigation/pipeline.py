@@ -54,6 +54,24 @@ DICTIONARY_DOMAINS = {
     "www.merriam-webster.com",
     "en.wiktionary.org",
 }
+SOCIAL_PLATFORM_ALIASES = {
+    "facebook.com": "facebook",
+    "instagram.com": "instagram",
+    "linkedin.com": "linkedin",
+    "reddit.com": "reddit",
+    "tiktok.com": "tiktok",
+    "x.com": "twitter",
+    "youtube.com": "youtube",
+}
+AUTHORITATIVE_DOMAIN_MARKERS = (
+    ".ac.uk",
+    ".edu",
+    ".edu.au",
+    ".europa.eu",
+    ".gov",
+    ".gov.uk",
+    ".int",
+)
 
 
 class InvestigationPipelineError(RuntimeError):
@@ -114,6 +132,45 @@ def candidate_is_clearly_low_value(claim: str, candidate: SearchResult) -> bool:
     has_claim_term = any(term in searchable for term in claim_terms)
     is_generic_homepage = path == "/"
     return is_generic_homepage and not has_claim_term
+
+
+def prioritize_candidates(
+    claim: str, candidates: list[SearchResult], *, domain_limit: int = 3
+) -> list[SearchResult]:
+    """Prefer authoritative, diverse results while retaining relevant social sources."""
+
+    claim_text = claim.casefold()
+
+    def domain_matches(domain: str, suffix: str) -> bool:
+        return domain == suffix or domain.endswith(f".{suffix}")
+
+    def priority(item: tuple[int, SearchResult]) -> tuple[int, int]:
+        index, candidate = item
+        domain = (candidate.url.host or "").lower()
+        authoritative = any(domain.endswith(marker) for marker in AUTHORITATIVE_DOMAIN_MARKERS)
+        social_alias = next(
+            (
+                alias
+                for suffix, alias in SOCIAL_PLATFORM_ALIASES.items()
+                if domain_matches(domain, suffix)
+            ),
+            None,
+        )
+        social_is_primary = social_alias is not None and social_alias in claim_text
+        tier = 0 if authoritative or social_is_primary else 2 if social_alias else 1
+        return tier, index
+
+    ranked = [candidate for _, candidate in sorted(enumerate(candidates), key=priority)]
+    selected: list[SearchResult] = []
+    domain_counts: dict[str, int] = {}
+    for candidate in ranked:
+        domain = (candidate.url.host or "").lower()
+        if domain and domain_counts.get(domain, 0) >= domain_limit:
+            continue
+        selected.append(candidate)
+        if domain:
+            domain_counts[domain] = domain_counts.get(domain, 0) + 1
+    return selected
 
 
 def ground_summary_arguments(
@@ -202,6 +259,7 @@ class InvestigationPipeline:
             search_languages = list(dict.fromkeys(item[0] for item in query_plan))
             providers_used = [self._search.provider_name]
             candidates = await self._search_candidates(self._search, query_plan)
+            candidates = prioritize_candidates(confirmed_claim, candidates)
             evidence, evaluated_count, seen_urls = await self._evaluate_candidates(
                 investigation_id, confirmed_claim, candidates
             )
@@ -212,6 +270,7 @@ class InvestigationPipeline:
                 fallback_candidates = await self._search_candidates(
                     self._fallback_search, fallback_plan
                 )
+                fallback_candidates = prioritize_candidates(confirmed_claim, fallback_candidates)
                 fallback_candidates = [
                     item
                     for item in fallback_candidates
