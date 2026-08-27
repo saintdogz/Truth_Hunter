@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Truth Hunter — {{ t.tagline }}{% endblock %}
+{% block head %}{% if turnstile_site_key %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endif %}{% endblock %}
 {% block content %}
   <section class="hero" aria-labelledby="brand-title">
     <div class="signal-line"><span></span>{{ t.eyebrow }}</div>
@@ -20,6 +21,7 @@
           <div><strong id="image-preview-name"></strong><small id="image-preview-size"></small></div>
           <button id="remove-image" type="button" aria-label="{{ t.remove_image }}">{{ t.remove_image }}</button>
         </div>
+        {% if turnstile_site_key %}<div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-action="claim-submit" data-theme="dark" data-size="flexible"></div>{% endif %}
         <div class="form-foot"><small>{{ t.limit }}</small><button type="submit" class="button primary">{{ t.submit }} <span aria-hidden="true">→</span></button></div>
       </form>
     </div>

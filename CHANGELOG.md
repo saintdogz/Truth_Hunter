@@ -35,6 +35,8 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ### Added
 
+- Restart-durable, privacy-safe public workflow limits and optional Cloudflare
+  Turnstile with mandatory server-side, hostname, and action validation.
 - Authenticated AES-256-GCM PostgreSQL backups, bounded retention, guarded
   disposable restore verification, and a Windows scheduling runbook.
 - A localized, accessible five-stage live investigation progress indicator.

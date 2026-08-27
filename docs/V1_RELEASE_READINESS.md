@@ -35,10 +35,11 @@ Acceptance gate:
 
 ### 2. Public investigation abuse and cost controls
 
-Authentication endpoints have an in-memory limiter, but claim submission,
-investigation confirmation, OCR, and public reporting need production-grade
-abuse limits. A visitor can currently trigger costly search and AI work without
-a durable per-client quota or bot challenge.
+PostgreSQL-backed privacy-safe limits are now implemented for claim submission,
+investigation start, and public reporting, and the Turnstile integration is
+implemented with mandatory server-side verification. The remaining operator
+gate is to create a production Turnstile widget restricted to
+`truth.abathur.hu`, configure both keys, deploy, and verify one real challenge.
 
 Acceptance gate:
 

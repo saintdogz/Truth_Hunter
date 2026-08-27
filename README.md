@@ -198,6 +198,8 @@ without storing financial information or granting product benefits.
 
 Production operators should configure encrypted database backups and perform
 regular recovery drills using the [backup and restore runbook](docs/BACKUP_AND_RESTORE.md).
+Public cost and bot controls are described in the
+[abuse-protection runbook](docs/ABUSE_PROTECTION.md).
 
 ## License
 

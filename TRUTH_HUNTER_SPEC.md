@@ -2006,6 +2006,15 @@ explicitly deferred.
 -   Error/maintenance pages
 -   Deployment documentation
 
+Implemented abuse controls persist fixed-window public-action buckets in
+PostgreSQL so application restarts cannot reset limits. Client identifiers are
+stored only as keyed HMAC-SHA256 digests; raw IP addresses are not retained in
+the limiter. Claim submission, investigation start, and public reporting fail
+closed when protection storage is unavailable. Optional Cloudflare Turnstile is
+rendered only when both keys are configured and is always validated server-side;
+production additionally requires the expected `truth.abathur.hu` hostname and
+`claim-submit` action and rejects Cloudflare test credentials.
+
 ### Phase 9 --- Full Testing / Launch
 
 -   Run test suite

@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -86,6 +87,45 @@ def test_claim_submission_requires_csrf(client: TestClient) -> None:
     response = client.post("/investigations", data={"claim": "A valid claim", "csrf": "invalid"})
 
     assert response.status_code == 403
+
+
+def test_claim_submission_rejects_failed_turnstile(
+    client: TestClient, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = install_fake(client)
+    settings.turnstile_site_key = "1x00000000000000000000AA"
+    settings.turnstile_secret_key = SecretStr("1x0000000000000000000000000000000AA")
+
+    async def reject_challenge(*_args: object, **_kwargs: object) -> bool:
+        return False
+
+    monkeypatch.setattr("app.web.routes.verify_turnstile", reject_challenge)
+    home = client.get("/")
+    assert "challenges.cloudflare.com/turnstile/v0/api.js" in home.text
+    response = client.post(
+        "/investigations",
+        data={"claim": "A valid claim", "csrf": csrf_from(home.text)},
+    )
+
+    assert response.status_code == 400
+    assert "security check" in response.text
+    assert not fake.items
+
+
+def test_claim_submission_returns_localized_rate_limit(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = install_fake(client)
+    monkeypatch.setattr("app.web.routes.consume_public_limit", lambda *_args, **_kwargs: False)
+    home = client.get("/")
+    response = client.post(
+        "/investigations",
+        data={"claim": "A valid claim", "csrf": csrf_from(home.text)},
+    )
+
+    assert response.status_code == 429
+    assert "temporary usage limit" in response.text
+    assert not fake.items
 
 
 def test_submission_redirects_to_escaped_confirmation(client: TestClient) -> None:

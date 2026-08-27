@@ -5,7 +5,7 @@ from collections.abc import Iterator
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
 from app.main import create_app
 
 
@@ -21,11 +21,14 @@ def settings() -> Settings:
         app_env="test",
         app_secret="test-only-secret",
         app_trusted_hosts="testserver,localhost",
+        public_rate_limits_enabled=False,
         database_url=("postgresql+psycopg://truthhunter:test-only@localhost:5432/truthhunter_test"),
     )
 
 
 @pytest.fixture
 def client(settings: Settings) -> Iterator[TestClient]:
-    with TestClient(create_app(settings)) as test_client:
+    app = create_app(settings)
+    app.dependency_overrides[get_settings] = lambda: settings
+    with TestClient(app) as test_client:
         yield test_client

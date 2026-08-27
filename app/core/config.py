@@ -69,6 +69,17 @@ class Settings(BaseSettings):
     reset_token_max_age_seconds: int = Field(default=3_600, ge=300, le=86_400)
     auth_attempt_limit: int = Field(default=8, ge=3, le=50)
     auth_attempt_window_seconds: int = Field(default=900, ge=60, le=86_400)
+    public_rate_limits_enabled: bool = True
+    claim_submission_limit: int = Field(default=10, ge=1, le=100)
+    investigation_start_limit: int = Field(default=5, ge=1, le=50)
+    public_report_limit: int = Field(default=10, ge=1, le=100)
+    public_limit_window_seconds: int = Field(default=3_600, ge=60, le=86_400)
+    turnstile_site_key: str | None = None
+    turnstile_secret_key: SecretStr | None = None
+    turnstile_verify_url: AnyHttpUrl = AnyHttpUrl(
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+    )
+    turnstile_timeout_seconds: float = Field(default=5.0, ge=1, le=15)
     google_client_id: str | None = None
     google_client_secret: SecretStr | None = None
     resend_api_key: SecretStr | None = None
@@ -107,6 +118,8 @@ class Settings(BaseSettings):
         "resend_api_key",
         "resend_from_email",
         "support_url",
+        "turnstile_site_key",
+        "turnstile_secret_key",
         mode="before",
     )
     @classmethod
@@ -171,6 +184,24 @@ class Settings(BaseSettings):
             raise ValueError(
                 "RESEND_API_KEY and RESEND_FROM_EMAIL are required for Resend delivery"
             )
+        if (self.turnstile_site_key is None) != (self.turnstile_secret_key is None):
+            raise ValueError("TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY are required together")
+        test_turnstile_keys = {
+            "1x00000000000000000000AA",
+            "2x00000000000000000000AB",
+            "3x00000000000000000000FF",
+            "1x0000000000000000000000000000000AA",
+            "2x0000000000000000000000000000000AA",
+            "3x0000000000000000000000000000000AA",
+        }
+        configured_turnstile_keys = {
+            self.turnstile_site_key,
+            self.turnstile_secret_key.get_secret_value() if self.turnstile_secret_key else None,
+        }
+        if self.app_env == "production" and configured_turnstile_keys & test_turnstile_keys:
+            raise ValueError("Cloudflare Turnstile test keys are forbidden in production")
+        if self.app_env == "production" and not self.public_rate_limits_enabled:
+            raise ValueError("PUBLIC_RATE_LIMITS_ENABLED must remain enabled in production")
         return self
 
     @property
@@ -184,6 +215,10 @@ class Settings(BaseSettings):
     @property
     def admin_email_allowlist(self) -> set[str]:
         return {email.strip().casefold() for email in self.admin_emails.split(",") if email.strip()}
+
+    @property
+    def turnstile_enabled(self) -> bool:
+        return self.turnstile_site_key is not None and self.turnstile_secret_key is not None
 
 
 @lru_cache

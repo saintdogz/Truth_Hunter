@@ -129,3 +129,21 @@ def test_admin_email_allowlist_is_normalized() -> None:
     )
 
     assert settings.admin_email_allowlist == {"owner@example.com", "second@example.com"}
+
+
+def test_turnstile_requires_a_complete_key_pair() -> None:
+    with pytest.raises(ValidationError, match="required together"):
+        Settings(app_env="test", turnstile_site_key="site-only")
+
+
+def test_turnstile_test_keys_are_rejected_in_production() -> None:
+    with pytest.raises(ValidationError, match="test keys"):
+        Settings(
+            app_env="production",
+            app_secret="a-unique-production-value",
+            email_delivery_mode="resend",
+            resend_api_key="resend-key",
+            resend_from_email="accounts@example.com",
+            turnstile_site_key="1x00000000000000000000AA",
+            turnstile_secret_key="1x0000000000000000000000000000000AA",
+        )

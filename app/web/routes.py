@@ -16,9 +16,11 @@ from fastapi import (
     status,
 )
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
+from app.abuse import TurnstileError, allow_public_action, public_client_key, verify_turnstile
 from app.auth.session import current_user, guest_session_id
 from app.core.config import Settings, get_settings
 from app.db.models import Investigation
@@ -64,6 +66,30 @@ def get_investigation_service(request: Request) -> InvestigationWebService:
     return cast(InvestigationWebService, request.app.state.investigation_service)
 
 
+def consume_public_limit(
+    request: Request,
+    session: Session,
+    settings: Settings,
+    *,
+    action: str,
+    limit: int,
+) -> bool | None:
+    if not settings.public_rate_limits_enabled:
+        return True
+    guest_session_id(request)
+    try:
+        return allow_public_action(
+            session,
+            action=action,
+            key_hash=public_client_key(request, settings, action),
+            limit=limit,
+            window_seconds=settings.public_limit_window_seconds,
+        )
+    except SQLAlchemyError:
+        session.rollback()
+        return None
+
+
 def render(
     request: Request,
     template: str,
@@ -75,6 +101,7 @@ def render(
         "app_name": request.app.state.settings.app_name,
         "app_version": request.app.state.settings.app_version,
         "support_url": request.app.state.settings.support_url,
+        "turnstile_site_key": request.app.state.settings.turnstile_site_key,
     }
     base_context["current_user"] = request.session.get("user_id")
     context_language = context.get("language")
@@ -147,9 +174,53 @@ async def submit_claim(
     settings: Annotated[Settings, Depends(get_settings)],
     claim: Annotated[str, Form()] = "",
     image: Annotated[UploadFile | None, File()] = None,
+    turnstile_token: Annotated[str | None, Form(alias="cf-turnstile-response")] = None,
 ) -> Response:
     require_csrf(request, csrf)
     language = language_from_request(request)
+    copy = copy_for(language)
+    remote_ip = request.client.host if request.client else None
+    try:
+        challenge_valid = await verify_turnstile(settings, turnstile_token, remote_ip)
+    except TurnstileError:
+        challenge_valid = None
+    if challenge_valid is not True:
+        return render(
+            request,
+            "home.html",
+            {
+                "language": language,
+                "t": copy,
+                "csrf_token": csrf_token(request),
+                "claim": claim,
+                "error": (
+                    copy["challenge_unavailable"]
+                    if challenge_valid is None
+                    else copy["challenge_failed"]
+                ),
+            },
+            status_code=503 if challenge_valid is None else 400,
+        )
+    allowed = consume_public_limit(
+        request,
+        session,
+        settings,
+        action="claim_submission",
+        limit=settings.claim_submission_limit,
+    )
+    if allowed is not True:
+        return render(
+            request,
+            "home.html",
+            {
+                "language": language,
+                "t": copy,
+                "csrf_token": csrf_token(request),
+                "claim": claim,
+                "error": copy["rate_limited" if allowed is False else "limit_unavailable"],
+            },
+            status_code=429 if allowed is False else 503,
+        )
     try:
         has_claim = bool(claim.strip())
         has_image = image is not None and bool(image.filename)
@@ -240,6 +311,8 @@ async def start_investigation(
     investigation_id: UUID,
     background_tasks: BackgroundTasks,
     service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
+    session: Annotated[Session, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
     action: Annotated[str, Form()],
     csrf: Annotated[str, Form()],
     corrected_claim: Annotated[str | None, Form()] = None,
@@ -251,6 +324,29 @@ async def start_investigation(
         return HTMLResponse("Not found", status_code=404)
     if investigation.status != "AWAITING_CONFIRMATION":
         return RedirectResponse(f"/investigations/{investigation_id}/progress", status_code=303)
+    allowed = consume_public_limit(
+        request,
+        session,
+        settings,
+        action="investigation_start",
+        limit=settings.investigation_start_limit,
+    )
+    if allowed is not True:
+        language = investigation.language or "en"
+        return render(
+            request,
+            "claim_confirm.html",
+            {
+                "language": language,
+                "t": copy_for(language),
+                "investigation": investigation,
+                "csrf_token": csrf_token(request),
+                "error": copy_for(language)[
+                    "rate_limited" if allowed is False else "limit_unavailable"
+                ],
+            },
+            status_code=429 if allowed is False else 503,
+        )
     corrected = action == "correct"
     claim = corrected_claim if corrected else investigation.interpreted_claim
     try:
@@ -454,8 +550,22 @@ def report_public_investigation(
     csrf: Annotated[str, Form()],
     service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
     session: Annotated[Session, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> Response:
     require_csrf(request, csrf)
+    allowed = consume_public_limit(
+        request,
+        session,
+        settings,
+        action="public_report",
+        limit=settings.public_report_limit,
+    )
+    if allowed is not True:
+        copy = copy_for(language_from_request(request))
+        return HTMLResponse(
+            copy["rate_limited" if allowed is False else "limit_unavailable"],
+            429 if allowed is False else 503,
+        )
     try:
         investigation = service.get_public(public_slug)
         submit_public_report(
