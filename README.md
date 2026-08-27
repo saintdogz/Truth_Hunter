@@ -196,6 +196,9 @@ continued private/public beta evaluation. Integrated subscriptions and credit
 sales are intentionally deferred; voluntary support may be linked externally
 without storing financial information or granting product benefits.
 
+Production operators should configure encrypted database backups and perform
+regular recovery drills using the [backup and restore runbook](docs/BACKUP_AND_RESTORE.md).
+
 ## License
 
 Released under the [MIT License](LICENSE).

@@ -21,10 +21,9 @@ the stability promise implied by version 1.0.
 
 ### 1. Automated encrypted backups and tested restoration
 
-There is a persistent PostgreSQL volume but no backup or restore implementation.
-Add Windows/Docker-compatible scripts, encryption, configurable retention, a
-scheduled task, restore verification against an isolated database, and an
-operator runbook. A backup is not complete until a restore test passes.
+Implementation and a complete disposable restore drill are now complete. The
+remaining operator gate is to configure a permanent encryption key, register the
+Windows scheduled task, run it once, and retain an encrypted copy off-host.
 
 Acceptance gate:
 

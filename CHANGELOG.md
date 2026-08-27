@@ -35,6 +35,8 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ### Added
 
+- Authenticated AES-256-GCM PostgreSQL backups, bounded retention, guarded
+  disposable restore verification, and a Windows scheduling runbook.
 - A localized, accessible five-stage live investigation progress indicator.
 - Privacy-safe evaluator observability grouped by search-plan and scoring version
   on the operational dashboard.

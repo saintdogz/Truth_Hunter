@@ -11,10 +11,10 @@ __pycache__/
 htmlcov/
 dist/
 build/
+backups/
 .idea/
 .vscode/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
-

@@ -13,6 +13,7 @@ __pycache__
 htmlcov
 dist
 build
+backups
 .idea
 .vscode
 *.swp
@@ -21,4 +22,3 @@ build
 Thumbs.db
 tests
 TRUTH_HUNTER_SPEC.md
-

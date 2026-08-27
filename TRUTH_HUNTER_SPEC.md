@@ -1692,6 +1692,15 @@ Provide and test a restore procedure.
 A backup strategy is not considered complete until restoration has been
 tested.
 
+Implemented backup behavior uses an isolated PostgreSQL 17 operations image.
+`pg_dump` output is streamed directly into an authenticated AES-256-GCM
+envelope, with a per-backup salt and nonce and a PBKDF2-derived key; plaintext
+database dumps are never written to disk. Retention deletion is restricted to
+the timestamped Truth Hunter backup filename pattern. Automated verification may
+restore only into a database whose name ends in `_restore_test`, compares core
+table counts, and removes that disposable database after success. The encryption
+key must remain outside source control and must also be retained offline.
+
 Because the host is Windows/Docker Desktop, backup implementation should
 be compatible with the actual deployment environment; scripts may
 execute inside appropriate Linux containers rather than requiring native

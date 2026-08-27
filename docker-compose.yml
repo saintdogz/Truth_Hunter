@@ -132,6 +132,26 @@ services:
     networks:
       - truthhunter_internal
 
+  backup:
+    profiles: ["operations"]
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    environment:
+      DB_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-truthhunter}
+      POSTGRES_USER: ${POSTGRES_USER:-truthhunter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-development-only-change-me}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ${BACKUP_DIRECTORY:-./backups}:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - truthhunter_internal
+
 networks:
   truthhunter_internal:
     driver: bridge
