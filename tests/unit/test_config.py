@@ -133,7 +133,7 @@ def test_admin_email_allowlist_is_normalized() -> None:
 
 def test_turnstile_requires_a_complete_key_pair() -> None:
     with pytest.raises(ValidationError, match="required together"):
-        Settings(app_env="test", turnstile_site_key="site-only")
+        Settings(_env_file=None, app_env="test", turnstile_site_key="site-only")
 
 
 def test_turnstile_test_keys_are_rejected_in_production() -> None:

@@ -17,7 +17,7 @@ from app.investigation.models import (
     SourceDocument,
 )
 from app.investigation.prompts import (
-    CLAIM_INTERPRETATION_PROMPT_V1,
+    CLAIM_INTERPRETATION_PROMPT_V2,
     EVIDENCE_EVALUATION_PROMPT_V1,
     SEARCH_QUERY_PROMPT_V2,
     SUMMARY_PROMPT_V1,
@@ -93,7 +93,7 @@ class DeepSeekProvider:
 
     async def interpret_claim(self, claim: str, detected_language: str) -> ClaimInterpretation:
         return await self._parse(
-            CLAIM_INTERPRETATION_PROMPT_V1,
+            CLAIM_INTERPRETATION_PROMPT_V2,
             {"untrusted_claim": claim, "detected_language": detected_language},
             ClaimInterpretation,
         )

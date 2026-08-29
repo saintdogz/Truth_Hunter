@@ -7,7 +7,7 @@ import pytest
 
 from app.ai.openai_provider import OpenAIProvider
 from app.investigation.models import ClaimInterpretation
-from app.investigation.prompts import CLAIM_INTERPRETATION_PROMPT_V1
+from app.investigation.prompts import CLAIM_INTERPRETATION_PROMPT_V2
 
 
 class FakeResponse:
@@ -41,6 +41,14 @@ async def test_claim_injection_is_serialized_as_untrusted_data() -> None:
 
     await provider.interpret_claim(attack, "en")
 
-    assert "untrusted DATA" in CLAIM_INTERPRETATION_PROMPT_V1
+    assert "untrusted DATA" in CLAIM_INTERPRETATION_PROMPT_V2
     assert json.loads(fake_client.responses.kwargs["input"])["untrusted_claim"] == attack
     assert attack not in fake_client.responses.kwargs["instructions"]
+
+
+def test_verifiable_labels_are_not_defined_as_subjective_opinions() -> None:
+    assert '"X is a racist" is factual' in CLAIM_INTERPRETATION_PROMPT_V2
+    assert "documented ideology, affiliations, statements, and conduct" in (
+        CLAIM_INTERPRETATION_PROMPT_V2
+    )
+    assert "irreducible personal preference or value judgment" in CLAIM_INTERPRETATION_PROMPT_V2
