@@ -21,9 +21,12 @@ the stability promise implied by version 1.0.
 
 ### 1. Automated encrypted backups and tested restoration
 
-Implementation and a complete disposable restore drill are now complete. The
-remaining operator gate is to configure a permanent encryption key, register the
-Windows scheduled task, run it once, and retain an encrypted copy off-host.
+**Gate completed 2026-08-30.** A permanent encryption key is configured, the
+Windows task runs daily at 03:00 with start-when-available behavior, its first
+run returned success, and the resulting authenticated backup restored into the
+guarded disposable database with matching user and investigation counts. Keeping
+an additional encrypted copy off-host remains a strongly recommended resilience
+improvement rather than a blocker for the initial single-server 1.0 release.
 
 Acceptance gate:
 
