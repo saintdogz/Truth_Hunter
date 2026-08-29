@@ -1,7 +1,7 @@
 """Server-rendered application behavior tests."""
 
 from fastapi.testclient import TestClient
-from pydantic import AnyHttpUrl
+from pydantic import AnyHttpUrl, SecretStr
 
 from app.core.config import Settings
 from app.main import create_app
@@ -14,7 +14,7 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert "TRUTH" in response.text
     assert "HUNTER" in response.text
     assert "Don&#39;t believe it. Investigate it." in response.text
-    assert "v0.1.0" in response.text
+    assert "v0.9.0-rc1" in response.text
     assert '<form method="post" action="/investigations"' in response.text
     assert 'enctype="multipart/form-data"' in response.text
     assert 'maxlength="500"' in response.text
@@ -48,6 +48,20 @@ def test_about_page_supports_hungarian(client: TestClient) -> None:
     assert response.status_code == 200
     assert "Hogyan működik a Truth Hunter?" in response.text
     assert "Fontos korlátok" in response.text
+
+
+def test_bilingual_legal_pages_and_footer_links_are_public(client: TestClient) -> None:
+    privacy = client.get("/privacy")
+    terms_hu = client.get("/terms?lang=hu")
+    registration = client.get("/register")
+
+    assert privacy.status_code == 200
+    assert "Privacy Policy" in privacy.text
+    assert "Uploaded images are discarded after OCR" in privacy.text
+    assert terms_hu.status_code == 200
+    assert "Felhasználási feltételek" in terms_hu.text
+    assert 'href="/privacy?lang=en"' in privacy.text
+    assert 'href="/terms?lang=hu"' in registration.text
 
 
 def test_support_link_is_hidden_when_not_configured(client: TestClient) -> None:
@@ -95,3 +109,21 @@ def test_security_headers_are_present(client: TestClient) -> None:
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"
     assert response.headers["referrer-policy"] == "strict-origin-when-cross-origin"
+    csp = response.headers["content-security-policy"]
+    assert "default-src 'self'" in csp
+    assert "frame-ancestors 'none'" in csp
+    assert "https://challenges.cloudflare.com" in csp
+    assert "strict-transport-security" not in response.headers
+
+
+def test_production_enables_hsts(settings: Settings) -> None:
+    settings.app_env = "production"
+    settings.email_delivery_mode = "resend"
+    settings.resend_api_key = SecretStr("test-resend-key")
+    settings.resend_from_email = "accounts@example.test"
+    production_app = create_app(settings)
+    production_app.state.investigation_service.recover_interrupted = lambda: 0
+    with TestClient(production_app) as production_client:
+        response = production_client.get("/")
+
+    assert response.headers["strict-transport-security"] == ("max-age=31536000; includeSubDomains")

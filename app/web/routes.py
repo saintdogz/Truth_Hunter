@@ -165,6 +165,26 @@ def about(request: Request) -> Response:
     )
 
 
+@router.get("/privacy", response_class=HTMLResponse, include_in_schema=False)
+def privacy(request: Request) -> Response:
+    language = language_from_request(request)
+    return render(
+        request,
+        "privacy.html",
+        {"language": language, "t": copy_for(language)},
+    )
+
+
+@router.get("/terms", response_class=HTMLResponse, include_in_schema=False)
+def terms(request: Request) -> Response:
+    language = language_from_request(request)
+    return render(
+        request,
+        "terms.html",
+        {"language": language, "t": copy_for(language)},
+    )
+
+
 @router.post("/investigations", response_class=HTMLResponse, include_in_schema=False)
 async def submit_claim(
     request: Request,

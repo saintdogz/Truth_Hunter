@@ -26,4 +26,15 @@ def test_postgresql_connection_and_migration_head(monkeypatch: pytest.MonkeyPatc
     with engine.connect() as connection:
         assert connection.execute(text("SELECT 1")).scalar_one() == 1
         assert inspect(connection).has_table("alembic_version")
+        assert inspect(connection).has_table("abuse_rate_limits")
+    engine.dispose()
+
+    # Prove the upgrade path from the schema shipped before the release candidate.
+    command.downgrade(config, "20260826_0008")
+    engine = create_engine(database_url)
+    assert not inspect(engine).has_table("abuse_rate_limits")
+    engine.dispose()
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    assert inspect(engine).has_table("abuse_rate_limits")
     engine.dispose()

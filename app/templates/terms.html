@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{% if language == 'hu' %}Felhasználási feltételek{% else %}Terms of Service{% endif %} — Truth Hunter{% endblock %}
+{% block content %}
+<article class="page-card prose-card">
+{% if language == 'hu' %}
+<p class="eyebrow">Jogi információ · Hatályos: 2026. augusztus 30.</p><h1>Felhasználási feltételek</h1>
+<h2>A szolgáltatás</h2><p>A Truth Hunter webes források alapján segít állításokat megvizsgálni. Az eredmény automatizált, hibázhat, és nem garantál abszolút igazságot.</p>
+<h2>Nem szakmai tanács</h2><p>Az eredmény tájékoztató jellegű, nem orvosi, jogi, pénzügyi, repülésbiztonsági vagy más szakmai tanács. Fontos döntés előtt ellenőrizd az eredeti forrásokat és kérj megfelelő szakértői segítséget.</p>
+<h2>Elfogadható használat</h2><p>Ne használd a szolgáltatást jogellenesen, mások zaklatására, személyes adatok közzétételére, biztonsági korlátok megkerülésére, automatizált túlterhelésre vagy mások jogainak megsértésére. A visszaélést korlátozhatjuk és a nyilvános tartalmat eltávolíthatjuk.</p>
+<h2>Fiók és tartalom</h2><p>Te felelsz a fiókodért és a beküldött tartalomért. Csak olyan tartalmat küldj be és tegyél nyilvánossá, amelyhez jogod van. A fiók törlése végleges.</p>
+<h2>Elérhetőség és felelősség</h2><p>A szolgáltatás jelenleg ingyenes, és „adott állapotban” érhető el. Keresők, forrásoldalak és MI-szolgáltatók kieshetnek. A jogszabályok által megengedett mértékben nem vállalunk felelősséget az automatizált eredményre alapozott döntésekért vagy közvetett károkért.</p>
+<h2>Kapcsolat és változások</h2><p>Kapcsolat: <a href="mailto:molnar.tass@gmail.com">molnar.tass@gmail.com</a>. A feltételek lényeges változásakor frissítjük a hatálybalépés dátumát. Az irányadó jog Magyarország joga, a kötelező fogyasztóvédelmi szabályok sérelme nélkül.</p>
+{% else %}
+<p class="eyebrow">Legal information · Effective 30 August 2026</p><h1>Terms of Service</h1>
+<h2>The service</h2><p>Truth Hunter helps investigate claims using web evidence. Results are automated, can be wrong, and do not guarantee absolute truth.</p>
+<h2>Not professional advice</h2><p>Results are informational and are not medical, legal, financial, aviation-safety, or other professional advice. Check original sources and consult an appropriate professional before important decisions.</p>
+<h2>Acceptable use</h2><p>Do not use the service unlawfully, to harass others, expose personal information, bypass safeguards, overload it through automation, or violate another person’s rights. We may limit abuse and remove public content.</p>
+<h2>Accounts and submitted content</h2><p>You are responsible for your account and submitted content. Submit and publish only material you have the right to use. Account deletion is permanent.</p>
+<h2>Availability and liability</h2><p>The service is currently free and provided “as is.” Search engines, source sites, and AI providers may fail. To the extent permitted by law, we are not responsible for decisions based on automated results or for indirect losses.</p>
+<h2>Contact and changes</h2><p>Contact: <a href="mailto:molnar.tass@gmail.com">molnar.tass@gmail.com</a>. Material changes will update the effective date. Hungarian law governs, without limiting mandatory consumer protections.</p>
+{% endif %}
+</article>
+{% endblock %}

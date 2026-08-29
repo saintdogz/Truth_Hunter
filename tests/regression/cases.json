@@ -78,5 +78,58 @@
         "summary": "Historical records and archaeological evidence identify the standardized pyramid complex as the king's tomb and funerary cult site."
       }
     ]
+  },
+  {
+    "id": "documented-racist-ideology",
+    "reviewed_on": "2026-08-30",
+    "claim": "Gypsy Crusader is a racist.",
+    "expected_verdict": "TRUE",
+    "expected_confidence": "HIGH",
+    "evidence": [
+      {"domain":"usatoday.com","source_type":"ESTABLISHED_MEDIA","summary":"Reporting documents explicit white-supremacist ideology and repeated racial slurs."},
+      {"domain":"pbs.org","source_type":"ESTABLISHED_MEDIA","summary":"Reporting documents racist harassment directed at minority people."},
+      {"domain":"newsweek.com","source_type":"ESTABLISHED_MEDIA","summary":"Coverage records Nazi salutes and white-supremacist statements."},
+      {"domain":"vice.com","source_type":"ESTABLISHED_MEDIA","summary":"Reporting describes repeated racist conduct and extremist affiliations."},
+      {"domain":"justice.gov","source_type":"PRIMARY_OFFICIAL","summary":"Official records document threats and conduct motivated by racial hatred."}
+    ]
+  },
+  {
+    "id": "vaccines-autism-reviewed-consensus",
+    "reviewed_on": "2026-08-30",
+    "claim": "Routine childhood vaccines cause autism.",
+    "expected_verdict": "FALSE",
+    "expected_confidence": "HIGH",
+    "evidence": [
+      {"domain":"who.int","source_type":"PRIMARY_OFFICIAL","position":"CONTRADICTING","summary":"Large bodies of research find no causal relationship between vaccines and autism."},
+      {"domain":"cdc.gov","source_type":"PRIMARY_OFFICIAL","position":"CONTRADICTING","summary":"Multiple studies show vaccines do not cause autism spectrum disorder."},
+      {"domain":"pubmed.ncbi.nlm.nih.gov","source_type":"PRIMARY_RESEARCH","position":"CONTRADICTING","summary":"A nationwide cohort study found no increased autism risk after vaccination."},
+      {"domain":"ema.europa.eu","source_type":"PRIMARY_OFFICIAL","position":"CONTRADICTING","summary":"Safety evidence does not support a causal association with autism."},
+      {"domain":"cochrane.org","source_type":"ACADEMIC","position":"CONTRADICTING","summary":"Systematic evidence does not establish vaccination as a cause of autism."}
+    ]
+  },
+  {
+    "id": "balanced-conflicting-policy-evidence",
+    "reviewed_on": "2026-08-30",
+    "claim": "The policy produced an overall economic benefit.",
+    "expected_verdict": "MIXED",
+    "expected_confidence": "MEDIUM",
+    "evidence": [
+      {"domain":"statistics.example","source_type":"PRIMARY_OFFICIAL","position":"SUPPORTING","summary":"Official data show increased employment after implementation."},
+      {"domain":"research-a.example","source_type":"PRIMARY_RESEARCH","position":"SUPPORTING","summary":"A controlled study found measurable aggregate benefits."},
+      {"domain":"research-b.example","source_type":"ACADEMIC","position":"SUPPORTING","summary":"Independent analysis found modest net gains."},
+      {"domain":"audit.example","source_type":"PRIMARY_OFFICIAL","position":"CONTRADICTING","summary":"The audit found costs exceeded benefits in several regions."},
+      {"domain":"research-c.example","source_type":"PRIMARY_RESEARCH","position":"CONTRADICTING","summary":"Longitudinal data found significant losses for affected households."}
+    ]
+  },
+  {
+    "id": "insufficient-social-media-rumor",
+    "reviewed_on": "2026-08-30",
+    "claim": "A secret event happened yesterday.",
+    "expected_verdict": "INCONCLUSIVE",
+    "expected_confidence": "LOW",
+    "evidence": [
+      {"domain":"social.example","source_type":"SOCIAL_MEDIA","position":"NEUTRAL","quality":0.2,"relevance":0.2,"summary":"An anonymous post repeats the rumor without evidence."},
+      {"domain":"forum.example","source_type":"UNKNOWN","position":"NEUTRAL","quality":0.2,"relevance":0.2,"summary":"Forum users speculate about an unverified event."}
+    ]
   }
 ]

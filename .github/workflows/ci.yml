@@ -19,6 +19,22 @@ jobs:
     name: Tests and quality checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: truthhunter_test
+          POSTGRES_USER: truthhunter
+          POSTGRES_PASSWORD: test-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U truthhunter -d truthhunter_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://truthhunter:test-only-password@localhost:5432/truthhunter_test
 
     steps:
       - name: Check out repository

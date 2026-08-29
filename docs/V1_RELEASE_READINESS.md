@@ -1,10 +1,10 @@
 # Truth Hunter 1.0 Release Readiness
 
-Audit date: 2026-08-26
+Audit date: 2026-08-30
 
-Status: **Not yet ready for 1.0.** The public beta is healthy and the core user
-journey works, but the release-critical controls below must be completed before
-the stability promise implied by version 1.0.
+Status: **0.9.0-rc1 technically ready.** All engineering gates are implemented.
+Independent review of the English and Hungarian legal language remains required
+before the stability promise implied by version 1.0.
 
 ## Evidence reviewed
 
@@ -38,11 +38,9 @@ Acceptance gate:
 
 ### 2. Public investigation abuse and cost controls
 
-PostgreSQL-backed privacy-safe limits are now implemented for claim submission,
-investigation start, and public reporting, and the Turnstile integration is
-implemented with mandatory server-side verification. The remaining operator
-gate is to create a production Turnstile widget restricted to
-`truth.abathur.hu`, configure both keys, deploy, and verify one real challenge.
+**Gate completed 2026-08-30.** PostgreSQL-backed privacy-safe limits protect
+claim submission, investigation start, and reporting. A production Turnstile
+widget restricted to `truth.abathur.hu` is deployed and verified server-side.
 
 Acceptance gate:
 
@@ -55,10 +53,11 @@ Acceptance gate:
 
 ### 3. Privacy Policy and Terms of Service
 
-The About page explains privacy at a product level, but there are no dedicated
-Terms or Privacy pages and no links in the footer. The service stores account
-emails, claim text, evidence snapshots, provider audit data, feedback, and
-reporter session identifiers in an EU operating context.
+**Engineering gate completed 2026-08-30; external review pending.** English and
+Hungarian pages disclose the operator contact, processed data, purposes,
+retention, processors/transfers, user rights, deletion, and the informational
+nature of results. They are linked globally and from registration. Final
+Hungary/EU legal review cannot be replaced by automated engineering work.
 
 Acceptance gate:
 
@@ -71,8 +70,9 @@ Acceptance gate:
 
 ### 4. Production browser security policy
 
-The site sends `nosniff`, frame denial, referrer, and permissions policies, but
-does not currently send HSTS or Content Security Policy headers.
+**Gate completed 2026-08-30.** The application and Caddy emit a Turnstile-aware
+Content Security Policy, HSTS, frame protection, referrer policy, permissions
+policy, and MIME-sniffing protection, with automated assertions.
 
 Acceptance gate:
 
@@ -82,9 +82,11 @@ Acceptance gate:
 
 ### 5. Durable investigation recovery
 
-Investigations run as in-process background tasks. A process or host restart can
-interrupt a job after confirmation and leave it without a final result. Version
-1.0 must recover deterministically even if a full external queue is deferred.
+**Gate completed 2026-08-30 for the documented single-server architecture.** On
+startup, work owned by the previous process is moved to an explicit interrupted
+terminal state without consuming a credit. Completed snapshots are idempotent
+and cannot be overwritten by a duplicate completion call. Recovery behavior is
+covered by integration tests.
 
 Acceptance gate:
 
@@ -96,9 +98,9 @@ Acceptance gate:
 
 ### 6. PostgreSQL migration coverage in CI
 
-The normal suite passes, but the database integration test is skipped unless
-`TEST_DATABASE_URL` is configured. CI therefore does not continuously prove the
-full migration chain against PostgreSQL.
+**Gate completed 2026-08-30.** GitHub Actions starts PostgreSQL 17, runs the
+normal suite with `TEST_DATABASE_URL`, upgrades a clean database to head, and
+tests the upgrade path from the pre-release-candidate schema.
 
 Acceptance gate:
 
@@ -108,9 +110,9 @@ Acceptance gate:
 
 ## Should improve for the release candidate
 
-- Expand the reviewed verdict regression corpus from two cases to a balanced
-  collection covering true, false, mixed, inconclusive, scientific, medical,
-  legal/technical, current-event, image-derived, English, and Hungarian claims.
+- Continue expanding the reviewed verdict regression corpus beyond the current
+  true, false, mixed, inconclusive, medical, legal/technical, and documented-label
+  cases to add more current-event, image-derived, and Hungarian examples.
 - Define benchmark acceptance thresholds and record evaluator/search-plan
   versions with every expected result.
 - Add automated accessibility checks and manually verify keyboard navigation,
@@ -138,17 +140,18 @@ Acceptance gate:
 
 ## Release sequence
 
-1. Complete backup/restore and verify it against production-shaped data.
-2. Add abuse protection and durable investigation recovery.
-3. Publish Terms/Privacy and harden browser headers.
-4. Enable PostgreSQL CI and expand the reviewed benchmark.
+1. ~~Complete backup/restore and verify it against production-shaped data.~~
+2. ~~Add abuse protection and durable investigation recovery.~~
+3. ~~Publish Terms/Privacy and harden browser headers.~~
+4. ~~Enable PostgreSQL CI and expand the reviewed benchmark.~~
 5. Run security, accessibility, mobile, restore, and live smoke checks.
-6. Release `0.9.0-rc1` and collect focused beta feedback.
+6. Release `0.9.0-rc1`, obtain legal review, and collect focused beta feedback.
 7. Fix release-candidate blockers, freeze behavior, and repeat every gate.
 8. Set version `1.0.0`, update the changelog/readme/security policy, tag
    `v1.0.0`, publish the GitHub release, and deploy the tagged image.
 
 ## Current decision
 
-The product is suitable for continued public beta testing. It should not yet be
-presented as a stable 1.0 release until all six must-fix gates pass.
+The product is suitable for a public `0.9.0-rc1`. Do not tag stable `1.0.0`
+until the legal language has been independently reviewed and release-candidate
+smoke/accessibility checks have passed.

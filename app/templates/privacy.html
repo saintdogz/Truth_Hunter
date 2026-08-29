@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{% if language == 'hu' %}Adatvédelmi tájékoztató{% else %}Privacy Policy{% endif %} — Truth Hunter{% endblock %}
+{% block content %}
+<article class="page-card prose-card">
+{% if language == 'hu' %}
+<p class="eyebrow">Jogi információ · Hatályos: 2026. augusztus 30.</p><h1>Adatvédelmi tájékoztató</h1>
+<h2>Ki kezeli az adatokat?</h2><p>A Truth Hunter projekt üzemeltetője az adatkezelő. Kapcsolat: <a href="mailto:molnar.tass@gmail.com">molnar.tass@gmail.com</a>, Discord: saintdogz.</p>
+<h2>Milyen adatokat kezelünk?</h2><p>Fiók létrehozásakor e-mail-címet, jelszóhash-t és fiók-időbélyegeket; vizsgálatkor az állítás szövegét, a források pillanatképeit, bizonyítékértékeléseket, szolgáltatói naplóadatokat és visszajelzést. A visszaélés-védelem rövid ideig álnevesített kérésazonosítókat tárol. A feltöltött képet az OCR után nem őrizzük meg.</p>
+<h2>Miért és milyen alapon?</h2><p>Az adatokat a kért szolgáltatás nyújtásához, fiókkezeléshez, biztonsághoz, hibakereséshez és a szolgáltatás fejlesztéséhez kezeljük. Ennek alapja a szerződés teljesítése, jogos érdekünk a biztonságos működéshez, illetve ahol szükséges, a hozzájárulás.</p>
+<h2>Szolgáltatók és adattovábbítás</h2><p>A működés PostgreSQL-t, Resend e-mail-küldést, Cloudflare Turnstile-t, keresőszolgáltatásokat és beállított MI-szolgáltatókat használhat. Az állítás és a szükséges forrásszöveg az EU-n kívüli szolgáltatókhoz is kerülhet azok adatvédelmi feltételei szerint. Jelszót vagy alkalmazási titkot nem küldünk nekik.</p>
+<h2>Megőrzés és nyilvánosság</h2><p>A fiók- és vizsgálati adatokat a fiók törléséig vagy jogos törlési kérelemig őrizzük. A biztonsági korlátozások adatai időablakokhoz kötöttek. A vizsgálat alapértelmezetten privát; csak a felhasználó teheti nyilvánossá, és később ismét priváttá teheti.</p>
+<h2>Jogaid</h2><p>Kérhetsz hozzáférést, helyesbítést, törlést, korlátozást, tiltakozhatsz, és ahol alkalmazható, adathordozhatóságot kérhetsz. A fiók és vizsgálatai a fiókoldalon törölhetők. Panaszt tehetsz a Nemzeti Adatvédelmi és Információszabadság Hatóságnál (NAIH) is.</p>
+{% else %}
+<p class="eyebrow">Legal information · Effective 30 August 2026</p><h1>Privacy Policy</h1>
+<h2>Who controls the data?</h2><p>The operator of the Truth Hunter project is the data controller. Contact: <a href="mailto:molnar.tass@gmail.com">molnar.tass@gmail.com</a>, Discord: saintdogz.</p>
+<h2>What we process</h2><p>For accounts: email address, password hash, and account timestamps. For investigations: claim text, source snapshots, evidence assessments, provider audit data, and feedback. Abuse protection temporarily stores pseudonymous request identifiers. Uploaded images are discarded after OCR.</p>
+<h2>Why we process it</h2><p>We process data to provide the requested service, manage accounts, protect the service, diagnose failures, and improve reliability. The legal bases are performance of the service contract, our legitimate interest in secure operation, and consent where required.</p>
+<h2>Processors and international transfers</h2><p>The service may use PostgreSQL hosting, Resend email delivery, Cloudflare Turnstile, search services, and configured AI providers. Claims and necessary source text may reach providers outside the EU under their applicable safeguards and terms. Passwords and application secrets are not sent to them.</p>
+<h2>Retention and public sharing</h2><p>Account and investigation data are retained until account deletion or a valid deletion request. Security-limit records are tied to short operational windows. Investigations are private by default; only the user can publish one and can make it private again.</p>
+<h2>Your rights</h2><p>You may request access, correction, deletion, restriction, objection, and—where applicable—portability. An account and its investigations can be deleted from the account page. You may also complain to Hungary’s National Authority for Data Protection and Freedom of Information (NAIH).</p>
+{% endif %}
+</article>
+{% endblock %}

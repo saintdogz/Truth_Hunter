@@ -20,7 +20,7 @@
     <main class="shell">{% block content %}{% endblock %}</main>
     <footer class="site-footer">
       <span>Truth Hunter v{{ app_version }}</span>
-      <span class="footer-links">{% if support_url %}<a href="{{ support_url }}" target="_blank" rel="noopener noreferrer">{{ t.support }}</a><span>·</span>{% endif %}<a href="https://github.com/saintdogz/Truth_Hunter" target="_blank" rel="noopener noreferrer">GitHub</a><span>·</span><span>Discord: saintdogz</span></span>
+      <span class="footer-links"><a href="/privacy?lang={{ language }}">{% if language == 'hu' %}Adatvédelem{% else %}Privacy{% endif %}</a><span>·</span><a href="/terms?lang={{ language }}">{% if language == 'hu' %}Feltételek{% else %}Terms{% endif %}</a><span>·</span>{% if support_url %}<a href="{{ support_url }}" target="_blank" rel="noopener noreferrer">{{ t.support }}</a><span>·</span>{% endif %}<a href="https://github.com/saintdogz/Truth_Hunter" target="_blank" rel="noopener noreferrer">GitHub</a><span>·</span><span>Discord: saintdogz</span></span>
     </footer>
     {% block scripts %}{% endblock %}
   </body>

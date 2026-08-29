@@ -1,5 +1,6 @@
 """FastAPI application factory and ASGI entry point."""
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import cast
 
@@ -36,11 +37,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     resolved_settings = settings or get_settings()
     validate_runtime_adapters(resolved_settings)
     configure_logging(resolved_settings.app_log_level)
+
+    @asynccontextmanager
+    async def lifespan(application: FastAPI):  # type: ignore[no-untyped-def]
+        if resolved_settings.app_env == "production":
+            application.state.investigation_service.recover_interrupted()
+        yield
+
     app = FastAPI(
         title=resolved_settings.app_name,
         version=resolved_settings.app_version,
         docs_url="/docs" if resolved_settings.app_env != "production" else None,
         redoc_url=None,
+        lifespan=lifespan,
     )
     app.state.settings = resolved_settings
     app.state.templates = Jinja2Templates(directory=APP_DIR / "templates")
@@ -68,6 +77,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+            "form-action 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; "
+            "script-src 'self' https://challenges.cloudflare.com; "
+            "frame-src https://challenges.cloudflare.com; "
+            "connect-src 'self' https://challenges.cloudflare.com"
+        )
+        if resolved_settings.app_env == "production":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
 
     @app.exception_handler(StarletteHTTPException)

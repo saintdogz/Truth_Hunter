@@ -37,7 +37,7 @@
       const data = await response.json();
       status.textContent = data.label;
       if (data.result_url) { window.location.assign(data.result_url); return; }
-      if (data.status.endsWith('FAILED')) { showFailure(data.label); return; }
+      if (data.status.endsWith('FAILED') || data.status === 'INTERRUPTED') { showFailure(data.label); return; }
       updateStages(data.stage_index, data.stage_total, data.label);
     } catch (_) { showFailure(card.dataset.unavailableLabel); return; }
     window.setTimeout(poll, 2000);

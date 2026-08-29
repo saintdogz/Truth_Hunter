@@ -188,13 +188,15 @@ running `python -m pytest -m database`.
 - The beta is operated on a small self-hosted deployment and uses fair-use
   safeguards rather than a paid entitlement system.
 
-## Roadmap
+## Release status and roadmap
 
-Near-term work focuses on evidence quality, source deduplication, abuse
-protection, operational trend snapshots, backup/restore verification, and
-continued private/public beta evaluation. Integrated subscriptions and credit
-sales are intentionally deferred; voluntary support may be linked externally
-without storing financial information or granting product benefits.
+Truth Hunter is in the `0.9.0-rc1` public release-candidate cycle. Core
+investigations, restart recovery, abuse protection, encrypted backups, legal
+disclosures, browser hardening, and PostgreSQL CI are implemented. The remaining
+1.0 gate is independent Hungary/EU legal review plus focused release-candidate
+feedback and final smoke testing. Integrated subscriptions and credit sales are
+intentionally deferred; voluntary support may be linked externally without
+storing financial information or granting product benefits.
 
 Production operators should configure encrypted database backups and perform
 regular recovery drills using the [backup and restore runbook](docs/BACKUP_AND_RESTORE.md).

@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.db.models import EvidenceRecord, Investigation, Source
@@ -51,6 +52,33 @@ class InvestigationRepository:
         investigation = self.get(investigation_id)
         investigation.status = status
         self._session.commit()
+
+    def recover_interrupted(self) -> int:
+        """Mark work owned by a previous application process as safely interrupted."""
+
+        active_statuses = (
+            "CREATED",
+            "INTERPRETING",
+            "SEARCHING",
+            "COLLECTING_SOURCES",
+            "EVALUATING_EVIDENCE",
+            "CALCULATING_ASSESSMENT",
+            "GENERATING_RESULT",
+        )
+        interrupted_ids = list(
+            self._session.scalars(
+                select(Investigation.id).where(Investigation.status.in_(active_statuses))
+            )
+        )
+        if not interrupted_ids:
+            return 0
+        self._session.execute(
+            update(Investigation)
+            .where(Investigation.id.in_(interrupted_ids))
+            .values(status="INTERRUPTED")
+        )
+        self._session.commit()
+        return len(interrupted_ids)
 
     def save_interpretation(
         self, investigation_id: UUID, interpretation: ClaimInterpretation
@@ -122,6 +150,8 @@ class InvestigationRepository:
         source_count: int,
     ) -> None:
         investigation = self.get(investigation_id)
+        if investigation.status == "COMPLETED":
+            return
         investigation.status = "COMPLETED"
         investigation.verdict = assessment.verdict.value
         investigation.supporting_score = assessment.balance.supporting

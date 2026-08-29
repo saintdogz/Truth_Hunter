@@ -174,6 +174,50 @@ class FakeFetcher(SafeSourceFetcher):
         )
 
 
+def test_recovery_marks_only_in_process_work_and_completion_is_idempotent() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        awaiting = Investigation(original_claim="Awaiting", status="AWAITING_CONFIRMATION")
+        running = Investigation(original_claim="Running", status="EVALUATING_EVIDENCE")
+        completed = Investigation(original_claim="Done", status="COMPLETED", verdict="TRUE")
+        session.add_all([awaiting, running, completed])
+        session.commit()
+
+        repository = InvestigationRepository(session)
+        assert repository.recover_interrupted() == 1
+        assert running.status == "INTERRUPTED"
+        assert awaiting.status == "AWAITING_CONFIRMATION"
+
+        assessment = AssessmentDraft(
+            verdict="FALSE",
+            balance={
+                "supporting": 0,
+                "contradicting": 100,
+                "supporting_weight": 0,
+                "contradicting_weight": 1,
+                "meaningful": True,
+                "scoring_version": "test",
+            },
+            confidence="HIGH",
+            conflict={"detected": False},
+            evidence_sufficient=True,
+        )
+        repository.complete(
+            completed.id,
+            assessment,
+            InvestigationSummary(explanation="Should not replace the result."),
+            ai_model="test",
+            ai_provider_attempts=[],
+            prompt_version="test",
+            search_provider="test",
+            search_languages=["en"],
+            source_count=0,
+        )
+        assert completed.verdict == "TRUE"
+    engine.dispose()
+
+
 @pytest.mark.anyio
 async def test_pipeline_persists_historical_snapshot() -> None:
     engine = create_engine(

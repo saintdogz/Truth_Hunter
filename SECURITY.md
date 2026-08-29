@@ -18,8 +18,9 @@ payloads. Reports will be acknowledged and assessed as quickly as practical.
 
 ## Supported version
 
-Truth Hunter is currently an early beta. Security fixes apply to the latest
-commit on the default branch and the current production deployment.
+Truth Hunter 0.9 release candidates and the current production deployment are
+supported. Security fixes apply to the latest release-candidate patch and the
+default branch.
 
 ## Security scope
 

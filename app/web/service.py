@@ -12,7 +12,7 @@ from app.db.session import get_engine
 from app.investigation.factory import create_pipeline
 from app.investigation.models import ClaimInterpretation
 from app.investigation.pipeline import InvestigationPipelineError
-from app.investigation.repository import InvestigationNotFoundError
+from app.investigation.repository import InvestigationNotFoundError, InvestigationRepository
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +20,13 @@ logger = logging.getLogger(__name__)
 class InvestigationWebService:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
+
+    def recover_interrupted(self) -> int:
+        with Session(get_engine()) as session:
+            recovered = InvestigationRepository(session).recover_interrupted()
+        if recovered:
+            logger.warning("Marked %s interrupted investigations as terminal", recovered)
+        return recovered
 
     async def interpret(
         self,

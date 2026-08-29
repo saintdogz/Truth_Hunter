@@ -7,6 +7,27 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ## [Unreleased]
 
+## [0.9.0-rc1] - 2026-08-30
+
+### Added
+
+- Restart reconciliation for interrupted in-process investigations with a clear
+  terminal status and idempotent result completion.
+- English and Hungarian Privacy Policy and Terms of Service pages linked from
+  every public page and account registration.
+- Production Content Security Policy and HTTP Strict Transport Security.
+- PostgreSQL-backed CI, including clean migration and upgrade-path coverage.
+- A broader reviewed verdict benchmark spanning factual labels, medical
+  misinformation, conflicting evidence, and insufficient rumors.
+
+### Changed
+
+- Verifiable classifications based on documented conduct, statements,
+  affiliations, or established definitions are treated as factual rather than
+  being hidden behind an opinion verdict.
+- Public abuse controls and encrypted backup restoration have completed their
+  production operator checks.
+
 ### Fixed
 
 - Isolate automated tests from production `.env` values so local configuration

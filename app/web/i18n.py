@@ -237,6 +237,7 @@ STATUS_COPY: dict[str, dict[str, str]] = {
         "COMPLETED": "Assessment ready",
         "FAILED": "Investigation failed",
         "SEARCH_FAILED": "Evidence search temporarily unavailable",
+        "INTERRUPTED": "Investigation interrupted by a service restart — please try again",
     },
     "hu": {
         "CREATED": "Az állítás értelmezése",
@@ -250,6 +251,7 @@ STATUS_COPY: dict[str, dict[str, str]] = {
         "COMPLETED": "Az értékelés elkészült",
         "FAILED": "A vizsgálat sikertelen",
         "SEARCH_FAILED": "A bizonyítékkeresés átmenetileg nem érhető el",
+        "INTERRUPTED": "A vizsgálat szolgáltatás-újraindítás miatt megszakadt — próbáld újra",
     },
 }
 
