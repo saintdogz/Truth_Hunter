@@ -21,10 +21,12 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert 'accept="image/jpeg,image/png,image/webp"' in response.text
     assert "Ctrl+V" in response.text
     assert 'id="image-preview"' in response.text
-    assert 'src="http://testserver/static/js/claim-input.js"' in response.text
+    assert 'src="http://testserver/static/js/claim-input.js?v=' in response.text
+    assert 'href="http://testserver/static/css/app.css?v=' in response.text
     assert "Not sure where to start? Try a real claim." in response.text
     assert response.text.count('class="example-category"') == 3
     assert response.text.count("Try this claim") == 3
+    assert '<span aria-hidden="true">03</span>' not in response.text
 
 
 def test_home_supports_hungarian_interface(client: TestClient) -> None:

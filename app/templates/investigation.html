@@ -11,4 +11,4 @@
     <p id="progress-note" class="muted">{{ t.progress_note }}</p><p id="progress-error" class="form-error" hidden>{{ t.failed }}</p><blockquote>{{ investigation.interpreted_claim }}</blockquote>
   </section>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', path='/js/progress.js') }}" defer></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', path='/js/progress.js') }}?v={{ app_version }}" defer></script>{% endblock %}

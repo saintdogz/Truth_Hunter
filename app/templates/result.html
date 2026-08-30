@@ -38,4 +38,4 @@
     <a class="button secondary" href="/?lang={{ language }}">← {{ t.new }}</a>
   </article>
 {% endblock %}
-{% block scripts %}{% if not is_public_view %}<script src="{{ url_for('static', path='/js/share.js') }}" defer></script>{% endif %}{% endblock %}
+{% block scripts %}{% if not is_public_view %}<script src="{{ url_for('static', path='/js/share.js') }}?v={{ app_version }}" defer></script>{% endif %}{% endblock %}

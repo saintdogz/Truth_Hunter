@@ -29,10 +29,10 @@
   <section class="steps" aria-label="Process">
     <article><span>01</span><strong>{{ t.step1 }}</strong></article><article><span>02</span><strong>{{ t.step2 }}</strong></article><article><span>03</span><strong>{{ t.step3 }}</strong></article>
   </section>
-  <section class="examples" aria-labelledby="examples-title"><header class="examples-heading"><div><p class="section-label">{{ t.examples }}</p><h2 id="examples-title">{{ t.examples_title }}</h2><p>{{ t.examples_intro }}</p></div><span aria-hidden="true">03</span></header><div class="example-grid">
-    <button type="button" data-example="The European Union is planning to prohibit cash payments."><span class="example-category">{{ t.example_policy }}</span><strong>{{ t.example_cash_title }}</strong><small>{{ t.example_cash_claim }}</small><b>{{ t.example_try }} →</b></button>
-    <button type="button" data-example="Renewable energy is now cheaper than fossil fuels in most markets."><span class="example-category">{{ t.example_energy }}</span><strong>{{ t.example_energy_title }}</strong><small>{{ t.example_energy_claim }}</small><b>{{ t.example_try }} →</b></button>
-    <button type="button" data-example="A Holdra szállás felvételeit egy stúdióban készítették."><span class="example-category">{{ t.example_history }}</span><strong>{{ t.example_moon_title }}</strong><small>{{ t.example_moon_claim }}</small><b>{{ t.example_try }} →</b></button>
+  <section class="examples" aria-labelledby="examples-title"><header class="examples-heading"><div><p class="section-label">{{ t.examples }}</p><h2 id="examples-title">{{ t.examples_title }}</h2><p>{{ t.examples_intro }}</p></div></header><div class="example-grid">
+    <button type="button" data-example="The European Union is planning to prohibit cash payments."><span class="example-category">{{ t.example_policy }}</span> <strong>{{ t.example_cash_title }}</strong> <small>{{ t.example_cash_claim }}</small> <b>{{ t.example_try }} →</b></button>
+    <button type="button" data-example="Renewable energy is now cheaper than fossil fuels in most markets."><span class="example-category">{{ t.example_energy }}</span> <strong>{{ t.example_energy_title }}</strong> <small>{{ t.example_energy_claim }}</small> <b>{{ t.example_try }} →</b></button>
+    <button type="button" data-example="A Holdra szállás felvételeit egy stúdióban készítették."><span class="example-category">{{ t.example_history }}</span> <strong>{{ t.example_moon_title }}</strong> <small>{{ t.example_moon_claim }}</small> <b>{{ t.example_try }} →</b></button>
   </div></section>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', path='/js/claim-input.js') }}" defer></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', path='/js/claim-input.js') }}?v={{ app_version }}" defer></script>{% endblock %}
