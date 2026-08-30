@@ -26,8 +26,7 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert "Not sure where to start? Try a real claim." in response.text
     assert response.text.count('class="example-category"') == 3
     assert response.text.count("Try this claim") == 3
-    assert 'data-example="The Moon landing footage was filmed in a studio."' in response.text
-    assert "A Holdra szállás felvételeit" not in response.text
+    assert 'data-example="A Holdra szállás felvételeit egy stúdióban készítették."' in response.text
     assert '<span aria-hidden="true">03</span>' not in response.text
 
 
