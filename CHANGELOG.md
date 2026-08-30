@@ -7,6 +7,16 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ## [Unreleased]
 
+## [0.9.0-rc2] - 2026-08-30
+
+### Changed
+
+- Promote example investigations into prominent, descriptive onboarding cards.
+- Present results as a concise assessment first, with arguments, source excerpts,
+  scores, metadata, and methodology in one obvious expandable evidence section.
+- Improve responsive presentation of both flows without changing investigation
+  scoring, evidence, storage, or provider behavior.
+
 ## [0.9.0-rc1] - 2026-08-30
 
 ### Added

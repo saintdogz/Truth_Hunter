@@ -306,6 +306,9 @@ def test_result_exposes_bounded_evidence_details_during_testing(client: TestClie
 
     assert response.status_code == 200
     assert "Mostly True" in response.text
+    assert 'class="result-deep-dive"' in response.text
+    assert "Explore the evidence" in response.text
+    assert 'class="result-claim"' in response.text
     assert "Why:" in response.text
     assert "1 relevant evidence item" in response.text
     assert "average quality was 90%" in response.text

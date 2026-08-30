@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     app_env: Environment = "development"
     app_name: str = "Truth Hunter"
-    app_version: str = "0.9.0-rc1"
+    app_version: str = "0.9.0-rc2"
     app_secret: SecretStr = SecretStr("development-only-change-me")
     app_host: str = "0.0.0.0"
     app_port: int = 8000

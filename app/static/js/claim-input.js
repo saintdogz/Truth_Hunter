@@ -35,6 +35,7 @@
     button.addEventListener("click", () => {
       clearImage();
       claim.value = button.dataset.example;
+      document.querySelector(".claim-panel")?.scrollIntoView({ behavior: "smooth", block: "center" });
       claim.focus();
     });
   });

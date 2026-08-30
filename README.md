@@ -190,7 +190,7 @@ running `python -m pytest -m database`.
 
 ## Release status and roadmap
 
-Truth Hunter is in the `0.9.0-rc1` public release-candidate cycle. Core
+Truth Hunter is in the `0.9.0-rc2` public release-candidate cycle. Core
 investigations, restart recovery, abuse protection, encrypted backups, legal
 disclosures, browser hardening, and PostgreSQL CI are implemented. The remaining
 1.0 gate is independent Hungary/EU legal review plus focused release-candidate

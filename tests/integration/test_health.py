@@ -17,7 +17,7 @@ def test_liveness_does_not_call_database(client: TestClient) -> None:
     response = client.get("/health/live")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "version": "0.9.0-rc1"}
+    assert response.json() == {"status": "ok", "version": "0.9.0-rc2"}
 
 
 def test_readiness_reports_available_database(client: TestClient) -> None:
@@ -39,7 +39,7 @@ def test_readiness_sanitizes_database_failure(client: TestClient) -> None:
     assert response.status_code == 503
     assert response.json() == {
         "status": "not_ready",
-        "version": "0.9.0-rc1",
+        "version": "0.9.0-rc2",
         "checks": {"database": "unavailable"},
     }
     assert "postgresql" not in response.text.lower()

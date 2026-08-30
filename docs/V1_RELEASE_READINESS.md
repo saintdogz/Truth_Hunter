@@ -2,7 +2,7 @@
 
 Audit date: 2026-08-30
 
-Status: **0.9.0-rc1 technically ready.** All engineering gates are implemented.
+Status: **0.9.0-rc2 technically ready.** All engineering gates are implemented.
 Independent review of the English and Hungarian legal language remains required
 before the stability promise implied by version 1.0.
 
@@ -145,13 +145,13 @@ Acceptance gate:
 3. ~~Publish Terms/Privacy and harden browser headers.~~
 4. ~~Enable PostgreSQL CI and expand the reviewed benchmark.~~
 5. Run security, accessibility, mobile, restore, and live smoke checks.
-6. Release `0.9.0-rc1`, obtain legal review, and collect focused beta feedback.
+6. Release `0.9.0-rc2`, obtain legal review, and collect focused beta feedback.
 7. Fix release-candidate blockers, freeze behavior, and repeat every gate.
 8. Set version `1.0.0`, update the changelog/readme/security policy, tag
    `v1.0.0`, publish the GitHub release, and deploy the tagged image.
 
 ## Current decision
 
-The product is suitable for a public `0.9.0-rc1`. Do not tag stable `1.0.0`
+The product is suitable for a public `0.9.0-rc2`. Do not tag stable `1.0.0`
 until the legal language has been independently reviewed and release-candidate
 smoke/accessibility checks have passed.

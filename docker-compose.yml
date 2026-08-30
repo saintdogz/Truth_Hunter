@@ -7,7 +7,7 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-development}
       APP_NAME: ${APP_NAME:-Truth Hunter}
-      APP_VERSION: ${APP_VERSION:-0.9.0-rc1}
+      APP_VERSION: ${APP_VERSION:-0.9.0-rc2}
       APP_SECRET: ${APP_SECRET:-development-only-change-me}
       APP_HOST: 0.0.0.0
       APP_PORT: 8000

@@ -14,7 +14,7 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert "TRUTH" in response.text
     assert "HUNTER" in response.text
     assert "Don&#39;t believe it. Investigate it." in response.text
-    assert "v0.9.0-rc1" in response.text
+    assert "v0.9.0-rc2" in response.text
     assert '<form method="post" action="/investigations"' in response.text
     assert 'enctype="multipart/form-data"' in response.text
     assert 'maxlength="500"' in response.text
@@ -22,6 +22,9 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert "Ctrl+V" in response.text
     assert 'id="image-preview"' in response.text
     assert 'src="http://testserver/static/js/claim-input.js"' in response.text
+    assert "Not sure where to start? Try a real claim." in response.text
+    assert response.text.count('class="example-category"') == 3
+    assert response.text.count("Try this claim") == 3
 
 
 def test_home_supports_hungarian_interface(client: TestClient) -> None:
@@ -29,6 +32,7 @@ def test_home_supports_hungarian_interface(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert "Ne hidd el. Vizsgáld meg." in response.text
+    assert "Nem tudod, mivel kezdd?" in response.text
 
 
 def test_about_page_explains_the_service_without_exposing_secrets(client: TestClient) -> None:
