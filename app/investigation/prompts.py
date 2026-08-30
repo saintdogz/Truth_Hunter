@@ -73,4 +73,4 @@ expose hidden reasoning.
 Return only the requested structured result.
 """.strip()
 
-PROMPT_VERSION = "claim-interpretation-v2-adaptive-search-v6"
+PROMPT_VERSION = "claim-interpretation-v2-adaptive-search-v7"

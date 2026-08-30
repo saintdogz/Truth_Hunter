@@ -470,6 +470,12 @@ def investigation_result(
         user_id=raw_user_id if isinstance(raw_user_id, str) else None,
         session_id=raw_session_id if isinstance(raw_session_id, str) else None,
     ):
+        if (
+            request.query_params.get("sharing") == "published"
+            and investigation.is_public
+            and investigation.public_slug
+        ):
+            return RedirectResponse(f"/investigation/{investigation.public_slug}", status_code=303)
         return HTMLResponse("Not found", status_code=404)
     return _render_result(request, investigation, is_public_view=False)
 

@@ -8,8 +8,10 @@ from app.investigation.models import (
     SourceType,
 )
 from app.investigation.pipeline import (
+    authoritative_search_supplements,
     candidate_is_clearly_low_value,
     ground_summary_arguments,
+    has_verdict_bearing_evidence,
     prioritize_candidates,
 )
 
@@ -62,6 +64,35 @@ def test_relevant_or_metadata_free_results_are_kept_conservatively() -> None:
     assert not candidate_is_clearly_low_value(
         claim, SearchResult(url="https://museum.example/research/pyramids")
     )
+
+
+def test_hungarian_legal_claim_gets_primary_source_queries() -> None:
+    queries = authoritative_search_supplements(
+        "Downloading torrents is legal in Hungary, but seeding is illegal."
+    )
+
+    assert queries[0][0] == "hu"
+    assert "site:njt.hu" in queries[0][1]
+    assert any("site:sztnh.gov.hu" in query for _, query in queries)
+    assert any("site:eur-lex.europa.eu" in query for _, query in queries)
+
+
+def test_generic_country_pages_are_rejected_for_legal_claims() -> None:
+    claim = "Downloading torrents is legal in Hungary, but seeding is illegal."
+
+    assert candidate_is_clearly_low_value(
+        claim,
+        SearchResult(
+            url="https://en.wikipedia.org/wiki/Hungary",
+            title="Hungary",
+            snippet="Hungary is a landlocked country in Central Europe.",
+        ),
+    )
+
+
+def test_neutral_forum_comment_does_not_block_search_fallback() -> None:
+    assert not has_verdict_bearing_evidence([evidence(EvidencePosition.NEUTRAL)])
+    assert has_verdict_bearing_evidence([evidence(EvidencePosition.CONTRADICTING)])
 
 
 def test_candidates_prefer_authoritative_sources_and_limit_repeated_domains() -> None:

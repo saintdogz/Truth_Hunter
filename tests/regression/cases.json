@@ -131,5 +131,19 @@
       {"domain":"social.example","source_type":"SOCIAL_MEDIA","position":"NEUTRAL","quality":0.2,"relevance":0.2,"summary":"An anonymous post repeats the rumor without evidence."},
       {"domain":"forum.example","source_type":"UNKNOWN","position":"NEUTRAL","quality":0.2,"relevance":0.2,"summary":"Forum users speculate about an unverified event."}
     ]
+  },
+  {
+    "id": "hungary-torrent-legality-is-conditional",
+    "reviewed_on": "2026-08-30",
+    "claim": "Downloading torrents is legal in Hungary, but seeding torrents is illegal in Hungary.",
+    "expected_verdict": "FALSE",
+    "expected_confidence": "HIGH",
+    "evidence": [
+      {"domain":"njt.hu","source_type":"COURT_LEGAL","position":"CONTRADICTING","summary":"Section 35 permits private copying only when the individual accessed the work lawfully, contradicting the unconditional assertion that downloading torrents is legal."},
+      {"domain":"njt.hu","source_type":"COURT_LEGAL","position":"CONTRADICTING","summary":"Section 26 reserves making a protected work available online to its author unless permission or another legal basis applies."},
+      {"domain":"eur-lex.europa.eu","source_type":"COURT_LEGAL","position":"CONTRADICTING","summary":"EU case law does not extend the private-copying exception to copies made from unlawful sources."},
+      {"domain":"sztnh.gov.hu","source_type":"PRIMARY_OFFICIAL","position":"CONTRADICTING","summary":"Copyright legality depends on the protected content, lawful access, authorization, and the applicable exception—not on the BitTorrent protocol alone."},
+      {"domain":"curia.europa.eu","source_type":"COURT_LEGAL","position":"CONTRADICTING","summary":"The lawful-source requirement prevents a blanket rule that downloading copyrighted torrent content is legal."}
+    ]
   }
 ]

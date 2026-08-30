@@ -354,6 +354,30 @@ def test_owner_result_clearly_identifies_the_public_share_link(client: TestClien
     assert "Copy the public link shown below" in response.text
 
 
+def test_shared_owner_url_redirects_visitors_to_public_slug(client: TestClient) -> None:
+    fake = install_fake(client)
+    home = client.get("/")
+    client.post(
+        "/investigations",
+        data={"claim": "A shareable claim", "csrf": csrf_from(home.text)},
+        follow_redirects=False,
+    )
+    investigation_id = next(iter(fake.items))
+    investigation = fake.items[investigation_id]
+    investigation.status = "COMPLETED"
+    investigation.is_public = True
+    investigation.public_slug = "visitor-public-slug"
+    client.cookies.clear()
+
+    response = client.get(
+        f"/investigations/{investigation_id}/result?sharing=published",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/investigation/visitor-public-slug"
+
+
 def test_result_service_eagerly_loads_nested_source_evidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

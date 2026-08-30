@@ -72,6 +72,17 @@ AUTHORITATIVE_DOMAIN_MARKERS = (
     ".gov.uk",
     ".int",
 )
+LEGAL_CLAIM_TERMS = {
+    "illegal",
+    "law",
+    "lawful",
+    "legal",
+    "legality",
+    "licence",
+    "license",
+    "regulation",
+}
+HUNGARY_TERMS = {"hungary", "hungarian", "magyar", "magyarország"}
 
 
 class InvestigationPipelineError(RuntimeError):
@@ -131,7 +142,48 @@ def candidate_is_clearly_low_value(claim: str, candidate: SearchResult) -> bool:
     searchable = f"{metadata} {path.casefold()}"
     has_claim_term = any(term in searchable for term in claim_terms)
     is_generic_homepage = path == "/"
+    legal_claim = bool(claim_terms & LEGAL_CLAIM_TERMS)
+    distinguishing_terms = claim_terms - LEGAL_CLAIM_TERMS - HUNGARY_TERMS
+    if (
+        legal_claim
+        and distinguishing_terms
+        and not any(term in searchable for term in distinguishing_terms)
+    ):
+        return True
     return is_generic_homepage and not has_claim_term
+
+
+def authoritative_search_supplements(claim: str) -> list[tuple[str, str]]:
+    """Add deterministic primary-source searches for high-stakes legal claims."""
+
+    normalized = claim.casefold()
+    terms = set(re.findall(r"[\w'-]+", normalized))
+    if not terms & LEGAL_CLAIM_TERMS:
+        return []
+    if terms & HUNGARY_TERMS:
+        topic = " ".join(
+            term
+            for term in re.findall(r"[\w'-]+", normalized)
+            if term not in LEGAL_CLAIM_TERMS and term not in HUNGARY_TERMS
+        )
+        return [
+            ("hu", f"site:njt.hu {topic} szerzői jog jogszerű hozzáférés".strip()),
+            ("hu", f"site:sztnh.gov.hu {topic} szerzői jog".strip()),
+            ("en", f"site:eur-lex.europa.eu {topic} copyright Hungary".strip()),
+        ]
+    return []
+
+
+def has_verdict_bearing_evidence(evidence: list[EvidenceAssessment]) -> bool:
+    """Return whether evidence can materially support or contradict a claim."""
+
+    return any(
+        item.position in {EvidencePosition.SUPPORTING, EvidencePosition.CONTRADICTING}
+        and item.relevance >= 0.35
+        and item.quality >= 0.35
+        and item.strength >= 0.25
+        for item in evidence
+    )
 
 
 def prioritize_candidates(
@@ -253,9 +305,11 @@ class InvestigationPipeline:
         try:
             self._repository.set_status(investigation_id, "SEARCHING")
             queries = await self._ai.generate_search_queries(confirmed_claim, language)
-            query_plan = [("en", query) for query in queries.english]
+            query_plan = authoritative_search_supplements(confirmed_claim)
+            query_plan.extend(("en", query) for query in queries.english)
             if queries.use_hungarian and queries.scope == "hungary_specific":
                 query_plan.extend(("hu", query) for query in queries.hungarian)
+            query_plan = list(dict.fromkeys(query_plan))
             search_languages = list(dict.fromkeys(item[0] for item in query_plan))
             providers_used = [self._search.provider_name]
             candidates = await self._search_candidates(self._search, query_plan)
@@ -264,7 +318,7 @@ class InvestigationPipeline:
                 investigation_id, confirmed_claim, candidates
             )
 
-            if not evidence and self._fallback_search is not None:
+            if not has_verdict_bearing_evidence(evidence) and self._fallback_search is not None:
                 providers_used.append(self._fallback_search.provider_name)
                 fallback_plan = query_plan[: self._fallback_search_query_limit]
                 fallback_candidates = await self._search_candidates(
