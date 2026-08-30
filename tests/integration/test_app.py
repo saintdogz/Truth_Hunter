@@ -25,7 +25,9 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert 'href="http://testserver/static/css/app.css?v=' in response.text
     assert "Not sure where to start? Try a real claim." in response.text
     assert response.text.count('class="example-category"') == 3
-    assert response.text.count("Try this claim") == 3
+    assert response.text.count("Try this claim") == 2
+    assert "Stúdióban készültek a holdra szállás felvételei?" in response.text
+    assert "Állítás kipróbálása" in response.text
     assert 'data-example="A Holdra szállás felvételeit egy stúdióban készítették."' in response.text
     assert '<span aria-hidden="true">03</span>' not in response.text
 
