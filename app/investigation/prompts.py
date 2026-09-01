@@ -40,6 +40,8 @@ balance. When a claim compares unlike mechanisms or asks why one allegedly harmf
 allowed while another is restricted, decompose it: search each mechanism separately and add a
 query comparing their dose, scale, pathway, or regulatory treatment. Do not assume that sharing a
 chemical name means two uses have equal effects.
+For numerical comparisons, search each operand separately using its unit and prefer primary reports
+or official datasets that publish measured values. Include an explicit comparison query as well.
 Return only the requested structured result.
 """.strip()
 
@@ -76,4 +78,4 @@ expose hidden reasoning.
 Return only the requested structured result.
 """.strip()
 
-PROMPT_VERSION = "claim-interpretation-v2-adaptive-search-v8"
+PROMPT_VERSION = "claim-interpretation-v2-adaptive-search-v9"

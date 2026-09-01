@@ -136,6 +136,28 @@ class InvestigationRepository:
         self._session.add(record)
         self._session.commit()
 
+    def update_evidence_assessments(self, items: list[EvidenceAssessment]) -> None:
+        """Persist deterministic post-evaluation guardrails for the result snapshot."""
+
+        for item in items:
+            if item.source_id is None:
+                continue
+            record = self._session.scalar(
+                select(EvidenceRecord).where(EvidenceRecord.source_id == item.source_id)
+            )
+            source = self._session.get(Source, item.source_id)
+            if record is None or source is None:
+                continue
+            record.position = item.position.value
+            record.strength = item.strength
+            record.relevance = item.relevance
+            record.quality = item.quality
+            record.independence = item.independence
+            source.source_type = item.source_type.value
+            source.quality_score = item.quality
+            source.relevance_score = item.relevance
+        self._session.commit()
+
     def complete(
         self,
         investigation_id: UUID,

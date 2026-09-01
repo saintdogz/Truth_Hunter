@@ -9,7 +9,14 @@ from app.investigation.models import (
     SourceType,
 )
 
-AUTHORITATIVE_DOMAIN_SUFFIXES = ("easa.europa.eu", "eur-lex.europa.eu")
+AUTHORITATIVE_DOMAIN_SUFFIXES = (
+    "coca-cola.com",
+    "coca-colacompany.com",
+    "coca-colahellenic.com",
+    "cocacolaep.com",
+    "easa.europa.eu",
+    "eur-lex.europa.eu",
+)
 UNCONDITIONAL_CLAIM_MARKERS = (
     "regardless of",
     "irrespective of",

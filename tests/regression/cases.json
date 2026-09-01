@@ -145,5 +145,16 @@
       {"domain":"sztnh.gov.hu","source_type":"PRIMARY_OFFICIAL","position":"CONTRADICTING","summary":"Copyright legality depends on the protected content, lawful access, authorization, and the applicable exception—not on the BitTorrent protocol alone."},
       {"domain":"curia.europa.eu","source_type":"COURT_LEGAL","position":"CONTRADICTING","summary":"The lawful-source requirement prevents a blanket rule that downloading copyrighted torrent content is legal."}
     ]
+  },
+  {
+    "id": "coca-cola-footprint-versus-petrol-car-kilometre",
+    "reviewed_on": "2026-09-01",
+    "claim": "10 litres of Coca-Cola has a larger full-value-chain CO2e footprint than an average petrol passenger car driving 1 kilometre.",
+    "expected_verdict": "TRUE",
+    "expected_confidence": "MEDIUM",
+    "evidence": [
+      {"domain":"coca-colahellenic.com","source_type":"PRIMARY_OFFICIAL","position":"SUPPORTING","quality":0.9,"independence":0.8,"summary":"The annual sustainability report gives full-value-chain Scope 1, 2, and 3 emissions intensity per litre of produced beverage."},
+      {"domain":"epa.gov","source_type":"PRIMARY_OFFICIAL","position":"SUPPORTING","quality":0.9,"independence":0.9,"summary":"The official vehicle-emissions publication gives average gasoline passenger-vehicle CO2 emissions per mile, convertible to emissions per kilometre."}
+    ]
   }
 ]

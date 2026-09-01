@@ -1,10 +1,13 @@
 """Conservative search-candidate and result-summary quality gates."""
 
+from uuid import uuid4
+
 from app.investigation.models import (
     EvidenceAssessment,
     EvidencePosition,
     InvestigationSummary,
     SearchResult,
+    SourceDocument,
     SourceType,
 )
 from app.investigation.pipeline import (
@@ -15,6 +18,7 @@ from app.investigation.pipeline import (
     ground_summary_arguments,
     has_verdict_bearing_evidence,
     prioritize_candidates,
+    synthesize_carbon_comparison,
 )
 
 
@@ -106,6 +110,54 @@ def test_co2_comparison_gets_scale_and_mechanism_queries() -> None:
     assert any("amount compared" in query for _, query in queries)
     assert any("food grade" in query for _, query in queries)
     assert any("atmospheric CO2" in query for _, query in queries)
+
+
+def test_hungarian_quantitative_carbon_comparison_gets_operand_queries() -> None:
+    queries = comparison_search_supplements(
+        "10l Coca-Cola több CO2-t bocsát ki mint egy benzinautó 1km alatt."
+    )
+
+    assert any("coca-cola.com" in query for _, query in queries)
+    assert any("epa.gov" in query for _, query in queries)
+
+
+def test_independent_official_operands_are_joined_with_deterministic_units() -> None:
+    beverage_id = uuid4()
+    vehicle_id = uuid4()
+    items = [
+        evidence(EvidencePosition.NEUTRAL).model_copy(update={"source_id": beverage_id}),
+        evidence(EvidencePosition.NEUTRAL).model_copy(update={"source_id": vehicle_id}),
+    ]
+    documents = {
+        beverage_id: SourceDocument(
+            url="https://www.coca-cola.com/pl/pl/about-us/faq/klimat",
+            domain="www.coca-cola.com",
+            text=(
+                "Coca‑Cola zmniejsza ilość CO2 emitowanego w procesie produkcji naszych "
+                "napojów. Obecnie wynosi 52 g/litr produktu."
+            ),
+        ),
+        vehicle_id: SourceDocument(
+            url="https://www.epa.gov/greenvehicles/passenger-vehicle",
+            domain="www.epa.gov",
+            text="The average gasoline passenger vehicle emits 400 grams of CO 2 per mile.",
+        ),
+    }
+
+    synthesized = synthesize_carbon_comparison(
+        "10l Coca-Cola emits more CO2 than a petrol car driving 1km.", items, documents
+    )
+
+    assert [item.position for item in synthesized] == [
+        EvidencePosition.SUPPORTING,
+        EvidencePosition.SUPPORTING,
+    ]
+    assert all(item.relevance >= 0.9 for item in synthesized)
+
+    reversed_claim = synthesize_carbon_comparison(
+        "10l Coca-Cola emits less CO2 than a petrol car driving 1km.", items, documents
+    )
+    assert all(item.position == EvidencePosition.CONTRADICTING for item in reversed_claim)
 
 
 def test_comparison_claim_retains_high_quality_complementary_evidence() -> None:
