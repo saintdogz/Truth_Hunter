@@ -13,6 +13,7 @@ from app.investigation.factory import create_pipeline
 from app.investigation.models import ClaimInterpretation
 from app.investigation.pipeline import InvestigationPipelineError
 from app.investigation.repository import InvestigationNotFoundError, InvestigationRepository
+from app.notifications.discord import DiscordNotifier
 
 logger = logging.getLogger(__name__)
 
@@ -38,23 +39,43 @@ class InvestigationWebService:
         with Session(get_engine()) as session:
             pipeline = create_pipeline(self._settings, session)
             try:
-                return await pipeline.create_and_interpret(
+                result = await pipeline.create_and_interpret(
                     original_claim, user_id=user_id, session_id=session_id
                 )
             finally:
                 await pipeline.aclose()
+        await DiscordNotifier(self._settings).submitted(result[0], original_claim)
+        return result
 
     async def investigate(
         self, investigation_id: UUID, confirmed_claim: str, *, corrected: bool
     ) -> None:
         with Session(get_engine()) as session:
             pipeline = create_pipeline(self._settings, session)
+            repository = InvestigationRepository(session)
             try:
                 await pipeline.investigate_confirmed(
                     investigation_id, confirmed_claim, corrected=corrected
                 )
             except InvestigationPipelineError:
                 logger.warning("Investigation %s ended in a terminal failure", investigation_id)
+                investigation = repository.get(investigation_id)
+                await DiscordNotifier(self._settings).failed(
+                    investigation_id,
+                    confirmed_claim,
+                    status=investigation.status,
+                )
+            else:
+                investigation = repository.get(investigation_id)
+                await DiscordNotifier(self._settings).completed(
+                    investigation_id,
+                    confirmed_claim,
+                    verdict=investigation.verdict or "INCONCLUSIVE",
+                    confidence=investigation.confidence or "LOW",
+                    source_count=investigation.source_count,
+                    created_at=investigation.created_at,
+                    completed_at=investigation.completed_at,
+                )
             finally:
                 await pipeline.aclose()
 

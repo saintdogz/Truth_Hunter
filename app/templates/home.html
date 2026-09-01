@@ -22,6 +22,7 @@
           <button id="remove-image" type="button" aria-label="{{ t.remove_image }}">{{ t.remove_image }}</button>
         </div>
         {% if turnstile_site_key %}<div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-action="claim-submit" data-theme="dark" data-size="flexible"></div>{% endif %}
+        <small class="submission-privacy">{{ t.operations_notice }} <a href="/privacy?lang={{ language }}">{{ 'Adatvédelem' if language == 'hu' else 'Privacy' }}</a></small>
         <div class="form-foot"><small>{{ t.limit }}</small><button type="submit" class="button primary">{{ t.submit }} <span aria-hidden="true">→</span></button></div>
       </form>
     </div>

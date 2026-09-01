@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import AnyHttpUrl, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -87,6 +88,9 @@ class Settings(BaseSettings):
     admin_emails: str = ""
     admin_access_max_age_seconds: int = Field(default=600, ge=300, le=3_600)
     admin_session_max_age_seconds: int = Field(default=1_800, ge=300, le=14_400)
+    discord_notifications_enabled: bool = True
+    discord_webhook_url: SecretStr | None = None
+    discord_webhook_timeout_seconds: float = Field(default=5.0, ge=1, le=15)
 
     @field_validator("app_log_level")
     @classmethod
@@ -120,6 +124,7 @@ class Settings(BaseSettings):
         "support_url",
         "turnstile_site_key",
         "turnstile_secret_key",
+        "discord_webhook_url",
         mode="before",
     )
     @classmethod
@@ -202,6 +207,20 @@ class Settings(BaseSettings):
             raise ValueError("Cloudflare Turnstile test keys are forbidden in production")
         if self.app_env == "production" and not self.public_rate_limits_enabled:
             raise ValueError("PUBLIC_RATE_LIMITS_ENABLED must remain enabled in production")
+        if self.discord_webhook_url is not None:
+            parsed = urlsplit(self.discord_webhook_url.get_secret_value())
+            allowed_hosts = {
+                "canary.discord.com",
+                "discord.com",
+                "discordapp.com",
+                "ptb.discord.com",
+            }
+            if (
+                parsed.scheme != "https"
+                or parsed.hostname not in allowed_hosts
+                or not parsed.path.startswith("/api/webhooks/")
+            ):
+                raise ValueError("DISCORD_WEBHOOK_URL must be an official Discord HTTPS webhook")
         return self
 
     @property
@@ -219,6 +238,10 @@ class Settings(BaseSettings):
     @property
     def turnstile_enabled(self) -> bool:
         return self.turnstile_site_key is not None and self.turnstile_secret_key is not None
+
+    @property
+    def discord_notifications_active(self) -> bool:
+        return self.discord_notifications_enabled and self.discord_webhook_url is not None
 
 
 @lru_cache

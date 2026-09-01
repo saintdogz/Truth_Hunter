@@ -20,6 +20,7 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert 'maxlength="500"' in response.text
     assert 'accept="image/jpeg,image/png,image/webp"' in response.text
     assert "Ctrl+V" in response.text
+    assert "shortened and sanitized claim excerpt" in response.text
     assert 'id="image-preview"' in response.text
     assert 'src="http://testserver/static/js/claim-input.js?v=' in response.text
     assert 'href="http://testserver/static/css/app.css?v=' in response.text
@@ -67,6 +68,8 @@ def test_bilingual_legal_pages_and_footer_links_are_public(client: TestClient) -
     assert privacy.status_code == 200
     assert "Privacy Policy" in privacy.text
     assert "Uploaded images are discarded after OCR" in privacy.text
+    assert "Discord for operational notifications" in privacy.text
+    assert "account data, IP addresses, and session identifiers are not sent" in privacy.text
     assert terms_hu.status_code == 200
     assert "Felhasználási feltételek" in terms_hu.text
     assert 'href="/privacy?lang=en"' in privacy.text
