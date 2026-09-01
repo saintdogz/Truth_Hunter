@@ -36,7 +36,10 @@ institutions. For laws, regulations, licensing rules, or technical standards, in
 query aimed at the responsible authority or primary legal text. Preserve domain-specific acronyms
 with their context so ambiguous abbreviations do not dominate results (for example, search `LAPL(A)
 pilot licence`, not bare `LAPL`). Seek evidence on the whole proposition without forcing artificial
-balance.
+balance. When a claim compares unlike mechanisms or asks why one allegedly harmful thing is
+allowed while another is restricted, decompose it: search each mechanism separately and add a
+query comparing their dose, scale, pathway, or regulatory treatment. Do not assume that sharing a
+chemical name means two uses have equal effects.
 Return only the requested structured result.
 """.strip()
 
@@ -73,4 +76,4 @@ expose hidden reasoning.
 Return only the requested structured result.
 """.strip()
 
-PROMPT_VERSION = "claim-interpretation-v2-adaptive-search-v7"
+PROMPT_VERSION = "claim-interpretation-v2-adaptive-search-v8"

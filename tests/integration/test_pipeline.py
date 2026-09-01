@@ -144,8 +144,24 @@ class FlexibleSummaryAI(FallbackAwareAI):
         evidence: list[EvidenceAssessment],
         language: str,
     ) -> InvestigationSummary:
+        self.summary_calls += 1
         del claim, assessment, evidence, language
         return InvestigationSummary(explanation="The available evidence was assessed.")
+
+
+class ComplementaryEvidenceAI(FlexibleSummaryAI):
+    async def evaluate_evidence(self, claim: str, source: SourceDocument) -> EvidenceAssessment:
+        del claim, source
+        return EvidenceAssessment(
+            position=EvidencePosition.NEUTRAL,
+            strength=0.0,
+            relevance=0.15,
+            quality=0.9,
+            independence=0.8,
+            recency=0.9,
+            source_type=SourceType.PRIMARY_OFFICIAL,
+            summary="Authoritative evidence explains one side of the comparison.",
+        )
 
 
 class FakeBraveSearch:
@@ -257,7 +273,7 @@ async def test_pipeline_persists_historical_snapshot() -> None:
         assert stored.status == "COMPLETED"
         assert stored.source_count == 5
         assert stored.scoring_version == "evidence-v4"
-        assert stored.prompt_version == "claim-interpretation-v2-adaptive-search-v7"
+        assert stored.prompt_version == "claim-interpretation-v2-adaptive-search-v8"
         assert stored.search_languages == ["en"]
         assert len(stored.sources) == 5
         assert len(stored.evidence) == 5
@@ -372,6 +388,34 @@ async def test_irrelevant_fetched_pages_fail_without_generating_summary() -> Non
         assert stored.summary is None
         assert stored.source_count == 0
         assert ai.summary_calls == 0
+    engine.dispose()
+
+
+@pytest.mark.anyio
+async def test_comparison_question_completes_with_complementary_evidence() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        ai = ComplementaryEvidenceAI()
+        pipeline = InvestigationPipeline(
+            ai,
+            FakeSearch(),
+            FakeFetcher(),
+            InvestigationRepository(session),
+            search_delay_seconds=0,
+            source_evaluation_limit=5,
+        )
+        claim = "CO2 is harmful, yet carbonated soft drinks are permitted."
+        investigation_id, _ = await pipeline.create_and_interpret(claim)
+
+        assessment = await pipeline.investigate_confirmed(investigation_id, claim)
+
+        stored = session.get(Investigation, investigation_id)
+        assert assessment.verdict == Verdict.INCONCLUSIVE
+        assert stored is not None
+        assert stored.status == "COMPLETED"
+        assert stored.source_count == 5
+        assert ai.summary_calls == 1
     engine.dispose()
 
 

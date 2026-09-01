@@ -10,6 +10,8 @@ from app.investigation.models import (
 from app.investigation.pipeline import (
     authoritative_search_supplements,
     candidate_is_clearly_low_value,
+    comparison_search_supplements,
+    evidence_is_collectible,
     ground_summary_arguments,
     has_verdict_bearing_evidence,
     prioritize_candidates,
@@ -93,6 +95,26 @@ def test_generic_country_pages_are_rejected_for_legal_claims() -> None:
 def test_neutral_forum_comment_does_not_block_search_fallback() -> None:
     assert not has_verdict_bearing_evidence([evidence(EvidencePosition.NEUTRAL)])
     assert has_verdict_bearing_evidence([evidence(EvidencePosition.CONTRADICTING)])
+
+
+def test_co2_comparison_gets_scale_and_mechanism_queries() -> None:
+    queries = comparison_search_supplements(
+        "CO2 causes significant harm, but carbonated soft drinks are not prohibited."
+    )
+
+    assert len(queries) == 3
+    assert any("amount compared" in query for _, query in queries)
+    assert any("food grade" in query for _, query in queries)
+    assert any("atmospheric CO2" in query for _, query in queries)
+
+
+def test_comparison_claim_retains_high_quality_complementary_evidence() -> None:
+    partial = evidence(EvidencePosition.NEUTRAL).model_copy(
+        update={"relevance": 0.15, "quality": 0.9, "independence": 0.8}
+    )
+
+    assert evidence_is_collectible("CO2 is harmful, yet carbonated drinks are permitted.", partial)
+    assert not evidence_is_collectible("CO2 is harmful.", partial)
 
 
 def test_candidates_prefer_authoritative_sources_and_limit_repeated_domains() -> None:

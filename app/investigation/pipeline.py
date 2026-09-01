@@ -83,6 +83,18 @@ LEGAL_CLAIM_TERMS = {
     "regulation",
 }
 HUNGARY_TERMS = {"hungary", "hungarian", "magyar", "magyarország"}
+COMPARISON_MARKERS = (
+    " but ",
+    " yet ",
+    " while ",
+    " why is ",
+    " why are ",
+    " why not ",
+    " de ",
+    " mégis ",
+    " miért ",
+    " miközben ",
+)
 
 
 class InvestigationPipelineError(RuntimeError):
@@ -172,6 +184,46 @@ def authoritative_search_supplements(claim: str) -> list[tuple[str, str]]:
             ("en", f"site:eur-lex.europa.eu {topic} copyright Hungary".strip()),
         ]
     return []
+
+
+def comparison_search_supplements(claim: str) -> list[tuple[str, str]]:
+    """Search both mechanisms and their scale for common comparison questions."""
+
+    normalized = claim.casefold()
+    if not any(marker in f" {normalized} " for marker in COMPARISON_MARKERS):
+        return []
+    has_co2 = "co2" in normalized or "carbon dioxide" in normalized
+    has_soft_drink = any(
+        term in normalized
+        for term in ("carbonated", "coca-cola", "coca cola", "soft drink", "üdítő")
+    )
+    if has_co2 and has_soft_drink:
+        return [
+            (
+                "en",
+                "carbon dioxide in carbonated drinks amount compared with "
+                "fossil fuel CO2 emissions",
+            ),
+            ("en", "food grade carbon dioxide carbonated beverages safety regulation"),
+            ("en", "why atmospheric CO2 emissions cause climate change cumulative concentration"),
+        ]
+    return []
+
+
+def evidence_is_collectible(claim: str, item: EvidenceAssessment) -> bool:
+    """Keep direct evidence plus strong complementary evidence for comparison claims."""
+
+    if item.relevance >= 0.35:
+        return True
+    normalized = claim.casefold()
+    is_comparison = any(marker in f" {normalized} " for marker in COMPARISON_MARKERS)
+    return (
+        is_comparison
+        and item.position == EvidencePosition.NEUTRAL
+        and item.relevance >= 0.1
+        and item.quality >= 0.7
+        and item.independence >= 0.45
+    )
 
 
 def has_verdict_bearing_evidence(evidence: list[EvidenceAssessment]) -> bool:
@@ -306,6 +358,7 @@ class InvestigationPipeline:
             self._repository.set_status(investigation_id, "SEARCHING")
             queries = await self._ai.generate_search_queries(confirmed_claim, language)
             query_plan = authoritative_search_supplements(confirmed_claim)
+            query_plan.extend(comparison_search_supplements(confirmed_claim))
             query_plan.extend(("en", query) for query in queries.english)
             if queries.use_hungarian and queries.scope == "hungary_specific":
                 query_plan.extend(("hu", query) for query in queries.hungarian)
@@ -419,7 +472,7 @@ class InvestigationPipeline:
             item = apply_evidence_guardrails(confirmed_claim, item, document.domain)
             item = item.model_copy(update={"source_id": source.id})
             self._repository.add_evidence(investigation_id, source, item)
-            if item.relevance >= 0.35:
+            if evidence_is_collectible(confirmed_claim, item):
                 evidence.append(item)
         return evidence, evaluated_count, seen_urls
 
