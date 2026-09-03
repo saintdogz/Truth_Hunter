@@ -133,6 +133,15 @@ class CarbonComparisonClaim:
     expects_beverage_greater: bool
 
 
+@dataclass(frozen=True)
+class SearchBatch:
+    """Search results plus enough telemetry to distinguish gaps from outages."""
+
+    candidates: list[SearchResult]
+    successful_queries: int
+    failed_queries: int
+
+
 class InvestigationPipelineError(RuntimeError):
     """Sanitized terminal pipeline failure."""
 
@@ -168,6 +177,90 @@ def deduplicate_results(results: list[SearchResult]) -> list[SearchResult]:
     for result in results:
         unique.setdefault(canonical_url(str(result.url)), result)
     return list(unique.values())
+
+
+def adaptive_search_supplements(
+    claim: str,
+    language: str,
+    attempted_queries: list[tuple[str, str]],
+    candidates: list[SearchResult],
+) -> list[tuple[str, str]]:
+    """Build one bounded second pass from the first pass as a whole.
+
+    The refinement is deliberately deterministic: it cannot invent a new interpretation
+    of the claim, and it reacts to corpus-wide topic drift rather than one search hit.
+    """
+
+    normalized_claim = " ".join(claim.split())
+    claim_terms = {
+        term
+        for term in re.findall(r"[\w.-]{3,}", normalized_claim.casefold(), flags=re.UNICODE)
+        if term not in SEARCH_TEXT_STOPWORDS
+    }
+    metadata = " ".join(f"{item.title} {item.snippet}" for item in candidates).casefold()
+    covered_terms = sum(1 for term in claim_terms if term in metadata)
+    corpus_overlap = covered_terms / max(1, len(claim_terms))
+
+    identifiers = list(
+        dict.fromkeys(
+            match.strip()
+            for match in re.findall(
+                r"\b(?:[A-Z]{2,}[ -]?\d+[A-Z0-9.-]*|[A-Za-z]+[ -]?\d{2,}[A-Za-z0-9.-]*)\b",
+                normalized_claim,
+            )
+        )
+    )[:2]
+    numbers = list(
+        dict.fromkeys(re.findall(r"\b\d+(?:[.,]\d+)?\s*[A-Za-z%³²/.-]*", normalized_claim))
+    )[:2]
+    anchor = " ".join(identifiers + numbers).strip()
+
+    refinements: list[tuple[str, str]] = []
+    # Exact wording is especially useful for manuals, archives, standards, and quoted claims.
+    refinements.append(("en", f'"{normalized_claim}"'))
+    context = f'"{anchor}" ' if anchor else ""
+    if anchor:
+        refinements.append(
+            (
+                "en",
+                f"{context}manual specification service life durability test "
+                "technical documentation",
+            )
+        )
+    else:
+        refinements.append(
+            ("en", f"{normalized_claim} primary source research report official record")
+        )
+    if language == "hu":
+        refinements.append(
+            ("hu", f'"{normalized_claim}" kézikönyv műszaki leírás mérési jegyzőkönyv')
+        )
+    if corpus_overlap < 0.35:
+        refinements.append(
+            ("en", f"{context}{normalized_claim} primary source archive manufacturer")
+        )
+
+    attempted = {query.casefold() for _, query in attempted_queries}
+    return [item for item in dict.fromkeys(refinements) if item[1].casefold() not in attempted][:3]
+
+
+def evidence_gap_summary(language: str) -> InvestigationSummary:
+    """Explain a completed search that did not establish either side of the claim."""
+
+    if language == "hu":
+        explanation = (
+            "A keresés lefutott, de a begyűjtött források egyike sem támasztotta alá "
+            "és nem is cáfolta közvetlenül az állítást. Az eredmény azért nem eldönthető, "
+            "mert nem találtunk megfelelő bizonyítékot — nem azért, mert az állítás hamisnak "
+            "bizonyult."
+        )
+    else:
+        explanation = (
+            "The search completed, but none of the collected sources directly established or "
+            "refuted the claim. The result is inconclusive because suitable evidence was not "
+            "found—not because the claim was shown to be false."
+        )
+    return InvestigationSummary(explanation=explanation)
 
 
 def candidate_is_clearly_low_value(claim: str, candidate: SearchResult) -> bool:
@@ -571,8 +664,9 @@ class InvestigationPipeline:
             query_plan = list(dict.fromkeys(query_plan))
             search_languages = list(dict.fromkeys(item[0] for item in query_plan))
             providers_used = [self._search.provider_name]
-            candidates = await self._search_candidates(self._search, query_plan)
-            candidates = prioritize_candidates(confirmed_claim, candidates)
+            primary_batch = await self._search_candidates(self._search, query_plan)
+            search_successes = primary_batch.successful_queries
+            candidates = prioritize_candidates(confirmed_claim, primary_batch.candidates)
             evidence, evaluated_count, seen_urls, documents = await self._evaluate_candidates(
                 investigation_id, confirmed_claim, candidates
             )
@@ -583,17 +677,61 @@ class InvestigationPipeline:
                 ClaimType(claim_type_value),
             )
 
+            refined_plan: list[tuple[str, str]] = []
+            if search_successes > 0 and not has_verdict_bearing_evidence(evidence):
+                refined_plan = adaptive_search_supplements(
+                    confirmed_claim, language, query_plan, candidates
+                )
+                if refined_plan:
+                    search_languages.extend(
+                        item
+                        for item in dict.fromkeys(
+                            query_language for query_language, _ in refined_plan
+                        )
+                        if item not in search_languages
+                    )
+                    refined_batch = await self._search_candidates(self._search, refined_plan)
+                    search_successes += refined_batch.successful_queries
+                    refined_candidates = prioritize_candidates(
+                        confirmed_claim, refined_batch.candidates
+                    )
+                    refined_candidates = [
+                        item
+                        for item in refined_candidates
+                        if canonical_url(str(item.url)) not in seen_urls
+                    ]
+                    (
+                        refined_evidence,
+                        refined_count,
+                        refined_seen,
+                        refined_documents,
+                    ) = await self._evaluate_candidates(
+                        investigation_id, confirmed_claim, refined_candidates
+                    )
+                    evidence.extend(refined_evidence)
+                    evaluated_count += refined_count
+                    seen_urls.update(refined_seen)
+                    documents.update(refined_documents)
+                    evidence = synthesize_carbon_comparison(confirmed_claim, evidence, documents)
+                    preliminary = calculate_assessment(
+                        evidence,
+                        calculate_balance(evidence),
+                        ClaimType(claim_type_value),
+                    )
+
             needs_fallback = not has_verdict_bearing_evidence(evidence) or (
                 parse_carbon_comparison_claim(confirmed_claim) is not None
                 and not preliminary.evidence_sufficient
             )
             if needs_fallback and self._fallback_search is not None:
                 providers_used.append(self._fallback_search.provider_name)
-                fallback_plan = query_plan[: self._fallback_search_query_limit]
-                fallback_candidates = await self._search_candidates(
-                    self._fallback_search, fallback_plan
+                fallback_source_plan = refined_plan or query_plan
+                fallback_plan = fallback_source_plan[: self._fallback_search_query_limit]
+                fallback_batch = await self._search_candidates(self._fallback_search, fallback_plan)
+                search_successes += fallback_batch.successful_queries
+                fallback_candidates = prioritize_candidates(
+                    confirmed_claim, fallback_batch.candidates
                 )
-                fallback_candidates = prioritize_candidates(confirmed_claim, fallback_candidates)
                 fallback_candidates = [
                     item
                     for item in fallback_candidates
@@ -612,7 +750,7 @@ class InvestigationPipeline:
                 evidence = synthesize_carbon_comparison(confirmed_claim, evidence, documents)
                 evaluated_count += fallback_count
 
-            if not evidence:
+            if not evidence and search_successes == 0:
                 raise SearchEvidenceUnavailableError("No useful evidence could be collected")
 
             self._repository.set_status(investigation_id, "CALCULATING_ASSESSMENT")
@@ -621,10 +759,13 @@ class InvestigationPipeline:
             assessment = calculate_assessment(evidence, balance, ClaimType(claim_type_value))
 
             self._repository.set_status(investigation_id, "GENERATING_RESULT")
-            summary = await self._ai.generate_summary(
-                confirmed_claim, assessment, evidence, language
-            )
-            summary = ground_summary_arguments(summary, evidence)
+            if evidence:
+                summary = await self._ai.generate_summary(
+                    confirmed_claim, assessment, evidence, language
+                )
+                summary = ground_summary_arguments(summary, evidence)
+            else:
+                summary = evidence_gap_summary(language)
             self._repository.complete(
                 investigation_id,
                 assessment,
@@ -646,8 +787,10 @@ class InvestigationPipeline:
 
     async def _search_candidates(
         self, provider: SearchProvider, query_plan: list[tuple[str, str]]
-    ) -> list[SearchResult]:
+    ) -> SearchBatch:
         candidates: list[SearchResult] = []
+        successful_queries = 0
+        failed_queries = 0
         for index, (query_language, query) in enumerate(query_plan):
             remaining = self._search_result_limit - len(deduplicate_results(candidates))
             if remaining <= 0:
@@ -657,11 +800,18 @@ class InvestigationPipeline:
                     provider, query, query_language, min(8, remaining)
                 )
             except SearchProviderError:
+                failed_queries += 1
                 results = []
+            else:
+                successful_queries += 1
             candidates.extend(results)
             if index < len(query_plan) - 1 and self._search_delay_seconds:
                 await asyncio.sleep(self._search_delay_seconds)
-        return deduplicate_results(candidates)
+        return SearchBatch(
+            candidates=deduplicate_results(candidates),
+            successful_queries=successful_queries,
+            failed_queries=failed_queries,
+        )
 
     async def _evaluate_candidates(
         self,

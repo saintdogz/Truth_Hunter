@@ -387,12 +387,21 @@ and should be prioritized when the claim explicitly concerns content published
 on that platform. These rules improve source diversity without treating domain
 class as a verdict or excluding a source solely because it is social media.
 
-If search returns no candidates, or the fetched candidates produce no useful
-evidence after evaluation, the investigation must terminate as
-`SEARCH_FAILED`. Merely fetching irrelevant pages does not satisfy this gate.
-The run must not generate a summary, arguments, verdict, or evidence-free
-`INCONCLUSIVE` result. The UI must identify evidence search as temporarily
-unavailable.
+When the initial free-search pass produces no verdict-bearing evidence, run at
+most one bounded adaptive refinement pass. Refinement must consider the
+first-pass query set and result corpus as a whole, not react to one result. It
+should preserve the claim, emphasize exact wording, stable model/entity
+identifiers, numerical thresholds, primary-source document types, and relevant
+native-language technical terminology. It must not contain claim-specific
+hard-coded conclusions or invent a new interpretation of the claim.
+
+Distinguish an infrastructure failure from an evidence gap. If every configured
+search route fails, terminate as `SEARCH_FAILED` and identify search as
+temporarily unavailable. If at least one search query completes but no source
+directly supports or contradicts the claim, complete an evidence-free
+`INCONCLUSIVE` result with low confidence and an explicit explanation that
+suitable evidence was not found. This outcome must not imply that the claim was
+shown false. Sources that were successfully evaluated remain inspectable.
 
 While an investigation runs, the progress page should show a localized,
 accessible five-stage indicator for searching, collecting, evaluating,
@@ -408,13 +417,14 @@ the verdict, summary, arguments, and inspectable evidence trail.
 
 When `BRAVE_SEARCH_API_KEY` is configured, the official Brave Web Search API is
 a metered last-resort search tier. The application must complete the free,
-self-hosted SearXNG attempt first. Brave may be queried only when that attempt
-produces no useful evidence, and no more than
-`BRAVE_SEARCH_MAX_QUERIES_PER_INVESTIGATION` generated queries may be sent to
+self-hosted SearXNG initial and adaptive attempts first. Brave may be queried
+only when those attempts produce no useful evidence, and no more than
+`BRAVE_SEARCH_MAX_QUERIES_PER_INVESTIGATION` refined queries may be sent to
 Brave. The default and maximum paid-search route is two queries per
 investigation. Successful snapshots must record whether the route was
 `searxng` or `searxng -> brave`. If Brave is absent, exhausted, rate-limited,
-or unsuccessful, the existing `SEARCH_FAILED` behavior applies.
+or unsuccessful, apply the infrastructure-failure versus evidence-gap
+distinction above.
 
 Do not force equal numbers of supporting and contradicting sources.
 

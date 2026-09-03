@@ -22,7 +22,11 @@ from app.investigation.models import (
     SourceType,
     Verdict,
 )
-from app.investigation.pipeline import InvestigationPipeline, InvestigationPipelineError
+from app.investigation.pipeline import (
+    InvestigationPipeline,
+    InvestigationPipelineError,
+    adaptive_search_supplements,
+)
 from app.investigation.repository import InvestigationRepository
 from app.search.base import SearchAuthenticationError, SearchProviderError, SearchUnavailableError
 
@@ -90,6 +94,15 @@ class FakeSearch:
             SearchResult(url=f"https://{language}{number}.example/article?utm_source=test")
             for number in range(1, 6)
         ]
+
+
+def test_adaptive_search_uses_exact_claim_and_technical_identifiers() -> None:
+    claim = "Az STM 310 magnetofonnal egy mérőszalag 500 alkalommal futtatható."
+    plan = adaptive_search_supplements(claim, "hu", [("en", "generic query")], [])
+
+    assert plan[0] == ("en", f'"{claim}"')
+    assert any("STM 310" in query and "technical documentation" in query for _, query in plan)
+    assert any(language == "hu" and "műszaki leírás" in query for language, query in plan)
 
 
 class EmptySearch:
@@ -328,7 +341,7 @@ async def test_hungary_specific_plan_adds_targeted_hungarian_search() -> None:
 
 
 @pytest.mark.anyio
-async def test_zero_search_results_fail_without_generating_summary() -> None:
+async def test_successful_empty_search_completes_as_honest_inconclusive() -> None:
     engine = create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool)
     Base.metadata.create_all(engine)
     with Session(engine) as session:
@@ -344,15 +357,15 @@ async def test_zero_search_results_fail_without_generating_summary() -> None:
             "The Moon landing footage was filmed in a studio."
         )
 
-        with pytest.raises(InvestigationPipelineError, match="Evidence search failed"):
-            await pipeline.investigate_confirmed(
-                investigation_id, "The Moon landing footage was filmed in a studio."
-            )
+        assessment = await pipeline.investigate_confirmed(
+            investigation_id, "The Moon landing footage was filmed in a studio."
+        )
 
         stored = session.get(Investigation, investigation_id)
         assert stored is not None
-        assert stored.status == "SEARCH_FAILED"
-        assert stored.summary is None
+        assert assessment.verdict == Verdict.INCONCLUSIVE
+        assert stored.status == "COMPLETED"
+        assert "suitable evidence was not found" in (stored.summary or "")
         assert stored.pro_arguments == []
         assert stored.contra_arguments == []
         assert stored.source_count == 0
@@ -361,7 +374,30 @@ async def test_zero_search_results_fail_without_generating_summary() -> None:
 
 
 @pytest.mark.anyio
-async def test_irrelevant_fetched_pages_fail_without_generating_summary() -> None:
+async def test_all_search_requests_failing_remains_search_failed() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        pipeline = InvestigationPipeline(
+            FakeAI(),
+            FailingSearch(SearchAuthenticationError("Primary")),
+            FakeFetcher(),
+            InvestigationRepository(session),
+            search_delay_seconds=0,
+        )
+        investigation_id, _ = await pipeline.create_and_interpret("A factual claim.")
+
+        with pytest.raises(InvestigationPipelineError, match="Evidence search failed"):
+            await pipeline.investigate_confirmed(investigation_id, "A factual claim.")
+
+        stored = session.get(Investigation, investigation_id)
+        assert stored is not None
+        assert stored.status == "SEARCH_FAILED"
+    engine.dispose()
+
+
+@pytest.mark.anyio
+async def test_irrelevant_fetched_pages_complete_as_honest_inconclusive() -> None:
     engine = create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool)
     Base.metadata.create_all(engine)
     with Session(engine) as session:
@@ -377,16 +413,16 @@ async def test_irrelevant_fetched_pages_fail_without_generating_summary() -> Non
             "The Moon landing footage was filmed in a studio."
         )
 
-        with pytest.raises(InvestigationPipelineError, match="Evidence search failed"):
-            await pipeline.investigate_confirmed(
-                investigation_id, "The Moon landing footage was filmed in a studio."
-            )
+        assessment = await pipeline.investigate_confirmed(
+            investigation_id, "The Moon landing footage was filmed in a studio."
+        )
 
         stored = session.get(Investigation, investigation_id)
         assert stored is not None
-        assert stored.status == "SEARCH_FAILED"
-        assert stored.summary is None
-        assert stored.source_count == 0
+        assert assessment.verdict == Verdict.INCONCLUSIVE
+        assert stored.status == "COMPLETED"
+        assert stored.summary is not None
+        assert stored.source_count > 0
         assert ai.summary_calls == 0
     engine.dispose()
 
@@ -451,7 +487,8 @@ async def test_brave_fallback_runs_only_after_free_evidence_is_not_useful() -> N
         )
 
         stored = session.get(Investigation, investigation_id)
-        assert fallback.calls == [("query one", "en"), ("query two", "en")]
+        assert fallback.calls[0][0] == '"The Moon landing footage was filmed in a studio."'
+        assert len(fallback.calls) == 2
         assert stored is not None
         assert stored.status == "COMPLETED"
         assert stored.search_provider == "fake-search -> brave"
