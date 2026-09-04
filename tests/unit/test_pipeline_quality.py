@@ -13,6 +13,7 @@ from app.investigation.models import (
 from app.investigation.pipeline import (
     authoritative_search_supplements,
     candidate_is_clearly_low_value,
+    claim_fidelity_search_supplements,
     comparison_search_supplements,
     evidence_is_collectible,
     ground_summary_arguments,
@@ -81,6 +82,34 @@ def test_hungarian_legal_claim_gets_primary_source_queries() -> None:
     assert "site:njt.hu" in queries[0][1]
     assert any("site:sztnh.gov.hu" in query for _, query in queries)
     assert any("site:eur-lex.europa.eu" in query for _, query in queries)
+
+
+def test_attributed_claim_preserves_entities_and_requests_primary_reporting() -> None:
+    claim = "Open AI claims that GPT-6 Astra has reached AGI"
+
+    queries = claim_fidelity_search_supplements(claim, "en")
+
+    assert queries[0] == ("en", claim)
+    assert "GPT-6" in queries[1][1]
+    assert "Astra" in queries[1][1]
+    assert "AGI" in queries[1][1]
+    assert "official announcement" in queries[1][1]
+
+
+def test_claim_fidelity_queries_are_generic_and_bounded() -> None:
+    assert claim_fidelity_search_supplements(
+        "WHO announced a revised malaria recommendation", "en"
+    ) == [
+        ("en", "WHO announced a revised malaria recommendation"),
+        ("en", "WHO official announcement original statement interview"),
+    ]
+    assert claim_fidelity_search_supplements(
+        "A minisztérium bejelentette az új támogatást", "hu"
+    )[0][0] == "hu"
+
+
+def test_non_attributed_claim_does_not_add_search_traffic() -> None:
+    assert claim_fidelity_search_supplements("Vitamin C prevents colds", "en") == []
 
 
 def test_generic_country_pages_are_rejected_for_legal_claims() -> None:

@@ -85,6 +85,42 @@ LEGAL_CLAIM_TERMS = {
     "regulation",
 }
 HUNGARY_TERMS = {"hungary", "hungarian", "magyar", "magyarország"}
+ATTRIBUTION_TERMS = {
+    "announce",
+    "announced",
+    "announces",
+    "claim",
+    "claimed",
+    "claims",
+    "declare",
+    "declared",
+    "declares",
+    "report",
+    "reported",
+    "reports",
+    "said",
+    "says",
+    "state",
+    "stated",
+    "states",
+    "unveil",
+    "unveiled",
+    "unveils",
+    "állítja",
+    "bejelentette",
+    "közölte",
+    "szerint",
+}
+TECHNICAL_DOCUMENT_TERMS = {
+    "alkalommal",
+    "durability",
+    "futtatható",
+    "kézikönyv",
+    "lifetime",
+    "manual",
+    "specification",
+    "technical",
+}
 COMPARISON_MARKERS = (
     " but ",
     " yet ",
@@ -179,6 +215,42 @@ def deduplicate_results(results: list[SearchResult]) -> list[SearchResult]:
     return list(unique.values())
 
 
+def claim_fidelity_search_supplements(claim: str, language: str) -> list[tuple[str, str]]:
+    """Keep exact entities and attribution in searches for reported statements.
+
+    AI-generated queries can broaden or reinterpret a claim. These bounded deterministic
+    queries preserve its wording and give announcement claims a route to first-party pages
+    and direct reporting without encoding knowledge of any particular company or product.
+    """
+
+    normalized = " ".join(claim.split())
+    if not normalized:
+        return []
+    query_language = "hu" if language == "hu" else "en"
+    terms = re.findall(r"[\w.-]+", normalized, flags=re.UNICODE)
+    normalized_terms = {term.casefold() for term in terms}
+    if not normalized_terms & ATTRIBUTION_TERMS:
+        return []
+    distinctive = list(
+        dict.fromkeys(
+            term
+            for term in terms
+            if any(character.isupper() or character.isdigit() for character in term)
+            or "-" in term
+        )
+    )
+    anchor = " ".join(distinctive[:8]) or normalized
+    qualifier = (
+        "hivatalos bejelentés eredeti közlemény interjú"
+        if query_language == "hu"
+        else "official announcement original statement interview"
+    )
+    return [
+        (query_language, normalized),
+        (query_language, f"{anchor} {qualifier}"),
+    ]
+
+
 def adaptive_search_supplements(
     claim: str,
     language: str,
@@ -216,17 +288,20 @@ def adaptive_search_supplements(
     anchor = " ".join(identifiers + numbers).strip()
 
     refinements: list[tuple[str, str]] = []
-    # Exact wording is especially useful for manuals, archives, standards, and quoted claims.
+    # Exact wording remains useful for manuals, archives, standards, and quoted claims.
     refinements.append(("en", f'"{normalized_claim}"'))
     context = f'"{anchor}" ' if anchor else ""
     if anchor:
-        refinements.append(
-            (
-                "en",
-                f"{context}manual specification service life durability test "
-                "technical documentation",
+        if claim_terms & TECHNICAL_DOCUMENT_TERMS:
+            refinements.append(
+                (
+                    "en",
+                    f"{context}manual specification service life durability test "
+                    "technical documentation",
+                )
             )
-        )
+        else:
+            refinements.append(("en", f"{context}official source primary evidence report"))
     else:
         refinements.append(
             ("en", f"{normalized_claim} primary source research report official record")
@@ -656,7 +731,9 @@ class InvestigationPipeline:
         try:
             self._repository.set_status(investigation_id, "SEARCHING")
             queries = await self._ai.generate_search_queries(confirmed_claim, language)
-            query_plan = authoritative_search_supplements(confirmed_claim)
+            fidelity_plan = claim_fidelity_search_supplements(confirmed_claim, language)
+            query_plan = list(fidelity_plan)
+            query_plan.extend(authoritative_search_supplements(confirmed_claim))
             query_plan.extend(comparison_search_supplements(confirmed_claim))
             query_plan.extend(("en", query) for query in queries.english)
             if queries.use_hungarian and queries.scope == "hungary_specific":
@@ -725,7 +802,9 @@ class InvestigationPipeline:
             )
             if needs_fallback and self._fallback_search is not None:
                 providers_used.append(self._fallback_search.provider_name)
-                fallback_source_plan = refined_plan or query_plan
+                fallback_source_plan = list(
+                    dict.fromkeys(fidelity_plan + refined_plan + query_plan)
+                )
                 fallback_plan = fallback_source_plan[: self._fallback_search_query_limit]
                 fallback_batch = await self._search_candidates(self._fallback_search, fallback_plan)
                 search_successes += fallback_batch.successful_queries

@@ -105,6 +105,43 @@ def test_adaptive_search_uses_exact_claim_and_technical_identifiers() -> None:
     assert any(language == "hu" and "műszaki leírás" in query for language, query in plan)
 
 
+@pytest.mark.anyio
+async def test_attributed_claim_searches_exact_entities_before_ai_queries() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    claim = "OpenAI claims that GPT-6 Astra has reached AGI"
+    with Session(engine) as session:
+        ai = FakeAI(
+            SearchQueries(
+                scope="general",
+                use_hungarian=False,
+                english=["generic artificial intelligence query"],
+                hungarian=[],
+            )
+        )
+        search = FakeSearch()
+        pipeline = InvestigationPipeline(
+            ai,
+            search,
+            FakeFetcher(),
+            InvestigationRepository(session),
+            search_delay_seconds=0,
+        )
+        investigation_id, _ = await pipeline.create_and_interpret(claim)
+
+        await pipeline.investigate_confirmed(investigation_id, claim)
+
+        assert search.calls[:2] == [
+            (claim, "en"),
+            (
+                "OpenAI GPT-6 Astra AGI official announcement original statement interview",
+                "en",
+            ),
+        ]
+        assert search.calls[2] == ("generic artificial intelligence query", "en")
+    engine.dispose()
+
+
 class EmptySearch:
     provider_name = "empty-search"
 
