@@ -82,6 +82,12 @@ h1 {
   letter-spacing: -.055em;
 }
 
+.hero h1 {
+  margin-bottom: .45rem;
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  line-height: .86;
+}
+
 .tagline { color: #344b58; }
 .lead,
 .muted,
@@ -406,6 +412,7 @@ blockquote,
 
 @media (max-width: 700px) {
   .site-header { height: auto; min-height: 82px; padding: .8rem 0; }
+  .hero h1 { font-size: clamp(2.85rem, 15vw, 3.8rem); }
   .steps article { border-right: 0; border-bottom: 1px solid var(--ink); }
   .steps article:last-child { border-bottom: 0; }
   .examples::before { right: 12px; }
