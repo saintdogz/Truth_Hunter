@@ -9,15 +9,18 @@ from app.core.config import Settings
 from app.notifications.discord import DiscordNotifier, sanitize_claim
 
 
-def discord_settings(**updates: object) -> Settings:
-    values: dict[str, object] = {
-        "_env_file": None,
-        "app_env": "test",
-        "database_url": "postgresql+psycopg://truthhunter:test@localhost/test",
-        "discord_webhook_url": "https://discord.com/api/webhooks/123/token",
-    }
-    values.update(updates)
-    return Settings(**values)
+def discord_settings(
+    *,
+    discord_notifications_enabled: bool = True,
+    discord_webhook_url: str = "https://discord.com/api/webhooks/123/token",
+) -> Settings:
+    return Settings(
+        _env_file=None,
+        app_env="test",
+        database_url="postgresql+psycopg://truthhunter:test@localhost/test",
+        discord_notifications_enabled=discord_notifications_enabled,
+        discord_webhook_url=discord_webhook_url,
+    )
 
 
 def test_claim_excerpt_redacts_common_identifiers_and_mentions() -> None:

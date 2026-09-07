@@ -103,9 +103,12 @@ def test_claim_fidelity_queries_are_generic_and_bounded() -> None:
         ("en", "WHO announced a revised malaria recommendation"),
         ("en", "WHO official announcement original statement interview"),
     ]
-    assert claim_fidelity_search_supplements(
-        "A minisztérium bejelentette az új támogatást", "hu"
-    )[0][0] == "hu"
+    assert (
+        claim_fidelity_search_supplements("A minisztérium bejelentette az új támogatást", "hu")[0][
+            0
+        ]
+        == "hu"
+    )
 
 
 def test_non_attributed_claim_does_not_add_search_traffic() -> None:

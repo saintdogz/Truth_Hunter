@@ -235,8 +235,7 @@ def claim_fidelity_search_supplements(claim: str, language: str) -> list[tuple[s
         dict.fromkeys(
             term
             for term in terms
-            if any(character.isupper() or character.isdigit() for character in term)
-            or "-" in term
+            if any(character.isupper() or character.isdigit() for character in term) or "-" in term
         )
     )
     anchor = " ".join(distinctive[:8]) or normalized
