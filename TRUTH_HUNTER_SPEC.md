@@ -1,7 +1,8 @@
 # Truth Hunter --- MVP Product & Engineering Specification
 
-**Version:** 0.1\
-**Status:** Initial MVP specification\
+**Specification version:** 0.9.0-rc2 (implementation-aligned)\
+**Product status:** Public release candidate at `https://truth.abathur.hu`\
+**Last reconciled with implementation:** 2026-09-07\
 **Tagline:** **Don't believe it. Investigate it.**
 
 ------------------------------------------------------------------------
@@ -67,6 +68,35 @@ resource-conscious.
 
 Local LLM inference is **not** part of the MVP. Use online AI APIs.
 
+### Current implementation snapshot
+
+The deployed release candidate is `0.9.0-rc2`. It includes the complete text
+and image-OCR investigation flow, English/Hungarian UI, accounts and Resend
+email delivery, private history, optional public sharing and reporting,
+feedback, voluntary external support, a read-only step-up-protected operations
+dashboard, durable abuse limits, Turnstile, Discord operational notifications,
+encrypted PostgreSQL backup/restore tooling, and Docker/Caddy production
+deployment.
+
+Known gaps that must remain visible rather than being silently described as
+complete:
+
+-   Independent Hungary/EU legal review and final accessibility/smoke review
+    remain stable-1.0 release gates.
+-   The dashboard shows reports but does not yet provide report-status mutation.
+-   Claim/evidence retention rules are disclosed but automated age-based data
+    deletion is not implemented.
+-   External uptime/disk/TLS alerting and a second off-host encrypted backup copy
+    are recommended operational improvements, not application features.
+-   `SOURCE_EVALUATION_LIMIT` is currently applied to each collection pass
+    (initial SearXNG, adaptive SearXNG, and Brave fallback) rather than once
+    across the entire investigation. A unified total budget is a pre-1.0 cost
+    and latency hardening item.
+-   The Discord failure notification still uses legacy “credit not consumed”
+    wording even though the product is free and has no credit system. Replace
+    this with neutral “no provider capacity charged after failure” wording or
+    omit the line before stable 1.0.
+
 ------------------------------------------------------------------------
 
 ## 4. MVP User Flow
@@ -113,10 +143,11 @@ Do not create a long conversational workflow.
 
 Visual direction:
 
--   Dark mode
--   Technical / hacker-inspired
--   Professional and trustworthy
--   Avoid excessive neon, fake terminal gimmicks, crypto aesthetics, or
+-   Warm, light editorial investigation/dossier aesthetic
+-   Paper, ink-blue, and restrained vermilion visual language
+-   Professional, trustworthy, readable, and distinct from generic neon AI
+    dashboards
+-   Avoid hacker-terminal gimmicks, crypto aesthetics, excessive glow, and
     clutter
 
 Brand:
@@ -292,7 +323,7 @@ Confirmed claim
     ↓
 Generate search queries
     ↓
-Search Hungarian + English web
+Search the English web, adding Hungarian searches when evidence is Hungary-specific
     ↓
 Collect candidate sources
     ↓
@@ -354,8 +385,8 @@ class SearchProvider(Protocol):
         ...
 ```
 
-Potential future providers may include Brave or other commercial search
-APIs.
+The implemented fallback is the official Brave Search API. Additional search
+providers may be added behind the same interface later.
 
 ### Search scope
 
@@ -712,22 +743,25 @@ verdict.
 
 ## 19. Result Page
 
-Order:
+Use progressive disclosure. The initial summary view contains:
 
-1.  Original claim
-2.  Interpreted/investigated claim
-3.  Verdict
-4.  Visual evidence balance
-5.  Confidence
-6.  Short explanation
+1.  Interpreted/investigated claim
+2.  Collapsed original-versus-interpreted wording review
+3.  Verdict and confidence with its deterministic explanation
+4.  Visual evidence balance when the sufficiency gate passed
+5.  Short explanation
+6.  Conflict warning where relevant
+
+One obvious expandable evidence section then contains:
+
 7.  Up to 3 strongest Pro arguments
 8.  Up to 3 strongest Contra arguments
-9.  Conflict warning where relevant
-10. "How did we reach this result?" expandable methodology
-11. Investigation metadata
-12. Evidence/source area
-13. Helpful / Not Helpful feedback
-14. Share controls where available
+9.  Expandable methodology
+10. Investigation metadata
+11. Expandable evidence/source cards with excerpts, scores, and original links
+
+Owner-only sharing and helpful/not-helpful feedback controls follow the result.
+Public views instead show a public-result notice and reporting control.
 
 Maximum:
 
@@ -827,8 +861,10 @@ provider reaches a free-tier limit or returns an unusable response.
 -   Bound the source text sent for evidence evaluation independently from the
     larger text retained in the evidence snapshot. The default AI evaluation
     input cap is 12,000 characters per source.
--   Bound total source evaluations per investigation. The default maximum is
-    15, even when fewer than 15 sources pass the relevance threshold.
+-   Bound source evaluations per collection pass. The current default maximum
+    is 15 for each initial, adaptive, or fallback pass, even when fewer than 15
+    sources pass the relevance threshold. Consolidating this into one total
+    investigation budget is a documented pre-1.0 hardening item.
 -   Treat HTTP 413 as an oversized-payload failure and reduce input size rather
     than repeatedly sending the same request.
 -   Treat HTTP 429 and temporary availability errors as retryable. Use bounded
@@ -847,6 +883,17 @@ provider reaches a free-tier limit or returns an unusable response.
 
 These controls are reliability safeguards, not permission for unbounded API
 spending. The per-investigation paid-call cap remains mandatory.
+
+### Optional operational notifications
+
+When configured, a private Discord webhook receives best-effort submission,
+completion, and failure notices. Notices contain only a shortened investigation
+identifier, sanitized/truncated claim excerpt, outcome, source count, and
+duration where available. Common email addresses, IP addresses, phone numbers,
+URLs, mentions, and formatting triggers are removed from claim excerpts.
+Notification delivery must never change an investigation outcome. Webhook URLs
+are secrets, are accepted only for official Discord HTTPS hosts, and must be
+redacted or suppressed at the logging boundary.
 
 ------------------------------------------------------------------------
 
@@ -1107,7 +1154,6 @@ Possible statuses:
 ``` text
 OPEN
 REVIEWED
-DISMISSED
 ACTIONED
 ```
 
@@ -1139,28 +1185,17 @@ metrics are visible only in the private admin dashboard.
 
 ## 31. Analytics
 
-Use privacy-conscious product analytics.
+Use privacy-conscious operational analytics derived from stored application
+records. The MVP does not use third-party analytics scripts and does not persist
+a separate clickstream or generic `analytics_events` table.
 
-Track events such as:
+The private dashboard aggregates investigation states and durations, provider
+attempts, source/evidence quality signals, account totals, feedback, and public
+reports. Raw claim text, email addresses, user identities, source text, IP
+addresses, and credentials must not appear in dashboard telemetry.
 
-``` text
-landing_view
-claim_submitted
-claim_confirmed
-investigation_started
-investigation_completed
-investigation_failed
-anonymous_investigation_started
-registration_completed
-support_link_opened
-public_shared
-feedback_positive
-feedback_negative
-```
-
-Do not include raw claim text in general analytics events.
-
-Admin should be able to see growth and operational metrics.
+Dedicated event analytics such as landing views, support-link clicks, and funnel
+tracking are deferred until there is a defined need and privacy review.
 
 Do not build a business model around selling personal investigation
 histories.
@@ -1186,27 +1221,21 @@ Sections/metrics may include:
 -   Processing times
 -   Popular/general claim patterns where privacy-safe
 
-### Payments
-
--   Revenue
--   Purchases
--   Credits
-
 ### AI/Search
 
 -   AI provider/model
 -   Usage
 -   Search failures
 -   AI failures
--   Estimated API costs/usage where applicable
+-   Provider-call, fallback, source-count, and runtime usage
 
-Even when using free APIs, retain usage/cost telemetry support for
-future paid providers.
+Even when using free APIs, retain sanitized call/outcome telemetry so more
+precise cost accounting can be added if future paid usage warrants it.
 
 ### Moderation
 
 -   Reports
--   Status/actions
+-   Status visibility and aggregate counts
 
 ### Feedback
 
@@ -1222,7 +1251,11 @@ Do not build a large enterprise analytics system.
 
 ## 33. AI Architecture
 
-Use **one AI model for MVP**.
+Use an ordered, replaceable provider chain. Production is configured free-first
+with Groq and Gemini, followed by an explicitly enabled and per-investigation
+capped paid DeepSeek fallback. Missing provider keys skip that provider. The
+codebase also retains generic OpenAI-compatible and OpenRouter adapters, but an
+adapter being present does not mean it is enabled in production.
 
 Do not use local LLM inference in MVP.
 
@@ -1235,8 +1268,16 @@ class AIProvider(Protocol):
 
     async def interpret_claim(
         self,
-        claim: str
+        claim: str,
+        detected_language: str
     ) -> ClaimInterpretation:
+        ...
+
+    async def generate_search_queries(
+        self,
+        claim: str,
+        detected_language: str
+    ) -> SearchQueries:
         ...
 
     async def evaluate_evidence(
@@ -1249,7 +1290,9 @@ class AIProvider(Protocol):
     async def generate_summary(
         self,
         claim: str,
-        assessment: InvestigationAssessment
+        assessment: AssessmentDraft,
+        evidence: list[EvidenceAssessment],
+        language: str
     ) -> InvestigationSummary:
         ...
 ```
@@ -1259,7 +1302,10 @@ vendor.
 
 Do not couple the domain layer directly to a specific AI SDK.
 
-Show the model used on the result page.
+Show the final model used on the result page and persist sanitized attempt
+telemetry for every provider operation. Cooldowns prevent repeated calls to a
+provider that has recently returned a retryable limit or availability failure.
+Paid fallback must remain explicitly enabled and bounded.
 
 ------------------------------------------------------------------------
 
@@ -1270,7 +1316,8 @@ Prompts should be versioned.
 Examples:
 
 ``` text
-CLAIM_INTERPRETATION_PROMPT_V1
+CLAIM_INTERPRETATION_PROMPT_V2
+SEARCH_QUERY_PROMPT_V2
 EVIDENCE_EVALUATION_PROMPT_V1
 SUMMARY_PROMPT_V1
 ```
@@ -1285,12 +1332,10 @@ Do not expose hidden chain-of-thought.
 
 ------------------------------------------------------------------------
 
-## 35. Suggested Application Stack
+## 35. Implemented Application Stack
 
-For MVP, prefer a single application rather than separate
-frontend/backend services.
-
-Recommended:
+The MVP is a single application rather than separate frontend/backend
+services.
 
 ### Application
 
@@ -1303,8 +1348,8 @@ Recommended:
 ### UI
 
 -   Jinja2
--   HTMX
--   Tailwind CSS or similarly lightweight styling
+-   Server-rendered HTML
+-   Lightweight handwritten CSS and small progressive-enhancement JavaScript
 
 Avoid React/Next.js unless there is a concrete reason.
 
@@ -1337,75 +1382,56 @@ Explicitly avoid for MVP:
 
 ------------------------------------------------------------------------
 
-## 36. Suggested Repository Structure
+## 36. Implemented Repository Structure
+
+The following is an abridged map; packages are organized by product boundary
+rather than by a separate public API layer:
 
 ``` text
-truth-hunter/
+Truth_Hunter/
 │
-├── SPEC.md
+├── TRUTH_HUNTER_SPEC.md
 ├── README.md
 ├── app/
 │   ├── main.py
-│   ├── api/
-│   │   ├── auth.py
-│   │   ├── investigations.py
-│   │   ├── reports.py
-│   │   ├── feedback.py
-│   │   └── admin.py
+│   ├── abuse/
+│   ├── admin/
+│   ├── auth/
+│   ├── feedback/
+│   ├── notifications/
+│   ├── ocr/
+│   ├── sharing/
+│   ├── web/
 │   ├── core/
-│   │   ├── config.py
-│   │   ├── security.py
-│   │   ├── logging.py
-│   │   └── rate_limit.py
 │   ├── db/
-│   │   ├── database.py
 │   │   ├── models/
 │   │   └── migrations/
 │   ├── investigation/
-│   │   ├── pipeline.py
-│   │   ├── claim.py
-│   │   ├── sources.py
-│   │   ├── evidence.py
-│   │   ├── scoring.py
-│   │   ├── verdict.py
-│   │   └── prompts.py
 │   ├── ai/
-│   │   ├── base.py
-│   │   └── provider.py
 │   ├── search/
-│   │   ├── base.py
-│   │   └── searxng.py
-│   ├── analytics/
-│   │   └── service.py
+│   ├── static/
+│   │   ├── css/
+│   │   └── js/
 │   └── templates/
-│       ├── base.html
-│       ├── landing.html
-│       ├── claim_confirm.html
-│       ├── investigation.html
-│       ├── result.html
-│       ├── history.html
-│       ├── login.html
-│       ├── register.html
-│       ├── public_investigation.html
-│       ├── report.html
-│       └── admin/
-├── static/
-│   ├── css/
-│   ├── js/
-│   └── images/
+│       └── ...
+├── docs/
 ├── tests/
 │   ├── unit/
 │   ├── integration/
 │   └── security/
 ├── scripts/
-│   ├── backup_db.sh
-│   └── restore_db.sh
+│   ├── backup.ps1
+│   └── verify-restore.ps1
+├── tools/
+│   └── backup_tool.py
 ├── Dockerfile
+├── Dockerfile.backup
 ├── docker-compose.yml
 ├── Caddyfile
 ├── alembic.ini
 ├── pyproject.toml
 ├── .env.example
+├── .dockerignore
 └── .gitignore
 ```
 
@@ -1416,11 +1442,12 @@ introduce unnecessary services.
 
 ## 37. Core Database Entities
 
-Exact schema can evolve during implementation.
+The implemented persistence model is summarized below. Migrations remain the
+authoritative source for exact SQL types and constraints.
 
 ### users
 
-Suggested fields:
+Implemented fields:
 
 ``` text
 id
@@ -1428,6 +1455,7 @@ email
 password_hash
 google_subject
 email_verified
+session_version
 created_at
 deleted_at
 ```
@@ -1442,17 +1470,24 @@ original_claim
 interpreted_claim
 language
 claim_type
+correction_used
 status
 verdict
 supporting_score
 contradicting_score
+evidence_sufficient
 confidence
 summary
+pro_arguments
+contra_arguments
 conflict_detected
 conflict_summary
+conflicting_source_ids
 ai_model
+ai_provider_attempts
 prompt_version
 search_provider
+search_languages
 scoring_version
 source_count
 is_public
@@ -1475,6 +1510,7 @@ source_type
 quality_score
 relevance_score
 excerpt
+extracted_text
 created_at
 ```
 
@@ -1498,8 +1534,7 @@ summary
 ``` text
 id
 investigation_id
-reporter_user_id nullable
-reporter_session_id nullable
+reporter_session_id
 reason
 status
 created_at
@@ -1516,10 +1551,10 @@ value
 created_at
 ```
 
-### analytics_events
-
-Use privacy-conscious event fields; avoid storing raw claim text as
-generic analytics payload.
+The database also contains durable, keyed-hash abuse-limit buckets. Public
+reports currently use the signed guest/session identifier as their actor key.
+The MVP intentionally has no payments, credits, donor records, or generic
+analytics-event table.
 
 ------------------------------------------------------------------------
 
@@ -1537,7 +1572,6 @@ Minimum security expectations:
 -   Parameterized ORM/database operations
 -   Rate limiting
 -   Login brute-force protection
--   Payment webhook verification
 -   Secrets only through environment/runtime secret configuration
 -   Never commit `.env`
 -   Security headers
@@ -1592,22 +1626,23 @@ Do not allow the application to become a generic arbitrary URL proxy.
 
 ## 40. Docker Architecture
 
-Target Compose services:
+Implemented Compose services:
 
 ``` text
 truthhunter
 postgres
 searxng
 caddy
+backup (operations profile, run on demand or by the host scheduler)
 ```
 
-Potential volumes:
+Implemented named volumes:
 
 ``` text
 postgres_data
 searxng_data
-truthhunter_data
-backup_data
+caddy_data
+caddy_config
 ```
 
 Only expose necessary public ports.
@@ -1635,7 +1670,8 @@ Use Caddy for:
 The application should normally listen only within the Docker
 environment.
 
-Production domain is not required during initial local development.
+Production serves `truth.abathur.hu`; local development may continue to use
+`:80` without a production domain.
 
 ------------------------------------------------------------------------
 
@@ -1643,7 +1679,8 @@ Production domain is not required during initial local development.
 
 Provide a safe `.env.example`.
 
-Potential categories:
+Representative implemented categories (the checked-in `.env.example` is the
+complete reference):
 
 ``` text
 APP_ENV
@@ -1653,8 +1690,16 @@ DATABASE_URL
 AI_PROVIDER
 AI_API_KEY
 AI_MODEL
+AI_PROVIDER_ORDER
+ALLOW_PAID_AI_FALLBACK
+AI_MAX_PAID_FALLBACK_CALLS
+GROQ_API_KEY / GROQ_MODEL
+GEMINI_API_KEY / GEMINI_MODEL
+DEEPSEEK_API_KEY / DEEPSEEK_MODEL
 
 SEARXNG_URL
+BRAVE_SEARCH_API_KEY
+BRAVE_SEARCH_MAX_QUERIES_PER_INVESTIGATION
 
 SUPPORT_URL
 
@@ -1664,10 +1709,12 @@ GOOGLE_CLIENT_SECRET
 TURNSTILE_SITE_KEY
 TURNSTILE_SECRET_KEY
 
-EMAIL_PROVIDER_...
-ADMIN_2FA_...
+EMAIL_DELIVERY_MODE / RESEND_API_KEY / RESEND_FROM_EMAIL
+ADMIN_EMAILS / ADMIN_ACCESS_MAX_AGE_SECONDS / ADMIN_SESSION_MAX_AGE_SECONDS
+DISCORD_NOTIFICATIONS_ENABLED
+DISCORD_WEBHOOK_URL
 
-BACKUP_ENCRYPTION_...
+BACKUP_ENCRYPTION_KEY / BACKUP_RETENTION_DAYS / BACKUP_DIRECTORY
 ```
 
 Do not put real credentials into documentation, tests, source control,
@@ -1730,15 +1777,14 @@ Codex should create meaningful tests throughout development.
 -   Verdict thresholds
 -   Confidence
 -   Source classification
--   Credit consumption
--   Failed-investigation refund behavior
+-   Provider routing, cooldowns, and paid-fallback caps
+-   Evidence-gap versus infrastructure-failure behavior
 
 ### Integration
 
 -   Database
 -   Investigation pipeline with mocked AI/search
 -   Authentication
--   Payment verification with mocks/sandbox
 -   Search provider
 -   Public/private investigation authorization
 
@@ -1752,9 +1798,8 @@ Test important classes of failure, including:
 -   SSRF
 -   SQL injection assumptions
 -   Authorization bypass
--   Payment spoofing
 -   Authentication abuse
--   Locked-source access bypass
+-   Private/public result authorization bypass
 
 ### Scoring
 
@@ -1791,21 +1836,22 @@ prerequisite in FCL.105.A.
 
 ## 45. Basic Admin Metrics
 
-Track AI/search usage even if initial services are free.
-
-Eventually this allows analysis such as:
+Track operational usage even when initial services are free. The implemented
+dashboard currently exposes:
 
 ``` text
 Investigation
 AI calls
-Search calls
 Processing time
-Estimated provider cost
 Failures/retries
+Search route and source count
+Successful paid-fallback calls
 ```
 
-Operational cost per investigation should remain measurable so the owner can
-judge whether voluntary support and available capacity are sustainable.
+Exact token and monetary cost accounting is not implemented because providers
+do not expose uniform billing metadata through the current calls. Provider-call
+counts, fallback use, source counts, and runtime remain available as practical
+capacity signals. More exact cost telemetry may be added if paid usage grows.
 
 ------------------------------------------------------------------------
 
@@ -1856,7 +1902,6 @@ revised:
 -   Public claim search engine
 -   Mobile apps
 -   Customer API
--   Multiple AI-model routing
 -   Local LLMs
 -   Redis
 -   Celery
@@ -1902,8 +1947,8 @@ If interpretation is wrong, the user supplies the claim manually.
 
 -   Additional languages
 -   Subscriptions
--   Search-provider fallbacks
--   Multiple AI providers/models
+-   Additional search-provider fallbacks beyond SearXNG and Brave
+-   Additional AI providers/models beyond the current provider chain
 -   Knowledge graph / reusable claim intelligence
 -   Revalidation of old investigations
 -   Public investigation library
@@ -1918,7 +1963,13 @@ Do not let future vision expand MVP scope.
 
 ## 50. Implementation Phases
 
-### Phase 1 --- Foundation
+Phases 1 through 8 are implemented in the current `0.9.0-rc2` release
+candidate. Phase 9 is in progress; stable 1.0 remains gated by independent
+Hungary/EU legal review, focused beta feedback, accessibility checks, and final
+release smoke testing. The phase lists below describe scope and history rather
+than authorizing those features to be rebuilt.
+
+### Phase 1 --- Foundation (implemented)
 
 Implement only:
 
@@ -1938,7 +1989,7 @@ Implement only:
 Do **not** implement AI, search, authentication, payments, or the real
 investigation engine yet.
 
-### Phase 2 --- Core Investigation
+### Phase 2 --- Core Investigation (implemented)
 
 -   Claim validation
 -   Language detection
@@ -1954,7 +2005,7 @@ investigation engine yet.
 -   Conflict detection
 -   Investigation persistence
 
-### Phase 3 --- Investigation UI
+### Phase 3 --- Investigation UI (implemented)
 
 -   Landing page
 -   Claim confirmation
@@ -1965,7 +2016,7 @@ investigation engine yet.
 -   Bilingual UI
 -   Bounded still-image OCR feeding the existing claim confirmation flow
 
-### Phase 4 --- Accounts
+### Phase 4 --- Accounts (implemented; Google deferred)
 
 -   Email/password
 -   Google authentication deferred until after MVP
@@ -1974,7 +2025,7 @@ investigation engine yet.
 -   History
 -   Account deletion
 
-### Phase 5 --- Free Access / Voluntary Support
+### Phase 5 --- Free Access / Voluntary Support (implemented)
 
 -   Free access to complete results and evidence
 -   Configurable external support link
@@ -1985,26 +2036,25 @@ investigation engine yet.
 Integrated payments, credits, subscriptions, and evidence locking are
 explicitly deferred.
 
-### Phase 6 --- Sharing / Feedback
+### Phase 6 --- Sharing / Feedback (implemented)
 
 -   Public/private investigations
 -   Permanent share URLs
 -   Reports
 -   Helpful/not-helpful feedback
 
-### Phase 7 --- Admin / Analytics
+### Phase 7 --- Admin / Operational Analytics (implemented)
 
 -   Basic admin dashboard
 -   Admin 2FA
 -   Users
 -   Investigations
--   Payments
 -   Reports
 -   Feedback
--   Analytics
+-   Privacy-safe aggregate analytics
 -   System/provider usage
 
-### Phase 8 --- Production Hardening
+### Phase 8 --- Production Hardening (implemented)
 
 -   Turnstile
 -   Rate limiting
@@ -2025,7 +2075,7 @@ rendered only when both keys are configured and is always validated server-side;
 production additionally requires the expected `truth.abathur.hu` hostname and
 `claim-submit` action and rejects Cloudflare test credentials.
 
-### Phase 9 --- Full Testing / Launch
+### Phase 9 --- Full Testing / Stable Launch (in progress)
 
 -   Run test suite
 -   Fix issues
@@ -2033,12 +2083,18 @@ production additionally requires the expected `truth.abathur.hu` hostname and
 -   Domain/HTTPS
 -   Provider sandbox-to-production transitions
 -   Launch checklist
+-   Independent Hungary/EU legal review
+-   Accessibility and final release-candidate smoke checks
 
 ------------------------------------------------------------------------
 
 ## 51. Definition of Done
 
-The MVP is complete when a new visitor can:
+The following product and infrastructure capabilities are implemented in the
+release candidate. Stable 1.0 additionally requires the release gates stated in
+Phase 9.
+
+A new visitor can:
 
 1.  Open Truth Hunter.
 2.  Enter a short claim.
@@ -2076,12 +2132,13 @@ An admin can:
 
 27. Authenticate with mandatory 2FA.
 28. See basic users/investigation metrics.
-29. See operational usage and estimated provider costs without handling donor
-    financial details.
+29. See operational provider-call usage and paid-fallback counts without
+    handling donor financial details.
 30. See reports.
 31. See feedback.
 32. See failures and provider usage.
-33. Review report status.
+33. See open and previously reviewed report status aggregates. Report-state
+    mutation remains a post-RC moderation improvement.
 
 Infrastructure can:
 
@@ -2119,12 +2176,13 @@ Codex should follow these rules while implementing the project:
 
 ------------------------------------------------------------------------
 
-## 53. First Instruction to Codex
+## 53. Historical First Instruction to Codex
 
-After placing this file in the repository, give Codex the following
-instruction:
+This bootstrap instruction is retained for project history only. It was
+completed before Phase 1 implementation and must not override the current
+release-candidate status above:
 
-> You are the lead engineer for Truth Hunter. Read `SPEC.md` completely
+> You are the lead engineer for Truth Hunter. Read `TRUTH_HUNTER_SPEC.md` completely
 > and treat it as the authoritative MVP specification. Do not implement
 > the application yet. Inspect the repository and produce a concise
 > implementation plan for **Phase 1 only**. Phase 1 covers project
