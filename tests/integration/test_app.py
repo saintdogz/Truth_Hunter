@@ -14,6 +14,8 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert "TRUTH" in response.text
     assert "HUNTER" in response.text
     assert "Don&#39;t believe it. Investigate it." in response.text
+    assert "evidence-investigation tool—not a general AI chatbot" in response.text
+    assert "personal advice, subjective opinions, open-ended questions" in response.text
     assert "v0.9.0-rc2" in response.text
     assert '<form method="post" action="/investigations"' in response.text
     assert 'enctype="multipart/form-data"' in response.text
@@ -38,6 +40,8 @@ def test_home_supports_hungarian_interface(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert "Ne hidd el. Vizsgáld meg." in response.text
+    assert "nem általános célú AI-chatbot" in response.text
+    assert "szubjektív véleményekre, nyitott kérdésekre" in response.text
     assert "Nem tudod, mivel kezdd?" in response.text
 
 

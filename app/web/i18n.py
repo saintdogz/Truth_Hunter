@@ -13,7 +13,7 @@ COPY: dict[str, dict[str, str]] = {
     "en": {
         "tagline": "Don't believe it. Investigate it.",
         "eyebrow": "Evidence investigation",
-        "lead": "Submit a claim. We search fresh evidence in English and Hungarian, compare what supports and contradicts it, and show where uncertainty remains.",
+        "lead": "Truth Hunter is an evidence-investigation tool—not a general AI chatbot. It works best with one specific, checkable factual statement that can be supported or contradicted using current, traceable sources. It is not designed for personal advice, subjective opinions, open-ended questions, or testing how ‘smart’ an AI is.",
         "free": "Free to use — no account required",
         "support": "Support Truth Hunter",
         "claim_label": "What should we investigate?",
@@ -135,7 +135,7 @@ COPY: dict[str, dict[str, str]] = {
     "hu": {
         "tagline": "Ne hidd el. Vizsgáld meg.",
         "eyebrow": "Bizonyítékalapú vizsgálat",
-        "lead": "Küldj be egy állítást. Friss magyar és angol bizonyítékokat keresünk, összevetjük az alátámasztó és cáfoló forrásokat, és jelezzük a bizonytalanságot.",
+        "lead": "A Truth Hunter bizonyítékokat vizsgáló eszköz, nem általános célú AI-chatbot. Egy konkrét, ellenőrizhető tényállítással működik a legjobban, amelyet friss, visszakövethető források alátámaszthatnak vagy cáfolhatnak. Nem személyes tanácsadásra, szubjektív véleményekre, nyitott kérdésekre vagy az AI „okosságának” tesztelésére készült.",
         "free": "Ingyenesen használható — regisztráció nélkül",
         "support": "Támogasd a Truth Huntert",
         "claim_label": "Mit vizsgáljunk meg?",
