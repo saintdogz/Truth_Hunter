@@ -14,5 +14,13 @@
 		max_size 9MB
 	}
 
-	reverse_proxy truthhunter:8000
+	handle /api/unifi/alarm {
+		reverse_proxy abathur:8000 {
+			header_up Host abathur
+		}
+	}
+
+	handle {
+		reverse_proxy truthhunter:8000
+	}
 }
