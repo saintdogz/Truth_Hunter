@@ -16,6 +16,11 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert "Don&#39;t believe it. Investigate it." in response.text
     assert "evidence-investigation tool—not a general AI chatbot" in response.text
     assert "personal advice, subjective opinions, open-ended questions" in response.text
+    assert "Our long-term vision" in response.text
+    assert "From video to verifiable claims." in response.text
+    assert "Social media is flooded with misleading videos" in response.text
+    assert response.text.index('class="steps"') < response.text.index('class="vision-panel"')
+    assert response.text.index('class="vision-panel"') < response.text.index('class="examples"')
     assert "v0.9.0-rc2" in response.text
     assert '<form method="post" action="/investigations"' in response.text
     assert 'enctype="multipart/form-data"' in response.text
@@ -42,6 +47,9 @@ def test_home_supports_hungarian_interface(client: TestClient) -> None:
     assert "Ne hidd el. Vizsgáld meg." in response.text
     assert "nem általános célú AI-chatbot" in response.text
     assert "szubjektív véleményekre, nyitott kérdésekre" in response.text
+    assert "Hosszú távú célunk" in response.text
+    assert "Videóból ellenőrizhető állítások." in response.text
+    assert "A közösségi médiát elárasztják" in response.text
     assert "Nem tudod, mivel kezdd?" in response.text
 
 

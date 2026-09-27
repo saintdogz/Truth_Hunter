@@ -203,6 +203,16 @@ textarea:focus,
 .steps article:last-child { border-right: 0; }
 .steps span { color: var(--mint); font-weight: 900; }
 
+.vision-panel {
+  border-color: var(--blue);
+  border-left-color: var(--mint);
+  background: #fffdf7;
+  box-shadow: 8px 10px 0 rgb(49 92 112 / 10%);
+}
+
+.vision-panel h2 { color: var(--ink); }
+.vision-panel > p { color: #425963; }
+
 .examples {
   position: relative;
   border: 1px solid var(--line);
