@@ -581,6 +581,8 @@ html[data-theme="dark"] .theme-toggle {
   background: #20231f;
 }
 
+html[data-theme="dark"] .progress-card { border-top-color: var(--mint); }
+
 @media (max-width: 700px) {
   .site-header { height: auto; min-height: 82px; padding: .8rem 0; }
   .hero h1 { font-size: clamp(2.85rem, 15vw, 3.8rem); }
