@@ -583,10 +583,24 @@ html[data-theme="dark"] .theme-toggle {
 
 html[data-theme="dark"] .progress-card { border-top-color: var(--mint); }
 
+.share-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+.share-card-intro { display: flex; align-items: center; gap: .9rem; }
+.share-toggle-form { flex: 0 0 auto; margin-left: auto; }
+
 @media (max-width: 700px) {
   .site-header { height: auto; min-height: 82px; padding: .8rem 0; }
   .hero h1 { font-size: clamp(2.85rem, 15vw, 3.8rem); }
   .steps article { border-right: 0; border-bottom: 1px solid var(--ink); }
   .steps article:last-child { border-bottom: 0; }
   .examples::before { right: 12px; }
+  .share-card-header { align-items: stretch; flex-direction: column; }
+  .share-toggle-form { margin-left: 0; }
+  .share-toggle-form .button { width: 100%; }
 }

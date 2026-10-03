@@ -1,6 +1,7 @@
 """FastAPI application factory and ASGI entry point."""
 
 from contextlib import asynccontextmanager
+from hashlib import sha256
 from pathlib import Path
 from typing import cast
 
@@ -24,6 +25,17 @@ from app.web.routes import router
 from app.web.service import InvestigationWebService
 
 APP_DIR = Path(__file__).resolve().parent
+
+
+def static_asset_version() -> str:
+    """Return a content-derived cache key for every bundled static asset."""
+
+    digest = sha256()
+    static_dir = APP_DIR / "static"
+    for path in sorted(item for item in static_dir.rglob("*") if item.is_file()):
+        digest.update(path.relative_to(static_dir).as_posix().encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()[:12]
 
 
 def validate_runtime_adapters(settings: Settings) -> None:
@@ -53,6 +65,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = resolved_settings
     app.state.templates = Jinja2Templates(directory=APP_DIR / "templates")
+    app.state.templates.env.globals["asset_version"] = static_asset_version()
     app.state.investigation_service = InvestigationWebService(resolved_settings)
     app.state.account_email_sender = create_account_email_sender(resolved_settings)
     app.state.auth_rate_limiter = AuthRateLimiter(

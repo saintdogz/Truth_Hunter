@@ -1,5 +1,7 @@
 """Server-rendered application behavior tests."""
 
+import re
+
 from fastapi.testclient import TestClient
 from pydantic import AnyHttpUrl, SecretStr
 
@@ -33,6 +35,9 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert 'href="http://testserver/static/css/app.css?v=' in response.text
     assert 'src="http://testserver/static/js/theme.js?v=' in response.text
     assert 'class="theme-toggle"' in response.text
+    asset_versions = re.findall(r"/static/[^\"]+\?v=([a-f0-9]{12})", response.text)
+    assert len(asset_versions) >= 5
+    assert len(set(asset_versions)) == 1
     assert "Not sure where to start? Try a real claim." in response.text
     assert response.text.count('class="example-category"') == 3
     assert response.text.count("Try this claim") == 2
