@@ -102,6 +102,7 @@ def test_claim_submission_rejects_failed_turnstile(
     monkeypatch.setattr("app.web.routes.verify_turnstile", reject_challenge)
     home = client.get("/")
     assert "challenges.cloudflare.com/turnstile/v0/api.js" in home.text
+    assert 'data-theme="auto"' in home.text
     response = client.post(
         "/investigations",
         data={"claim": "A valid claim", "csrf": csrf_from(home.text)},

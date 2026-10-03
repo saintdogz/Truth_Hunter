@@ -31,6 +31,8 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert 'id="image-preview"' in response.text
     assert 'src="http://testserver/static/js/claim-input.js?v=' in response.text
     assert 'href="http://testserver/static/css/app.css?v=' in response.text
+    assert 'src="http://testserver/static/js/theme.js?v=' in response.text
+    assert 'class="theme-toggle"' in response.text
     assert "Not sure where to start? Try a real claim." in response.text
     assert response.text.count('class="example-category"') == 3
     assert response.text.count("Try this claim") == 2
@@ -117,6 +119,14 @@ def test_clipboard_image_script_is_served(client: TestClient) -> None:
     assert response.status_code == 200
     assert "DataTransfer" in response.text
     assert 'document.addEventListener("paste"' in response.text
+
+
+def test_theme_script_is_served(client: TestClient) -> None:
+    response = client.get("/static/js/theme.js")
+
+    assert response.status_code == 200
+    assert "truth-hunter-theme" in response.text
+    assert "prefers-color-scheme: dark" in response.text
 
 
 def test_custom_not_found_page(client: TestClient) -> None:

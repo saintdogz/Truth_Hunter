@@ -420,6 +420,167 @@ blockquote,
 .account-form label { color: var(--ink); }
 .history-list a:hover { border-color: var(--mint); }
 
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .38rem;
+  min-height: 32px;
+  padding: .32rem .55rem;
+  color: #4f5d65;
+  border: 1px solid #aaa18f;
+  border-radius: 2px;
+  background: var(--paper-bright);
+  cursor: pointer;
+  font: 700 .68rem ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+.theme-toggle:hover { color: var(--mint); border-color: var(--mint); }
+.theme-toggle-icon { font-size: .9rem; }
+
+html[data-theme="dark"] {
+  color: #e5dccb;
+  background: #11120f;
+  --panel: #1d211f;
+  --line: #514e45;
+  --muted: #aaa596;
+  --mint: #e06a50;
+  --red: #f07a75;
+  --amber: #d9a354;
+  --ink: #eee5d5;
+  --paper: #151714;
+  --paper-bright: #20231f;
+  --blue: #78a9bb;
+  --green: #72bd9d;
+}
+
+html[data-theme="dark"] body {
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(rgb(238 229 213 / 3%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(238 229 213 / 3%) 1px, transparent 1px),
+    radial-gradient(circle at 15% 0%, #292923 0, transparent 34rem);
+}
+
+html[data-theme="dark"] a { color: #ed8068; }
+html[data-theme="dark"] .site-header,
+html[data-theme="dark"] .site-footer { border-color: #777064; }
+html[data-theme="dark"] .site-footer { color: #9b978c; }
+html[data-theme="dark"] .language-nav { color: #8f8a7f; }
+html[data-theme="dark"] .language-nav a,
+html[data-theme="dark"] .footer-links a { color: #bbb6aa; }
+html[data-theme="dark"] .tagline { color: #c8c2b6; }
+html[data-theme="dark"] .vision-panel > p,
+html[data-theme="dark"] .example-grid button,
+html[data-theme="dark"] blockquote,
+html[data-theme="dark"] .source-detail blockquote { color: #b9b4a9; }
+
+html[data-theme="dark"] .claim-panel,
+html[data-theme="dark"] .page-card,
+html[data-theme="dark"] .balance-card,
+html[data-theme="dark"] .argument-card,
+html[data-theme="dark"] .metadata-card,
+html[data-theme="dark"] .locked-card,
+html[data-theme="dark"] .evidence-section,
+html[data-theme="dark"] .vision-panel,
+html[data-theme="dark"] .verdict-card,
+html[data-theme="dark"] .confidence-card,
+html[data-theme="dark"] .result-deep-dive,
+html[data-theme="dark"] .feedback-card,
+html[data-theme="dark"] .share-card,
+html[data-theme="dark"] .public-notice,
+html[data-theme="dark"] .report-card,
+html[data-theme="dark"] .about-flow article,
+html[data-theme="dark"] .about-card,
+html[data-theme="dark"] .about-feedback {
+  box-shadow: 7px 9px 0 rgb(0 0 0 / 24%);
+}
+
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] .account-form input,
+html[data-theme="dark"] .share-link-row input,
+html[data-theme="dark"] .report-card select {
+  color: var(--ink);
+  border-color: #625e54;
+  background: #171916;
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] .claim-form .image-upload {
+  color: var(--ink);
+  border-color: #625e54;
+  background: #191b18;
+}
+
+html[data-theme="dark"] .submission-privacy { color: #aaa596; }
+html[data-theme="dark"] .button.secondary {
+  color: var(--ink);
+  border-color: #696358;
+  background: #292a24;
+}
+
+html[data-theme="dark"] .steps { border-color: #777064; }
+html[data-theme="dark"] .steps article { border-color: #777064; }
+html[data-theme="dark"] .examples { background: #1a1c18; }
+html[data-theme="dark"] .example-grid button {
+  border-color: #514e45;
+  background: #20231f;
+  box-shadow: 3px 4px 0 rgb(0 0 0 / 22%);
+}
+html[data-theme="dark"] .example-grid button:hover { background: #292923; }
+
+html[data-theme="dark"] .claim-comparison div,
+html[data-theme="dark"] blockquote,
+html[data-theme="dark"] .source-detail blockquote,
+html[data-theme="dark"] .methodology,
+html[data-theme="dark"] .correction-box,
+html[data-theme="dark"] .metadata-card dl div,
+html[data-theme="dark"] .source-scores div { background: #292a24; }
+html[data-theme="dark"] .claim-comparison .interpreted { background: #382821; }
+
+html[data-theme="dark"] .stage-progress,
+html[data-theme="dark"] .indeterminate { background: #3c3b35; }
+html[data-theme="dark"] .progress-steps li { color: #969185; }
+html[data-theme="dark"] .progress-steps li span { border-color: #625e54; background: #282a25; }
+
+html[data-theme="dark"] .source-card { border-color: #514e45; background: var(--paper-bright); }
+html[data-theme="dark"] .source-card summary:hover { background: #292a24; }
+html[data-theme="dark"] .source-detail { border-color: #45433c; }
+html[data-theme="dark"] .source-index,
+html[data-theme="dark"] .source-identity small,
+html[data-theme="dark"] .expand-label { color: #9f9a8f; }
+html[data-theme="dark"] .position-badge { background: #18271f; }
+html[data-theme="dark"] .position-contradicting { background: #321c1c; }
+html[data-theme="dark"] .position-neutral,
+html[data-theme="dark"] .insufficient-balance,
+html[data-theme="dark"] .conflict-warning { color: #e2b66f; border-color: #80663b; background: #312718; }
+
+html[data-theme="dark"] .form-error,
+html[data-theme="dark"] .button.danger { color: #ffb7b3; border-color: #824d49; background: #351d1c; }
+html[data-theme="dark"] .form-success,
+html[data-theme="dark"] .development-link,
+html[data-theme="dark"] .public-notice { color: #a9ddc5; border-color: #467763; background: #17271f; }
+html[data-theme="dark"] .about-note { background: #30231e; }
+html[data-theme="dark"] .about-chip { background: #1b282d; }
+html[data-theme="dark"] .image-preview { background: #192820; }
+html[data-theme="dark"] .image-preview button,
+html[data-theme="dark"] .claim-form input[type="file"]::file-selector-button {
+  color: var(--ink);
+  border-color: #625e54;
+  background: #292a24;
+}
+
+html[data-theme="dark"] .history-list a,
+html[data-theme="dark"] .model-list li { border-color: #514e45; background: var(--paper-bright); }
+html[data-theme="dark"] .result-summary { color: #c6c0b4; }
+html[data-theme="dark"] .confidence-card p b,
+html[data-theme="dark"] .result-deep-dive > summary strong { color: var(--ink); }
+
+html[data-theme="dark"] .theme-toggle {
+  color: #d2ccbf;
+  border-color: #625e54;
+  background: #20231f;
+}
+
 @media (max-width: 700px) {
   .site-header { height: auto; min-height: 82px; padding: .8rem 0; }
   .hero h1 { font-size: clamp(2.85rem, 15vw, 3.8rem); }
