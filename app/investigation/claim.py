@@ -1,5 +1,7 @@
 """Claim validation and English/Hungarian language detection."""
 
+import re
+
 from lingua import Language, LanguageDetectorBuilder
 
 from app.investigation.models import ClaimInterpretation
@@ -7,6 +9,7 @@ from app.investigation.models import ClaimInterpretation
 MAX_CLAIM_LENGTH = 500
 
 _detector = LanguageDetectorBuilder.from_languages(Language.ENGLISH, Language.HUNGARIAN).build()
+_web_url = re.compile(r"(?:https?://|www\.)\S+", re.IGNORECASE)
 
 
 class InvalidClaimError(ValueError):
@@ -21,6 +24,12 @@ def validate_claim(claim: str) -> str:
     if len(claim) > MAX_CLAIM_LENGTH:
         raise InvalidClaimError(f"Claim must not exceed {MAX_CLAIM_LENGTH} characters")
     return claim
+
+
+def contains_web_url(claim: str) -> bool:
+    """Return whether claim text contains a web link unsupported by the current input flow."""
+
+    return _web_url.search(claim) is not None
 
 
 def detect_language(claim: str) -> str:

@@ -129,6 +129,30 @@ def test_claim_submission_returns_localized_rate_limit(
     assert not fake.items
 
 
+def test_link_submission_is_rejected_before_limits_or_ai(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = install_fake(client)
+
+    def unexpected_limit_check(*_args: object, **_kwargs: object) -> bool:
+        raise AssertionError("URL submissions must be rejected before usage accounting")
+
+    monkeypatch.setattr("app.web.routes.consume_public_limit", unexpected_limit_check)
+    home = client.get("/")
+    response = client.post(
+        "/investigations",
+        data={
+            "claim": "https://www.facebook.com/share/v/example Is this true?",
+            "csrf": csrf_from(home.text),
+        },
+    )
+
+    assert response.status_code == 400
+    assert "cannot open or analyze links yet" in response.text
+    assert "upload a screenshot" in response.text
+    assert not fake.items
+
+
 def test_submission_redirects_to_escaped_confirmation(client: TestClient) -> None:
     fake = install_fake(client)
     home = client.get("/")

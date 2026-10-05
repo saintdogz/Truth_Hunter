@@ -26,7 +26,7 @@ from app.core.config import Settings, get_settings
 from app.db.models import Investigation
 from app.db.session import database_is_ready, get_session
 from app.feedback.service import FeedbackError, submit_feedback
-from app.investigation.claim import InvalidClaimError, validate_claim
+from app.investigation.claim import InvalidClaimError, contains_web_url, validate_claim
 from app.investigation.pipeline import InvestigationPipelineError
 from app.investigation.repository import InvestigationNotFoundError
 from app.ocr import ImageTextError, extract_image_text
@@ -199,6 +199,21 @@ async def submit_claim(
     require_csrf(request, csrf)
     language = language_from_request(request)
     copy = copy_for(language)
+    has_claim = bool(claim.strip())
+    has_image = image is not None and bool(image.filename)
+    if has_claim and not has_image and contains_web_url(claim):
+        return render(
+            request,
+            "home.html",
+            {
+                "language": language,
+                "t": copy,
+                "csrf_token": csrf_token(request),
+                "claim": claim,
+                "error": copy["url_input_unsupported"],
+            },
+            status_code=400,
+        )
     remote_ip = request.client.host if request.client else None
     try:
         challenge_valid = await verify_turnstile(settings, turnstile_token, remote_ip)
@@ -242,8 +257,6 @@ async def submit_claim(
             status_code=429 if allowed is False else 503,
         )
     try:
-        has_claim = bool(claim.strip())
-        has_image = image is not None and bool(image.filename)
         if has_claim == has_image:
             raise InvalidClaimError("Enter a claim or upload one image, but not both.")
         submitted_claim = claim
@@ -344,6 +357,22 @@ async def start_investigation(
         return HTMLResponse("Not found", status_code=404)
     if investigation.status != "AWAITING_CONFIRMATION":
         return RedirectResponse(f"/investigations/{investigation_id}/progress", status_code=303)
+    corrected = action == "correct"
+    claim = corrected_claim if corrected else investigation.interpreted_claim
+    language = investigation.language or "en"
+    if contains_web_url(claim or ""):
+        return render(
+            request,
+            "claim_confirm.html",
+            {
+                "language": language,
+                "t": copy_for(language),
+                "investigation": investigation,
+                "csrf_token": csrf_token(request),
+                "error": copy_for(language)["url_input_unsupported"],
+            },
+            status_code=400,
+        )
     allowed = consume_public_limit(
         request,
         session,
@@ -367,8 +396,6 @@ async def start_investigation(
             },
             status_code=429 if allowed is False else 503,
         )
-    corrected = action == "correct"
-    claim = corrected_claim if corrected else investigation.interpreted_claim
     try:
         confirmed_claim = validate_claim(claim or "")
     except InvalidClaimError as exc:

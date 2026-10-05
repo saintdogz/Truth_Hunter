@@ -203,6 +203,14 @@ Store:
 -   Original claim exactly as entered
 -   Interpreted/confirmed claim
 
+The MVP does not open or analyze user-submitted web or social-media links.
+Detect an `http://`, `https://`, or `www.` URL deterministically before abuse
+quota accounting, AI interpretation, evidence search, or credit consumption.
+Reject it with localized guidance asking the user to paste the specific factual
+claim or upload a screenshot containing the claim. Apply the same guard to a
+claim edited on the confirmation screen so a URL cannot enter the investigation
+pipeline later in the flow.
+
 ### Image text input
 
 Users may alternatively upload one JPEG, PNG, or WebP image containing a
