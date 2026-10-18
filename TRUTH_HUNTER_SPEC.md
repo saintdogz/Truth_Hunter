@@ -1133,6 +1133,8 @@ Implemented Phase 6 behavior:
 
 - Private investigation UUID routes are ownership-bound to the authenticated
   account or signed guest session and return not found to other visitors.
+- Signed browser sessions last 30 days so anonymous owners can return to manage
+  and publish earlier investigations; state-changing forms remain CSRF-protected.
 - Publishing is an explicit CSRF-protected owner action. A cryptographically
   random permanent slug is created once and retained if the result is later
   made private and republished.

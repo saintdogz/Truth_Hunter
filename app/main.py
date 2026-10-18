@@ -80,7 +80,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         session_cookie="truthhunter_session",
         same_site="lax",
         https_only=resolved_settings.app_env == "production",
-        max_age=60 * 60 * 4,
+        max_age=resolved_settings.session_max_age_seconds,
     )
 
     @app.middleware("http")
@@ -103,12 +103,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, exc: StarletteHTTPException) -> HTMLResponse:
-        if exc.status_code == 404:
+        if exc.status_code in {403, 404}:
+            template = (
+                "errors/session_expired.html" if exc.status_code == 403 else "errors/404.html"
+            )
             return cast(
                 HTMLResponse,
                 app.state.templates.TemplateResponse(
                     request=request,
-                    name="errors/404.html",
+                    name=template,
                     context={
                         "app_name": resolved_settings.app_name,
                         "app_version": resolved_settings.app_version,
@@ -120,7 +123,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             "hu": language_switch_url(request, "hu"),
                         },
                     },
-                    status_code=404,
+                    status_code=exc.status_code,
                 ),
             )
         return HTMLResponse("Request failed", status_code=exc.status_code)

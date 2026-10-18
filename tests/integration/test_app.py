@@ -47,6 +47,24 @@ def test_home_is_branded_claim_landing_page(client: TestClient) -> None:
     assert '<span aria-hidden="true">03</span>' not in response.text
 
 
+def test_session_cookie_keeps_guest_ownership_for_thirty_days(client: TestClient) -> None:
+    response = client.get("/")
+
+    assert "Max-Age=2592000" in response.headers["set-cookie"]
+
+
+def test_csrf_failure_uses_branded_recovery_page(client: TestClient) -> None:
+    response = client.post(
+        "/investigations",
+        data={"claim": "A valid claim", "csrf": "expired"},
+    )
+
+    assert response.status_code == 403
+    assert "Your session expired" in response.text
+    assert "Refresh the previous page" in response.text
+    assert "Request failed" not in response.text
+
+
 def test_home_supports_hungarian_interface(client: TestClient) -> None:
     response = client.get("/?lang=hu")
 

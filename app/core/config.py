@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     app_port: int = 8000
     app_log_level: str = "INFO"
     app_trusted_hosts: str = "localhost,127.0.0.1,testserver,truthhunter"
+    session_max_age_seconds: int = Field(default=2_592_000, ge=14_400, le=2_592_000)
     database_url: str = (
         "postgresql+psycopg://truthhunter:development-only-change-me@localhost:5432/truthhunter"
     )
