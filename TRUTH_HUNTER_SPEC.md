@@ -2183,6 +2183,15 @@ Codex should follow these rules while implementing the project:
 13. Document important architectural decisions.
 14. Before large changes, explain the intended approach.
 15. Implement the project phase-by-phase.
+16. Treat the Truth Hunter Confluence documentation set as part of the product.
+    Every user-visible feature, architecture/provider change, security or privacy
+    change, deployment/operations change, and release-status change must update
+    the relevant Confluence overview or detailed child page before the work is
+    considered complete. Pure internal refactors with no behavior change do not
+    require a public documentation revision.
+17. Keep Confluence safe for public access: document behavior and configuration
+    variable names, never credentials, private addresses, webhook URLs,
+    encryption keys, personal data, or other sensitive values.
 
 ------------------------------------------------------------------------
 

@@ -9,7 +9,10 @@ changes with clear tests are welcome.
 2. Copy `.env.example` to `.env` and use development-only credentials.
 3. Start the stack with `docker compose up --build -d`.
 4. Add or update tests for meaningful behavior.
-5. Run the complete quality checks before opening a pull request.
+5. Update the matching Truth Hunter Confluence documentation for any
+   user-visible, architectural, provider, security/privacy, deployment,
+   operational, or release-status change.
+6. Run the complete quality checks before opening a pull request.
 
 ```powershell
 python -m pytest
@@ -27,6 +30,12 @@ docker compose config --quiet
 - Preserve AI and search provider abstractions.
 - Keep changes consistent with `TRUTH_HUNTER_SPEC.md` or explain the required
   specification revision.
+- Treat documentation as part of the feature: a change is not complete until
+  its relevant Confluence overview or detailed child page reflects the deployed
+  behavior. Internal refactors that do not change behavior need no public
+  documentation update.
+- Never copy credentials, private addresses, webhook URLs, encryption keys,
+  personal data, or other sensitive operational values into Confluence.
 - Do not expose private chain-of-thought.
 
 For vulnerabilities, follow `SECURITY.md` instead of opening a public issue.
