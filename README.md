@@ -7,7 +7,7 @@ submits a claim as text or an image, confirms the proposition the system
 understood, and receives a transparent assessment built from fresh web
 evidence—not an unsupported AI answer.
 
-[Live beta](https://truth.abathur.hu) · [Changelog](CHANGELOG.md) · [Product specification](TRUTH_HUNTER_SPEC.md) · [Security policy](SECURITY.md) · [Contributing](CONTRIBUTING.md)
+[Live beta](https://truth.abathur.hu) · [Public documentation](https://abathur.atlassian.net/wiki/external/MjM1N2Y2ZGQ1ZWE4NDgwOGFlNGVmMDg3ODM2OGY1Zjk) · [Changelog](CHANGELOG.md) · [Product specification](TRUTH_HUNTER_SPEC.md) · [Security policy](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
 ## Try Truth Hunter online
 
