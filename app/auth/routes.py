@@ -123,11 +123,14 @@ def register(
     try:
         _email_sender(request).send_verification(user.email, url, language)
     except EmailDeliveryError:
-        service.discard_unverified_registration(user)
         return _render(
             request,
-            "register.html",
-            {"error": copy["email_unavailable"], "email": email},
+            "resend_verification.html",
+            {
+                "error": copy["email_created_delivery_failed"],
+                "email": email,
+                "development_url": None,
+            },
             status_code=503,
         )
     return _render(
@@ -139,6 +142,49 @@ def register(
             "development_url": _development_email_url(settings, url),
         },
         status_code=201,
+    )
+
+
+@router.get("/resend-verification", response_class=HTMLResponse, include_in_schema=False)
+def resend_verification_page(request: Request) -> Response:
+    return _render(
+        request,
+        "resend_verification.html",
+        {"error": None, "email": "", "development_url": None},
+    )
+
+
+@router.post("/resend-verification", response_class=HTMLResponse, include_in_schema=False)
+def resend_verification(
+    request: Request,
+    email: Annotated[str, Form()],
+    csrf: Annotated[str, Form()],
+    session: Annotated[Session, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> Response:
+    require_csrf(request, csrf)
+    language = language_from_request(request)
+    copy = account_copy_for(language)
+    key = _rate_key(request, email, "verification")
+    development_url = None
+    if _limiter(request).allow(key):
+        service = AccountService(session, settings)
+        user = service.find_active_user(email)
+        if user is not None and not user.email_verified and user.password_hash is not None:
+            token = service.verification_token(user)
+            development_url = _account_url(settings, "/verify-email", token, language)
+            try:
+                _email_sender(request).send_verification(user.email, development_url, language)
+            except EmailDeliveryError:
+                development_url = None
+    return _render(
+        request,
+        "account_message.html",
+        {
+            "title": copy["request_received"],
+            "message": copy["resend_message"],
+            "development_url": _development_email_url(settings, development_url),
+        },
     )
 
 

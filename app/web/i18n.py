@@ -342,6 +342,9 @@ ACCOUNT_COPY: dict[str, dict[str, str]] = {
         "update_password": "Update password",
         "check_email": "Check your email",
         "verify_message": "Use the verification link to activate your account.",
+        "resend_verification": "Resend verification email",
+        "resend_message": "If an unverified account exists, a new verification link will be sent.",
+        "email_created_delivery_failed": "Your account was created, but we could not send the verification email. Try sending it again.",
         "verification_failed": "Verification failed",
         "request_received": "Request received",
         "reset_message": "If the account exists, a reset link will be sent.",
@@ -383,6 +386,9 @@ ACCOUNT_COPY: dict[str, dict[str, str]] = {
         "update_password": "Jelszó frissítése",
         "check_email": "Ellenőrizd az e-mailjeidet",
         "verify_message": "A fiók aktiválásához nyisd meg a megerősítő linket.",
+        "resend_verification": "Megerősítő e-mail újraküldése",
+        "resend_message": "Ha létezik nem megerősített fiók, új megerősítő linket küldünk.",
+        "email_created_delivery_failed": "A fiókod létrejött, de a megerősítő e-mailt nem sikerült elküldeni. Próbáld meg újra.",
         "verification_failed": "A megerősítés sikertelen",
         "request_received": "A kérést fogadtuk",
         "reset_message": "Ha a fiók létezik, elküldjük a visszaállító linket.",
@@ -514,8 +520,9 @@ def language_from_request(request: Request) -> Language:
 
 
 def language_switch_url(request: Request, language: Language) -> str:
+    path = "/" if request.url.path == "/investigations" else request.url.path
     parameters = [
         (key, value) for key, value in request.query_params.multi_items() if key != "lang"
     ]
     parameters.append(("lang", language))
-    return f"{request.url.path}?{urlencode(parameters)}"
+    return f"{path}?{urlencode(parameters)}"

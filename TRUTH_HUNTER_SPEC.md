@@ -986,6 +986,19 @@ Support:
 -   Email verification required
 -   Password reset
 -   Secure session management
+-   A registration is retained in an unverified state if verification-email
+    delivery is temporarily unavailable. The user can request another link
+    without repeating registration.
+-   Verification resend responses must not reveal whether an account exists and
+    must use the authentication rate limiter.
+-   Transactional delivery retries are limited to transient network, timeout,
+    rate-limit, and provider-availability failures. Retries reuse a provider
+    idempotency key to avoid duplicate messages; permanent request or
+    configuration failures are not retried.
+-   Delivery diagnostics may record message type, sanitized failure category,
+    provider status code, attempt count, and recovery outcome. They must never
+    contain recipient addresses, verification/reset tokens, provider response
+    bodies, credentials, or message content.
 
 ### Google login (deferred)
 

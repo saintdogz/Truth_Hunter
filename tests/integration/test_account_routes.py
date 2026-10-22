@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
+from app.auth.email import DevelopmentEmailSender, EmailDeliveryError
 from app.auth.routes import _development_email_url
 from app.core.config import Settings, get_settings
 from app.db.base import Base
@@ -177,3 +178,70 @@ def test_language_switch_preserves_account_token(account_client: TestClient) -> 
     assert response.status_code == 200
     assert "/reset-password?token=signed-token&amp;lang=en" in response.text
     assert "/reset-password?token=signed-token&amp;lang=hu" in response.text
+
+
+def test_failed_verification_delivery_retains_account_and_can_be_resent(
+    account_client: TestClient,
+) -> None:
+    class FailingSender:
+        def send_verification(self, email: str, url: str, language: str) -> None:
+            del email, url, language
+            raise EmailDeliveryError("provider_unavailable", status_code=503)
+
+        def send_password_reset(self, email: str, url: str, language: str) -> None:
+            del email, url, language
+
+        def send_admin_access(self, email: str, url: str, language: str) -> None:
+            del email, url, language
+
+    account_client.app.state.account_email_sender = FailingSender()
+    page = account_client.get("/register")
+    registered = account_client.post(
+        "/register",
+        data={
+            "email": "retry@example.com",
+            "password": "correct horse battery staple",
+            "csrf": csrf_from(page.text),
+        },
+    )
+
+    assert registered.status_code == 503
+    assert "account was created" in registered.text
+
+    development_sender = DevelopmentEmailSender()
+    account_client.app.state.account_email_sender = development_sender
+    resent = account_client.post(
+        "/resend-verification",
+        data={"email": "retry@example.com", "csrf": csrf_from(registered.text)},
+    )
+
+    assert resent.status_code == 200
+    assert "If an unverified account exists" in resent.text
+    assert len(development_sender.outbox) == 1
+    assert development_sender.outbox[0].kind == "verification"
+
+
+def test_resend_verification_does_not_reveal_account_existence(
+    account_client: TestClient,
+) -> None:
+    page = account_client.get("/resend-verification")
+    missing = account_client.post(
+        "/resend-verification",
+        data={"email": "missing@example.com", "csrf": csrf_from(page.text)},
+    )
+
+    assert missing.status_code == 200
+    assert "If an unverified account exists" in missing.text
+    assert "missing@example.com" not in missing.text
+
+
+def test_investigation_post_language_switch_returns_to_home(account_client: TestClient) -> None:
+    page = account_client.get("/")
+    response = account_client.post(
+        "/investigations?lang=hu",
+        data={"claim": "https://example.com", "csrf": csrf_from(page.text)},
+    )
+
+    assert response.status_code == 400
+    assert 'href="/?lang=en"' in response.text
+    assert 'href="/?lang=hu"' in response.text

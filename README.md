@@ -103,12 +103,17 @@ evolve without coupling the investigation pipeline to a single vendor.
   untrusted data.
 - CSRF protection, secure signed cookies, trusted-host validation, security
   headers, password hashing, and authentication throttling are enabled.
+- Verification-email delivery retries transient provider failures with an
+  idempotency key. Failed delivery retains the unverified account and offers a
+  rate-limited, non-enumerating resend flow.
 - URL fetching blocks private/internal destinations, revalidates redirects,
   ignores environment proxies, and enforces time, size, redirect, and content
   limits.
 - JPEG, PNG, and WebP uploads are verified by decoded content, bounded by bytes
   and pixels, and discarded after OCR.
 - Provider attempt telemetry stores outcomes without API keys or source text.
+- Transactional-email diagnostics record only delivery type, sanitized failure
+  category, status code, and attempt count—never addresses or account tokens.
 
 Please report vulnerabilities according to [SECURITY.md](SECURITY.md).
 

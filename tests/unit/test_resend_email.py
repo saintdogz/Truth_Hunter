@@ -40,8 +40,31 @@ def test_resend_failure_is_sanitized(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(httpx, "post", failed_post)
     sender = ResendEmailSender("secret-key", "accounts@example.com")
 
-    with pytest.raises(EmailDeliveryError, match="Transactional email delivery failed"):
+    with pytest.raises(EmailDeliveryError, match="Transactional email delivery failed") as error:
         sender.send_password_reset("person@example.com", "https://example.com/reset", "en")
+
+    assert error.value.category == "provider_rejected"
+    assert error.value.status_code == 401
+
+
+def test_resend_retries_transient_failure_with_one_idempotency_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts: list[str] = []
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        attempts.append(kwargs["headers"]["Idempotency-Key"])
+        status = 503 if len(attempts) == 1 else 200
+        return httpx.Response(status, json={"id": "email-id"}, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    monkeypatch.setattr("app.auth.email.sleep", lambda _: None)
+    sender = ResendEmailSender("secret-key", "accounts@example.com")
+
+    sender.send_verification("person@example.com", "https://example.com/verify", "en")
+
+    assert len(attempts) == 2
+    assert attempts[0] == attempts[1]
 
 
 def test_resend_factory_requires_complete_configuration() -> None:

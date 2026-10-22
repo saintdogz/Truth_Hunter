@@ -1,16 +1,26 @@
 """Replaceable account-email boundary and Resend transactional adapter."""
 
+import logging
 from dataclasses import dataclass
 from html import escape
+from time import sleep
 from typing import Protocol
+from uuid import uuid4
 
 import httpx
 
 from app.core.config import Settings
 
+logger = logging.getLogger(__name__)
+
 
 class EmailDeliveryError(RuntimeError):
     """Sanitized transactional delivery failure."""
+
+    def __init__(self, category: str, *, status_code: int | None = None) -> None:
+        super().__init__("Transactional email delivery failed")
+        self.category = category
+        self.status_code = status_code
 
 
 class AccountEmailSender(Protocol):
@@ -50,10 +60,18 @@ class DevelopmentEmailSender:
 class ResendEmailSender:
     endpoint = "https://api.resend.com/emails"
 
-    def __init__(self, api_key: str, from_email: str, *, timeout_seconds: float = 10.0) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        from_email: str,
+        *,
+        timeout_seconds: float = 10.0,
+        max_attempts: int = 3,
+    ) -> None:
         self._api_key = api_key
         self._from_email = from_email
         self._timeout = timeout_seconds
+        self._max_attempts = max_attempts
 
     def send_verification(self, email: str, url: str, language: str) -> None:
         copy = (
@@ -132,25 +150,74 @@ class ResendEmailSender:
             f'font-weight:bold">{escape(button)}</a></p>'
             '<p style="font-size:12px;color:#82939f">Truth Hunter</p></div>'
         )
-        try:
-            response = httpx.post(
-                self.endpoint,
-                headers={
-                    "Authorization": f"Bearer {self._api_key}",
-                    "User-Agent": "Truth-Hunter/0.1.0",
-                },
-                json={
-                    "from": self._from_email,
-                    "to": [recipient],
-                    "subject": subject,
-                    "html": html,
-                    "tags": [{"name": "message_type", "value": tag}],
-                },
-                timeout=self._timeout,
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "User-Agent": "Truth-Hunter/0.1.0",
+            "Idempotency-Key": f"truth-hunter-{tag}-{uuid4()}",
+        }
+        payload = {
+            "from": self._from_email,
+            "to": [recipient],
+            "subject": subject,
+            "html": html,
+            "tags": [{"name": "message_type", "value": tag}],
+        }
+        for attempt in range(1, self._max_attempts + 1):
+            category = "unknown"
+            status_code: int | None = None
+            retryable = False
+            try:
+                response = httpx.post(
+                    self.endpoint,
+                    headers=headers,
+                    json=payload,
+                    timeout=self._timeout,
+                )
+                response.raise_for_status()
+                if attempt > 1:
+                    logger.info("email_delivery_recovered type=%s attempts=%d", tag, attempt)
+                return
+            except httpx.TimeoutException as exc:
+                category = "timeout"
+                retryable = True
+                cause: Exception = exc
+            except httpx.HTTPStatusError as exc:
+                status_code = exc.response.status_code
+                if status_code == 429:
+                    category = "rate_limit"
+                    retryable = True
+                elif status_code >= 500:
+                    category = "provider_unavailable"
+                    retryable = True
+                else:
+                    category = "provider_rejected"
+                cause = exc
+            except httpx.RequestError as exc:
+                category = "network"
+                retryable = True
+                cause = exc
+            except ValueError as exc:
+                category = "invalid_request"
+                cause = exc
+
+            if retryable and attempt < self._max_attempts:
+                logger.warning(
+                    "email_delivery_retry type=%s category=%s status=%s attempt=%d",
+                    tag,
+                    category,
+                    status_code,
+                    attempt,
+                )
+                sleep(0.25 * attempt)
+                continue
+            logger.error(
+                "email_delivery_failed type=%s category=%s status=%s attempts=%d",
+                tag,
+                category,
+                status_code,
+                attempt,
             )
-            response.raise_for_status()
-        except (httpx.HTTPError, ValueError) as exc:
-            raise EmailDeliveryError("Transactional email delivery failed") from exc
+            raise EmailDeliveryError(category, status_code=status_code) from cause
 
 
 def create_account_email_sender(settings: Settings) -> AccountEmailSender:

@@ -7,6 +7,24 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ## [Unreleased]
 
+### Added
+
+- A privacy-preserving verification-email resend flow for unverified accounts.
+- Sanitized transactional-email failure categories and retry telemetry that omit
+  recipient addresses, tokens, provider response bodies, and credentials.
+
+### Changed
+
+- Retry transient Resend timeouts, network failures, rate limits, and provider
+  outages up to three times with a shared idempotency key.
+- Retain a newly created unverified account when verification-email delivery is
+  temporarily unavailable, allowing the owner to retry without registering again.
+
+### Fixed
+
+- Make the language switch on a rejected claim submission return to the homepage
+  instead of issuing an unsupported `GET /investigations` request.
+
 ## [0.9.0-rc2] - 2026-08-30
 
 ### Changed
