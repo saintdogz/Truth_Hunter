@@ -19,11 +19,24 @@ currently a public beta, so behavior and interfaces may change before version 1.
   outages up to three times with a shared idempotency key.
 - Retain a newly created unverified account when verification-email delivery is
   temporarily unavailable, allowing the owner to retry without registering again.
+- Keep OpenRouter available as an explicitly configured adapter, but remove it
+  from the default provider order so the documented Groq, Gemini, and bounded
+  DeepSeek policy is also the out-of-box configuration.
 
 ### Fixed
 
 - Make the language switch on a rejected claim submission return to the homepage
   instead of issuing an unsupported `GET /investigations` request.
+- Enforce owner checks consistently across confirmation, progress, status, and
+  private result UUID routes so another browser cannot inspect or start a leaked
+  investigation identifier.
+- Atomically reserve an investigation when its claim is confirmed so rapid or
+  concurrent submissions cannot enqueue duplicate search and AI work or consume
+  the public-start allowance twice.
+- Restore a green strict-type-checking CI run for the verification-email recovery
+  integration test and keep outbound HTTP user-agent versions aligned with the app.
+- Move the GitHub Actions checkout and Python setup steps to their Node.js 24-based
+  major versions.
 
 ## [0.9.0-rc2] - 2026-08-30
 

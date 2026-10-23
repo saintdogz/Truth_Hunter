@@ -9,9 +9,11 @@ from urllib.parse import urljoin, urlsplit
 import httpx
 from bs4 import BeautifulSoup
 
+from app import __version__
 from app.investigation.models import SearchResult, SourceDocument
 
 ALLOWED_CONTENT_TYPES = ("text/html", "text/plain", "application/xhtml+xml")
+USER_AGENT = f"TruthHunter/{__version__} (+evidence research)"
 
 
 class UnsafeUrlError(ValueError):
@@ -76,7 +78,7 @@ class SafeSourceFetcher:
             timeout=resolved_policy.timeout_seconds,
             follow_redirects=False,
             trust_env=False,
-            headers={"User-Agent": "TruthHunter/0.1 (+evidence research)"},
+            headers={"User-Agent": USER_AGENT},
         )
         self._owns_client = client is None
 

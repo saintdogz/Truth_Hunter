@@ -2,8 +2,10 @@
 
 import re
 from collections.abc import Iterator
+from typing import cast
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -194,7 +196,8 @@ def test_failed_verification_delivery_retains_account_and_can_be_resent(
         def send_admin_access(self, email: str, url: str, language: str) -> None:
             del email, url, language
 
-    account_client.app.state.account_email_sender = FailingSender()
+    app = cast(FastAPI, account_client.app)
+    app.state.account_email_sender = FailingSender()
     page = account_client.get("/register")
     registered = account_client.post(
         "/register",
@@ -209,7 +212,7 @@ def test_failed_verification_delivery_retains_account_and_can_be_resent(
     assert "account was created" in registered.text
 
     development_sender = DevelopmentEmailSender()
-    account_client.app.state.account_email_sender = development_sender
+    app.state.account_email_sender = development_sender
     resent = account_client.post(
         "/resend-verification",
         data={"email": "retry@example.com", "csrf": csrf_from(registered.text)},

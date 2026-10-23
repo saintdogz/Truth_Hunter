@@ -5,9 +5,14 @@ import ipaddress
 import httpx
 import pytest
 
+from app import __version__
 from app.investigation import fetcher as fetcher_module
-from app.investigation.fetcher import FetchPolicy, SafeSourceFetcher, UnsafeUrlError
+from app.investigation.fetcher import USER_AGENT, FetchPolicy, SafeSourceFetcher, UnsafeUrlError
 from app.investigation.models import SearchResult
+
+
+def test_fetcher_user_agent_tracks_application_version() -> None:
+    assert f"TruthHunter/{__version__} (+evidence research)" == USER_AGENT
 
 
 @pytest.mark.anyio

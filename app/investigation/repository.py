@@ -53,6 +53,36 @@ class InvestigationRepository:
         investigation.status = status
         self._session.commit()
 
+    def claim_start(self, investigation_id: UUID) -> bool:
+        """Atomically reserve an awaiting investigation for one background worker."""
+
+        claimed_id = self._session.scalar(
+            update(Investigation)
+            .where(
+                Investigation.id == investigation_id,
+                Investigation.status == "AWAITING_CONFIRMATION",
+            )
+            .values(status="SEARCHING")
+            .returning(Investigation.id)
+        )
+        self._session.commit()
+        return claimed_id is not None
+
+    def release_start_claim(self, investigation_id: UUID) -> bool:
+        """Release a reservation when work cannot be enqueued after claiming it."""
+
+        released_id = self._session.scalar(
+            update(Investigation)
+            .where(
+                Investigation.id == investigation_id,
+                Investigation.status == "SEARCHING",
+            )
+            .values(status="AWAITING_CONFIRMATION")
+            .returning(Investigation.id)
+        )
+        self._session.commit()
+        return released_id is not None
+
     def recover_interrupted(self) -> int:
         """Mark work owned by a previous application process as safely interrupted."""
 

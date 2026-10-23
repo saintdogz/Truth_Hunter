@@ -96,7 +96,9 @@ evolve without coupling the investigation pipeline to a single vendor.
 ## Security and privacy decisions
 
 - `.env`, credentials, databases, and build artifacts are excluded from Git.
-- Production rejects placeholder secrets and development email delivery.
+- Production rejects placeholder application/provider credentials and development
+  email delivery. Operators must also replace the Compose database and SearXNG
+  development placeholders before exposing a deployment.
 - The application container runs as an unprivileged user.
 - PostgreSQL and SearXNG do not publish host ports.
 - Claims, model outputs, fetched pages, and uploaded files are treated as

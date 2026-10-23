@@ -258,6 +258,13 @@ Options:
 -   Yes
 -   No --- I'll describe it myself
 
+Confirmation is owner-bound and atomically reserves an awaiting investigation
+before background work is queued. Repeated or concurrent confirmation requests
+must converge on the same progress page and must not enqueue duplicate search or
+AI work, consume a second public-start allowance, or spend provider quota twice.
+If the public-start allowance cannot be acquired, release the reservation so the
+owner can retry normally.
+
 Do not implement automatic subclaim trees in MVP.
 
 Suggested structured response:

@@ -60,6 +60,20 @@ class FakeWebService:
         self.investigate_calls.append((investigation_id, confirmed_claim, corrected))
         self.items[investigation_id].status = "SEARCHING"
 
+    def claim_start(self, investigation_id: UUID) -> bool:
+        investigation = self.items[investigation_id]
+        if investigation.status != "AWAITING_CONFIRMATION":
+            return False
+        investigation.status = "SEARCHING"
+        return True
+
+    def release_start_claim(self, investigation_id: UUID) -> bool:
+        investigation = self.items[investigation_id]
+        if investigation.status != "SEARCHING":
+            return False
+        investigation.status = "AWAITING_CONFIRMATION"
+        return True
+
     def get(self, investigation_id: UUID) -> Investigation:
         return self.items[investigation_id]
 
@@ -234,17 +248,74 @@ def test_single_correction_is_forwarded_to_background_service(client: TestClient
     assert fake.investigate_calls == [(investigation_id, corrected, True)]
 
 
+def test_start_rate_limit_releases_atomic_claim(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = install_fake(client)
+    home = client.get("/")
+    submitted = client.post(
+        "/investigations",
+        data={"claim": "A rate-limited claim", "csrf": csrf_from(home.text)},
+        follow_redirects=False,
+    )
+    confirmation = client.get(submitted.headers["location"])
+    investigation_id = next(iter(fake.items))
+    monkeypatch.setattr("app.web.routes.consume_public_limit", lambda *_args, **_kwargs: False)
+
+    response = client.post(
+        f"/investigations/{investigation_id}/confirm",
+        data={"action": "confirm", "csrf": csrf_from(confirmation.text)},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 429
+    assert fake.items[investigation_id].status == "AWAITING_CONFIRMATION"
+    assert fake.investigate_calls == []
+
+
+def test_losing_duplicate_confirmation_skips_limit_and_background_work(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = install_fake(client)
+    home = client.get("/")
+    submitted = client.post(
+        "/investigations",
+        data={"claim": "A duplicate claim", "csrf": csrf_from(home.text)},
+        follow_redirects=False,
+    )
+    confirmation = client.get(submitted.headers["location"])
+    investigation_id = next(iter(fake.items))
+    monkeypatch.setattr(fake, "claim_start", lambda _investigation_id: False)
+
+    def unexpected_limit_check(*_args: object, **_kwargs: object) -> bool:
+        raise AssertionError("A losing duplicate must not consume the public limit")
+
+    monkeypatch.setattr("app.web.routes.consume_public_limit", unexpected_limit_check)
+
+    response = client.post(
+        f"/investigations/{investigation_id}/confirm",
+        data={"action": "confirm", "csrf": csrf_from(confirmation.text)},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == f"/investigations/{investigation_id}/progress"
+    assert fake.investigate_calls == []
+
+
 def test_progress_status_is_localized(client: TestClient) -> None:
     fake = install_fake(client)
-    investigation_id = uuid4()
-    fake.items[investigation_id] = Investigation(
-        id=investigation_id,
-        original_claim="Eredeti állítás",
-        interpreted_claim="Értelmezett állítás",
-        language="hu",
-        claim_type="factual",
-        status="EVALUATING_EVIDENCE",
+    home = client.get("/?lang=hu")
+    client.post(
+        "/investigations?lang=hu",
+        data={"claim": "Eredeti állítás", "csrf": csrf_from(home.text)},
+        follow_redirects=False,
     )
+    investigation_id = next(iter(fake.items))
+    investigation = fake.items[investigation_id]
+    investigation.interpreted_claim = "Értelmezett állítás"
+    investigation.language = "hu"
+    investigation.status = "EVALUATING_EVIDENCE"
 
     response = client.get(f"/investigations/{investigation_id}/status")
 
@@ -266,6 +337,49 @@ def test_progress_status_is_localized(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json()["label"] == "A bizonyítékkeresés átmenetileg nem érhető el"
     assert response.json()["result_url"] is None
+
+
+@pytest.mark.parametrize("route_suffix", ["confirm", "progress", "status"])
+def test_private_workflow_get_routes_require_ownership(
+    client: TestClient, route_suffix: str
+) -> None:
+    fake = install_fake(client)
+    home = client.get("/")
+    client.post(
+        "/investigations",
+        data={"claim": "A private claim", "csrf": csrf_from(home.text)},
+        follow_redirects=False,
+    )
+    investigation_id = next(iter(fake.items))
+    client.cookies.clear()
+
+    response = client.get(f"/investigations/{investigation_id}/{route_suffix}")
+
+    assert response.status_code == 404
+    if route_suffix == "status":
+        assert response.json() == {"detail": "Not found"}
+
+
+def test_private_confirmation_post_requires_ownership(client: TestClient) -> None:
+    fake = install_fake(client)
+    owner_home = client.get("/")
+    client.post(
+        "/investigations",
+        data={"claim": "A private claim", "csrf": csrf_from(owner_home.text)},
+        follow_redirects=False,
+    )
+    investigation_id = next(iter(fake.items))
+    client.cookies.clear()
+    other_home = client.get("/")
+
+    response = client.post(
+        f"/investigations/{investigation_id}/confirm",
+        data={"action": "confirm", "csrf": csrf_from(other_home.text)},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 404
+    assert fake.investigate_calls == []
 
 
 def test_result_exposes_bounded_evidence_details_during_testing(client: TestClient) -> None:
@@ -462,6 +576,28 @@ def test_private_result_uuid_is_not_visible_without_ownership(client: TestClient
     )
 
     response = client.get(f"/investigations/{investigation_id}/result")
+
+    assert response.status_code == 404
+
+
+def test_noncompleted_private_result_uuid_is_not_visible_without_ownership(
+    client: TestClient,
+) -> None:
+    fake = install_fake(client)
+    investigation_id = uuid4()
+    fake.items[investigation_id] = Investigation(
+        id=investigation_id,
+        original_claim="Private in-progress claim",
+        interpreted_claim="Private in-progress claim",
+        language="en",
+        status="SEARCHING",
+        is_public=False,
+    )
+
+    response = client.get(
+        f"/investigations/{investigation_id}/result",
+        follow_redirects=False,
+    )
 
     assert response.status_code == 404
 

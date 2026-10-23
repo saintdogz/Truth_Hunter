@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import httpx
 
+from app import __version__
 from app.core.config import Settings
 
 logger = logging.getLogger(__name__)
@@ -152,7 +153,7 @@ class ResendEmailSender:
         )
         headers = {
             "Authorization": f"Bearer {self._api_key}",
-            "User-Agent": "Truth-Hunter/0.1.0",
+            "User-Agent": f"Truth-Hunter/{__version__}",
             "Idempotency-Key": f"truth-hunter-{tag}-{uuid4()}",
         }
         payload = {

@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 import pytest
 
+from app import __version__
 from app.auth.email import EmailDeliveryError, ResendEmailSender, create_account_email_sender
 from app.core.config import Settings
 
@@ -25,6 +26,7 @@ def test_resend_sends_bilingual_verification_payload(monkeypatch: pytest.MonkeyP
 
     assert captured["url"] == "https://api.resend.com/emails"
     assert captured["headers"]["Authorization"] == "Bearer secret-key"
+    assert captured["headers"]["User-Agent"] == f"Truth-Hunter/{__version__}"
     payload = captured["json"]
     assert payload["from"] == "Truth Hunter <accounts@example.com>"
     assert payload["to"] == ["person@example.com"]

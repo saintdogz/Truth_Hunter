@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     ai_fallback_provider: Literal["openai", "deepseek", "groq"] | None = None
     ai_fallback_api_key: SecretStr | None = None
     ai_fallback_model: str | None = None
-    ai_provider_order: str = "groq,gemini,openrouter,deepseek"
+    ai_provider_order: str = "groq,gemini,deepseek"
     allow_paid_ai_fallback: bool = False
     ai_max_paid_fallback_calls: int = Field(default=0, ge=0, le=50)
     groq_api_key: SecretStr | None = None

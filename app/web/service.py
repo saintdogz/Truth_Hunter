@@ -79,6 +79,14 @@ class InvestigationWebService:
             finally:
                 await pipeline.aclose()
 
+    def claim_start(self, investigation_id: UUID) -> bool:
+        with Session(get_engine()) as session:
+            return InvestigationRepository(session).claim_start(investigation_id)
+
+    def release_start_claim(self, investigation_id: UUID) -> bool:
+        with Session(get_engine()) as session:
+            return InvestigationRepository(session).release_start_claim(investigation_id)
+
     def get(self, investigation_id: UUID) -> Investigation:
         with Session(get_engine()) as session:
             statement = (

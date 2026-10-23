@@ -320,6 +320,8 @@ def confirm_claim(
         investigation = service.get(investigation_id)
     except InvestigationNotFoundError:
         return HTMLResponse("Not found", status_code=404)
+    if not _request_owns_investigation(request, investigation):
+        return HTMLResponse("Not found", status_code=404)
     if investigation.status == "COMPLETED":
         return RedirectResponse(f"/investigations/{investigation_id}/result", status_code=303)
     if investigation.status not in {"AWAITING_CONFIRMATION", "INTERPRETING"}:
@@ -355,6 +357,8 @@ async def start_investigation(
         investigation = service.get(investigation_id)
     except InvestigationNotFoundError:
         return HTMLResponse("Not found", status_code=404)
+    if not _request_owns_investigation(request, investigation):
+        return HTMLResponse("Not found", status_code=404)
     if investigation.status != "AWAITING_CONFIRMATION":
         return RedirectResponse(f"/investigations/{investigation_id}/progress", status_code=303)
     corrected = action == "correct"
@@ -373,6 +377,23 @@ async def start_investigation(
             },
             status_code=400,
         )
+    try:
+        confirmed_claim = validate_claim(claim or "")
+    except InvalidClaimError as exc:
+        return render(
+            request,
+            "claim_confirm.html",
+            {
+                "language": language,
+                "t": copy_for(language),
+                "investigation": investigation,
+                "csrf_token": csrf_token(request),
+                "error": str(exc),
+            },
+            status_code=400,
+        )
+    if not service.claim_start(investigation_id):
+        return RedirectResponse(f"/investigations/{investigation_id}/progress", status_code=303)
     allowed = consume_public_limit(
         request,
         session,
@@ -381,7 +402,7 @@ async def start_investigation(
         limit=settings.investigation_start_limit,
     )
     if allowed is not True:
-        language = investigation.language or "en"
+        service.release_start_claim(investigation_id)
         return render(
             request,
             "claim_confirm.html",
@@ -395,22 +416,6 @@ async def start_investigation(
                 ],
             },
             status_code=429 if allowed is False else 503,
-        )
-    try:
-        confirmed_claim = validate_claim(claim or "")
-    except InvalidClaimError as exc:
-        language = investigation.language or "en"
-        return render(
-            request,
-            "claim_confirm.html",
-            {
-                "language": language,
-                "t": copy_for(language),
-                "investigation": investigation,
-                "csrf_token": csrf_token(request),
-                "error": str(exc),
-            },
-            status_code=400,
         )
     background_tasks.add_task(
         service.investigate, investigation_id, confirmed_claim, corrected=corrected
@@ -432,6 +437,8 @@ def investigation_progress(
         investigation = service.get(investigation_id)
     except InvestigationNotFoundError:
         return HTMLResponse("Not found", status_code=404)
+    if not _request_owns_investigation(request, investigation):
+        return HTMLResponse("Not found", status_code=404)
     if investigation.status == "COMPLETED":
         return RedirectResponse(f"/investigations/{investigation_id}/result", status_code=303)
     language = investigation.language or "en"
@@ -451,12 +458,15 @@ def investigation_progress(
 
 @router.get("/investigations/{investigation_id}/status", tags=["investigations"])
 def investigation_status(
+    request: Request,
     investigation_id: UUID,
     service: Annotated[InvestigationWebService, Depends(get_investigation_service)],
 ) -> JSONResponse:
     try:
         investigation = service.get(investigation_id)
     except InvestigationNotFoundError:
+        return JSONResponse({"detail": "Not found"}, status_code=404)
+    if not _request_owns_investigation(request, investigation):
         return JSONResponse({"detail": "Not found"}, status_code=404)
     language = investigation.language or "en"
     return JSONResponse(
@@ -474,6 +484,16 @@ def investigation_status(
     )
 
 
+def _request_owns_investigation(request: Request, investigation: Investigation) -> bool:
+    raw_user_id = request.session.get("user_id")
+    raw_session_id = request.session.get("guest_session_id")
+    return owns_investigation(
+        investigation,
+        user_id=raw_user_id if isinstance(raw_user_id, str) else None,
+        session_id=raw_session_id if isinstance(raw_session_id, str) else None,
+    )
+
+
 @router.get(
     "/investigations/{investigation_id}/result",
     response_class=HTMLResponse,
@@ -488,22 +508,17 @@ def investigation_result(
         investigation = service.get(investigation_id)
     except InvestigationNotFoundError:
         return HTMLResponse("Not found", status_code=404)
-    if investigation.status != "COMPLETED":
-        return RedirectResponse(f"/investigations/{investigation_id}/progress", status_code=303)
-    raw_user_id = request.session.get("user_id")
-    raw_session_id = request.session.get("guest_session_id")
-    if not owns_investigation(
-        investigation,
-        user_id=raw_user_id if isinstance(raw_user_id, str) else None,
-        session_id=raw_session_id if isinstance(raw_session_id, str) else None,
-    ):
+    if not _request_owns_investigation(request, investigation):
         if (
-            request.query_params.get("sharing") == "published"
+            investigation.status == "COMPLETED"
+            and request.query_params.get("sharing") == "published"
             and investigation.is_public
             and investigation.public_slug
         ):
             return RedirectResponse(f"/investigation/{investigation.public_slug}", status_code=303)
         return HTMLResponse("Not found", status_code=404)
+    if investigation.status != "COMPLETED":
+        return RedirectResponse(f"/investigations/{investigation_id}/progress", status_code=303)
     return _render_result(request, investigation, is_public_view=False)
 
 
