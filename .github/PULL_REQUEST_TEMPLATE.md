@@ -1,4 +1,4 @@
-﻿## What does this PR do?
+## What does this PR do?
 
 - [ ] Summary of the change above
 

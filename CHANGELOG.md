@@ -12,6 +12,8 @@ currently a public beta, so behavior and interfaces may change before version 1.
 - A privacy-preserving verification-email resend flow for unverified accounts.
 - Sanitized transactional-email failure categories and retry telemetry that omit
   recipient addresses, tokens, provider response bodies, and credentials.
+- Repository hygiene checks for UTF-8 encoding, GitHub YAML syntax, and issue-template
+  front matter.
 
 ### Changed
 
@@ -25,6 +27,8 @@ currently a public beta, so behavior and interfaces may change before version 1.
 
 ### Fixed
 
+- Repair corrupted README punctuation, malformed developer-guide Markdown, and invalid
+  Dependabot YAML introduced by repository-maintenance automation.
 - Make the language switch on a rejected claim submission return to the homepage
   instead of issuing an unsupported `GET /investigations` request.
 - Enforce owner checks consistently across confirmation, progress, status, and

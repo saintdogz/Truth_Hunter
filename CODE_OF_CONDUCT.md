@@ -1,4 +1,4 @@
-﻿# Contributor Code of Conduct
+# Contributor Code of Conduct
 
 Be respectful, be direct, be kind. We are building an evidence-first fact investigation tool, and that spirit applies to how we treat each other too.
 
@@ -13,4 +13,4 @@ Be respectful, be direct, be kind. We are building an evidence-first fact invest
 
 Maintainers may remove comments, issues, or contributions that violate this spirit, and in repeated cases block a contributor.
 
-This is a deliberately short, human code of conduct. It replaces boilerplate, not the common sense.
+This is a deliberately short, human code of conduct. It replaces boilerplate, not common sense.

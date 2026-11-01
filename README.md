@@ -1,4 +1,4 @@
-﻿# Truth Hunter
+# Truth Hunter
 
 **Don't believe it. Investigate it.**
 
@@ -9,13 +9,13 @@
 Truth Hunter is a self-hosted evidence-investigation web application. A user
 submits a claim as text or an image, confirms the proposition the system
 understood, and receives a transparent assessment built from fresh web
-evidenceâ€”not an unsupported AI answer.
+evidence—not an unsupported AI answer.
 
-[Live beta](https://truth.abathur.hu) Â· [Public documentation](https://abathur.atlassian.net/wiki/external/MjM1N2Y2ZGQ1ZWE4NDgwOGFlNGVmMDg3ODM2OGY1Zjk) Â· [Changelog](CHANGELOG.md) Â· [Product specification](TRUTH_HUNTER_SPEC.md) Â· [Security policy](SECURITY.md) Â· [Contributing](CONTRIBUTING.md)
+[Live beta](https://truth.abathur.hu) · [Public documentation](https://abathur.atlassian.net/wiki/external/MjM1N2Y2ZGQ1ZWE4NDgwOGFlNGVmMDg3ODM2OGY1Zjk) · [Changelog](CHANGELOG.md) · [Product specification](TRUTH_HUNTER_SPEC.md) · [Security policy](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
 ## Try Truth Hunter online
 
-**[Launch the public beta at truth.abathur.hu â†’](https://truth.abathur.hu/)**
+**[Launch the public beta at truth.abathur.hu →](https://truth.abathur.hu/)**
 
 No installation is required, and visitors can run an investigation without an
 account. Truth Hunter is free during the public testing period; please inspect
@@ -59,8 +59,8 @@ flowchart LR
 3. **Evaluate sources.** Relevant pages are fetched through an SSRF-aware,
    size-limited extractor and converted into structured supporting,
    contradicting, or neutral evidence.
-4. **Calculate the assessment.** Versioned application codeâ€”not an unrestricted
-   model responseâ€”calculates evidence balance, sufficiency, confidence, and the
+4. **Calculate the assessment.** Versioned application code—not an unrestricted
+   model response—calculates evidence balance, sufficiency, confidence, and the
    verdict.
 5. **Show the work.** Results include concise reasoning, strongest arguments,
    conflicts, method metadata, bounded excerpts, and original source links.
@@ -119,7 +119,7 @@ evolve without coupling the investigation pipeline to a single vendor.
   and pixels, and discarded after OCR.
 - Provider attempt telemetry stores outcomes without API keys or source text.
 - Transactional-email diagnostics record only delivery type, sanitized failure
-  category, status code, and attempt countâ€”never addresses or account tokens.
+  category, status code, and attempt count—never addresses or account tokens.
 
 Please report vulnerabilities according to [SECURITY.md](SECURITY.md).
 
@@ -213,12 +213,6 @@ Production operators should configure encrypted database backups and perform
 regular recovery drills using the [backup and restore runbook](docs/BACKUP_AND_RESTORE.md).
 Public cost and bot controls are described in the
 [abuse-protection runbook](docs/ABUSE_PROTECTION.md).
-
-## Community
-
-[![Star history chart](https://api.star-history.githubusercontent.com/svg?repos=saintdogz/Truth_Hunter&type=Date)](https://star-history.com/#saintdogz/Truth_Hunter&Date)
-
-If Truth Hunter helps you check something important, a star helps others discover it.
 
 ## License
 

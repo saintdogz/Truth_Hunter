@@ -1,4 +1,4 @@
-﻿# Contributing to Truth Hunter
+# Contributing to Truth Hunter
 
 Truth Hunter is an early-stage evidence-investigation project. Small, focused
 changes with clear tests are welcome.
