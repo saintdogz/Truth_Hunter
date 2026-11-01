@@ -2,6 +2,10 @@
 
 **Don't believe it. Investigate it.**
 
+[![CI](https://github.com/saintdogz/Truth_Hunter/actions/workflows/ci.yml/badge.svg)](https://github.com/saintdogz/Truth_Hunter/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Release candidate](https://img.shields.io/badge/release-0.9.0--rc2-orange.svg)](CHANGELOG.md)
+
 Truth Hunter is a self-hosted evidence-investigation web application. A user
 submits a claim as text or an image, confirms the proposition the system
 understood, and receives a transparent assessment built from fresh web
