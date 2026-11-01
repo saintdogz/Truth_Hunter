@@ -1,4 +1,4 @@
-# Contributing to Truth Hunter
+﻿# Contributing to Truth Hunter
 
 Truth Hunter is an early-stage evidence-investigation project. Small, focused
 changes with clear tests are welcome.
@@ -62,3 +62,10 @@ Add a sanitized fixture to `tests/regression/cases.json` only after checking the
 claim against authoritative sources. Include the review date, expected verdict,
 expected confidence, and representative structured evidence. Do not include user
 identifiers, private investigation links, or copyrighted full-page content.
+
+## Quick links
+
+- Developer loop (setup, tests, checks): [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- Operator runbooks: [BACKUP_AND_RESTORE.md](docs/BACKUP_AND_RESTORE.md), [ABUSE_PROTECTION.md](docs/ABUSE_PROTECTION.md)
+- Security issues: [SECURITY.md](SECURITY.md) — please do not open public issues
+- Community: star history and feedback via the in-app controls at [truth.abathur.hu](https://truth.abathur.hu)
