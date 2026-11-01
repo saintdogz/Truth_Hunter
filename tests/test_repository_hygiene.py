@@ -21,7 +21,14 @@ TEXT_SUFFIXES = {
     ".yml",
 }
 TEXT_NAMES = {".dockerignore", ".editorconfig", ".gitattributes", "Caddyfile", "Dockerfile"}
-FORBIDDEN_TEXT = ("â€", "Â·", "â†", "ï»¿", "\ufffd", "''''''")
+FORBIDDEN_TEXT = (
+    "\u00e2\u20ac",
+    "\u00c2\u00b7",
+    "\u00e2\u2020",
+    "\u00ef\u00bb\u00bf",
+    "\ufffd",
+    "'" * 6,
+)
 
 
 def tracked_text_files() -> list[Path]:
