@@ -1,0 +1,19 @@
+# Normalize line endings: LF in the repository, platform-native in working copies.
+* text=auto
+
+# Shell, Docker, Caddy, and CI files must keep LF to run correctly in Linux containers.
+*.sh text eol=lf
+Dockerfile* text eol=lf
+Caddyfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
